@@ -1,6 +1,6 @@
 ---
 name: spec-update
-description: Change or refresh an existing docs/specs/ package outside an issue-flow run. Use when the user says "/spec-update", "add a feature to the spec", "update the spec", "change the spec", "retire a feature", or "refresh the spec" / "migrate the spec to the new format" after a plugin upgrade. Two modes - change (add, alter or retire features at full planner depth, then hand the new planned work to spec-to-issues) and refresh (mechanically bring an older spec package up to the current format contract - diagrams, generated spec.html, quality rules, ADR and external scaffolding - without inventing product content). Mid-run spec edits stay with the issue-flow PM's spec-maintenance mechanisms, not this skill.
+description: Change or refresh an existing docs/specs/ package outside an issue-flow run. Use when the user says "$issue-flow:spec-update", "add a feature to the spec", "update the spec", "change the spec", "retire a feature", or "refresh the spec" / "migrate the spec to the new format" after a plugin upgrade. Two modes - change (add, alter or retire features at full planner depth, then hand the new planned work to spec-to-issues) and refresh (mechanically bring an older spec package up to the current format contract - diagrams, generated spec.html, quality rules, ADR and external scaffolding - without inventing product content). Mid-run spec edits stay with the issue-flow PM's spec-maintenance mechanisms, not this skill.
 ---
 
 # Spec Update — evolve an approved spec without replanning the project
@@ -12,8 +12,8 @@ you handle the third case: **the user, between runs, wants the spec itself moved
 new scope, changed scope, or an old package brought up to the current format. You never
 create tracker issues and you never touch product code.
 
-**Preconditions.** `docs/specs/spec.md` exists (else point at `/project-planner` for
-greenfield or `/project-inherit` for an existing codebase, and stop) and no issue-flow
+**Preconditions.** `docs/specs/spec.md` exists (else point at `$issue-flow:project-planner` for
+greenfield or `$issue-flow:project-inherit` for an existing codebase, and stop) and no issue-flow
 session is mid-run on this repo (a live run's spec changes belong to its PM — check
 for a `flow:status` issue with recent activity and ask before proceeding under one).
 
@@ -29,8 +29,13 @@ external interfaces from fetched docs only, mockup and diagram obligations inclu
 
 1. **Scope the delta.** Read `spec.md`, the touched `features/*.md`, and — when the
    change lands on built behaviour — the relevant code, so the delta is written
-   against reality. Interview with `AskUserQuestion` only for product intent the
-   request leaves open; planner Phase 1 altitude, usually one round.
+   against reality. Survey the relevant files with an `explorer` agent when a free
+   thread slot is available. Use `spawn_agent` with `agent_type: "explorer"`,
+   `fork_turns: "none"`, and `model: "gpt-6-luna"`; check `list_agents` before each spawn.
+   If no slot is free, survey the files in your current thread. Ask plain-text numbered
+   questions only for product intent the request leaves open. Ask at most four questions
+   per message, then end your turn and wait for the operator's answer. Continue in a
+   later turn. Use planner Phase 1 altitude, usually one round.
 2. **Write the delta by kind:**
    - **New feature** — a new `features/NN-*.md` at full depth (stable new `id`,
      `status: planned`, `issues: []`, flow diagrams, mockups, FRs, acceptance
@@ -59,7 +64,7 @@ external interfaces from fetched docs only, mockup and diagram obligations inclu
    commented in the rendered pages, acting on each open comment and marking it
    resolved. A spec that was `approved` returns to `approved` only through the user's
    explicit approval of this round; record the round in `## Changelog`.
-5. **Handoff.** Commit and push, then point at `/spec-to-issues` — its `id` dedup
+5. **Handoff.** Commit and push, then point at `$issue-flow:spec-to-issues` — its `id` dedup
    means only the new or changed `planned` work becomes issues.
 
 ## Refresh mode — migrate the package to the current format

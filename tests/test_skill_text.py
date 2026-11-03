@@ -501,6 +501,41 @@ class NoAskUserQuestionTest(unittest.TestCase):
         self.assertNotIn("AskUserQuestion", (SKILL_DIR / "SKILL.md").read_text())
 
 
+class SpecSkillsInterviewTest(unittest.TestCase):
+    root = Path(__file__).resolve().parent.parent
+    names = ("project-planner", "project-inherit", "spec-update", "spec-to-issues")
+
+    def skill(self, name):
+        return (self.root / "skills" / name / "SKILL.md").read_text()
+
+    def test_spec_skills_use_plain_text_questions_and_end_the_turn(self):
+        for name in self.names:
+            with self.subTest(skill=name):
+                text = self.skill(name)
+                self.assertNotIn("AskUserQuestion", text)
+                self.assertIn("numbered", text.lower())
+                self.assertIn("end your turn", text.lower())
+                self.assertRegex(text, r"(?i)at most four|≤\s*4|four questions")
+
+    def test_spec_skills_name_handoffs_with_plugin_namespace(self):
+        for name in self.names:
+            with self.subTest(skill=name):
+                text = self.skill(name)
+                for skill in self.names:
+                    self.assertNotIn(f"`/{skill}`", text)
+                    self.assertNotIn(f'"/{skill}"', text)
+
+    def test_spec_skills_use_codex_explorers_with_a_free_slot_check(self):
+        for name in self.names:
+            with self.subTest(skill=name):
+                text = self.skill(name)
+                self.assertIn('agent_type: "explorer"', text)
+                self.assertIn('fork_turns: "none"', text)
+                self.assertIn('model: "gpt-6-luna"', text)
+                self.assertIn("list_agents", text)
+                self.assertIn("current thread", text.lower())
+
+
 class BatchGateFixTextTest(unittest.TestCase):
     def test_stage_d_and_the_intro_call_the_deploy_watch_a_subagent(self):
         text = " ".join(section("SKILL.md", "## Stage D", "## Stage E").split())

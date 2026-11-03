@@ -1,0 +1,33 @@
+repository = "https://example.invalid/upstream"
+tag = "v1"
+commit = "0000000000000000000000000000000000000000"
+
+[[file]]
+path = "verbatim.txt"
+mode = "verbatim"
+upstream_sha256 = "4718c5eaa177268e4836a117e77de2a600cc9354ea32b7c7d1b89057a1543817"
+notes = ""
+
+[[file]]
+path = "patched.txt"
+mode = "patched"
+upstream_sha256 = "1111111111111111111111111111111111111111111111111111111111111111"
+notes = "The port edits this file."
+
+[[file]]
+path = "rewritten.txt"
+mode = "rewritten"
+upstream_sha256 = "2222222222222222222222222222222222222222222222222222222222222222"
+notes = "The port rewrites this file."
+
+[[file]]
+path = "dropped.txt"
+mode = "dropped"
+upstream_sha256 = "3333333333333333333333333333333333333333333333333333333333333333"
+notes = "The port omits this file."
+
+[[file]]
+path = "new.txt"
+mode = "new"
+upstream_sha256 = ""
+notes = "The port adds this file."

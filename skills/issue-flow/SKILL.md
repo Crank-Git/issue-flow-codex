@@ -311,6 +311,9 @@ spent — run every step below yourself. The digest is an accelerator, never a d
    installed version as `pluginVersion` when you write the committed file. Full option
    tables, the authority matrix and how practices are enforced:
    [references/session-config.md](references/session-config.md).
+   If the operator changes concurrency, rerun `setup_project.py plan` and show the
+   `.codex/config.toml` diff. Ask to apply that file only, then pass it as the only
+   `--accept` path to `apply`.
    **You create worker worktrees.** Stage B step 5 runs `scripts/worktree.py create`, which
    makes the worktree under `.worktrees/<task_name>` in the project directory and prints
    its `path`. **You learn the path from that output**, and you pass it to the worker as

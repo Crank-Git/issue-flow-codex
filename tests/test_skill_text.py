@@ -319,3 +319,20 @@ class PhaseZeroTest(unittest.TestCase):
         text = phase_0()
         for word in ("claude mcp", "claude plugin", "ToolSearch", "isolation", "AskUserQuestion"):
             self.assertNotIn(word, text)
+
+
+class AfterCompactionTest(unittest.TestCase):
+    def text(self):
+        return section("SKILL.md", "### After a compaction", "### C1")
+
+    def test_names_the_reconcile_line_and_the_tracker_comment(self):
+        text = self.text()
+        self.assertIn("list_agents", text)
+        self.assertIn("worker launched:", text)
+        self.assertIn("context compacted", text)
+
+    def test_links_the_respawn_path(self):
+        self.assertIn("references/collaboration.md", self.text())
+
+    def test_asks_a_live_worker_for_its_verdict(self):
+        self.assertIn("followup_task", self.text())

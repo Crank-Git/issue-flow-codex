@@ -177,6 +177,15 @@ class PreflightTest(unittest.TestCase):
         out = self.run_hook(dict(PAYLOAD, source="compact", cwd=self.project), self.project)
         self.assertIn("issue-flow preflight: source=compact", out.splitlines())
 
+    def test_adds_the_reconcile_line_for_compact(self):
+        out = self.run_hook(dict(PAYLOAD, source="compact", cwd=self.project), self.project)
+        lines = out.splitlines()
+        self.assertEqual(
+            lines[2], "issue-flow: context compacted \u2014 reconcile before the next step")
+
+    def test_adds_no_reconcile_line_for_startup(self):
+        self.assertNotIn("reconcile", self.digest())
+
     def test_adds_the_source_line_for_the_recorded_live_payload(self):
         recorded = json.loads(FIXTURE.read_text(encoding="utf-8"))
         self.assertEqual(recorded["hook_event_name"], "SessionStart")

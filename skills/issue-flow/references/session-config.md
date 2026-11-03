@@ -317,8 +317,8 @@ architecture choice, and this block is where the project's wiring is recorded
   runs), `command` (a project-supplied status command), or `none` (Stage D skipped).
 - `statusCmd` — `mode: command` only: a one-shot command printing
   `<state> <jobId> <sha>` with `state` normalized to
-  `pending | running | succeeded | failed | rolled-back`. Must be in the committed
-  allow-list.
+  `pending | running | succeeded | failed | rolled-back`. It must work under the
+  `issue_flow` permission profile.
 - `startCmd` — optional: how to start a deploy by hand when the branch is
   push-protected.
 - `workflow` — `mode: actions` only: the deploy workflow file name.
@@ -335,15 +335,15 @@ servers the PM offered, which the user installed, and whether they declined.
   more only when the project gains a dependency on a service none of the installed
   servers cover.
 - `installed` and `marketplacesAdded` are notes, not guarantees — always confirm with
-  `codex mcp list` at startup rather than trusting the file. Codex has no command that lists
-  marketplaces, so `marketplacesAdded` stays a note.
+  `codex mcp list` and `codex plugin marketplace list` at startup rather than trusting the
+  file. `marketplacesAdded` is a note; the command output shows what is configured now.
 - `restartPending: true` means something was installed in a previous session and had not
   appeared yet. At startup, re-check whether it is live now: it is → clear the flag and
-  say the server is available; it is not → tell the user once and keep the `WebFetch`
+  say the server is available; it is not → tell the user once and keep the direct vendor documentation
   fallback. Never block the loop on it.
 - This setting never changes what workers must do: the interface still comes from the
   vendor's documentation ([external-apis.md](../../../references/external-apis.md)). A
-  doc MCP server makes that lookup fast and reliable; `WebFetch` makes it slow. Neither
+  doc MCP server makes that lookup fast and reliable; direct vendor documentation makes it slow. Neither
   makes assuming acceptable.
 
 ## review.when

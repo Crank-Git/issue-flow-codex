@@ -192,7 +192,8 @@ def read_issues(forge, bed):
             raise ResetError(f"cannot read issue {number} of {bed.repo}: "
                              f"{(done.stderr or done.stdout).strip()}")
         issue = json.loads(done.stdout)
-        if "pull_request" not in issue:
+        # Gitea sends "pull_request": null on a plain issue, so test the value.
+        if not issue.get("pull_request"):
             issues.append(issue)
         number += 1
 

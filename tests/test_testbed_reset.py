@@ -94,6 +94,9 @@ class FakeForge:
             issue = self.issues.get(int(path.rsplit("/", 1)[1]))
             if issue is None:
                 return done(returncode=1, stderr="gh: Not Found (HTTP 404)")
+            if self.forge == "gitea":
+                # Measured on Gitea 1.25.3: an issue that is not a pull request has "pull_request": null.
+                issue = {**issue, "pull_request": None}
             return done(json.dumps(issue))
         if path == repo + "/issues" and method == "POST":
             number = self.add_issue(body["title"])
@@ -211,6 +214,15 @@ class ResetTest(unittest.TestCase):
         forge = FakeForge("github")
         forge.reset("github")
         _, out, _ = forge.reset("github")
+        titles = [i["title"] for i in forge.issues.values()]
+        self.assertEqual(sorted(titles), sorted(SEED_TITLES + ["Extend the greeting service"]))
+        state = json.loads(out.strip().splitlines()[-1])
+        self.assertEqual(len(state["openIssues"]), 6)
+
+    def test_opens_the_gitea_seed_issues_once_across_two_runs(self):
+        forge = FakeForge("gitea")
+        forge.reset("gitea")
+        _, out, _ = forge.reset("gitea")
         titles = [i["title"] for i in forge.issues.values()]
         self.assertEqual(sorted(titles), sorted(SEED_TITLES + ["Extend the greeting service"]))
         state = json.loads(out.strip().splitlines()[-1])

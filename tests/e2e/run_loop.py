@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Live end-to-end harness for the Epic 2 batch gate (worker dispatch).
+"""Live end-to-end harness for the Epic 2 and Epic 3 batch gates (worker dispatch, loop operations).
 
 Port-only, Python stdlib. The file name starts with `run_`, so `unittest discover`
 skips it and CI stays offline. Every subcommand needs `ISSUE_FLOW_E2E=1`, because it
@@ -45,18 +45,21 @@ CONFIG = {
                 "declined": True, "restartPending": False},
     "practices": {"tdd": False, "ddd": False, "e2e": "none", "coverage": None,
                   "commitStyle": "conventional", "docs": "none"},
-    "codex": {"waitMs": WAIT_MS},
-    "notes": "E2E gate run. Operator confirmed this configuration; ask no questions.",
+    "notes": "E2E gate run. Saved values only; the PM must still ask.",
 }
+
+# The Codex-only settings live in their own file with flat keys (FR-loop-operations-11, 12).
+CODEX_CONFIG = {"version": 1, "pmModel": PM_MODEL, "workerModel": WORKER_MODEL, "workerEffort": "low",
+                "helperModel": WORKER_MODEL, "waitMs": WAIT_MS}
 
 MAIN_PROMPT = """\
 Run $issue-flow:issue-flow on this repository.
 
-The saved run configuration in .issue-flow.json is confirmed by the operator. Ask no question about it.
 Work only the epic batch (the epic issue and its status:ready sub-issues). Use the integration branch model.
-Stop after BOTH members are sub-merged into the integration branch. Do NOT open the batch PR: the CI watcher is not ported yet. Do not start a second batch.
-Rework test: for the FIRST verdict you read, send exactly one rework request to that worker with followup_task (ask it to add one more line to its PR description or one more commit comment-free tweak that proves it read the request), and gate again after its second verdict. Send no rework for the second member.
-When both members are sub-merged and their worktrees are removed, end your turn with a one-paragraph summary.
+Take the run configuration through the normal confirmation step.
+Run the whole loop for one batch: build both members, sub-merge them, open the batch PR, have a ci_watcher
+watch its CI, merge the batch PR when the verdict is success, and post the digest on the status issue.
+Then end your turn with a one-paragraph summary.
 """
 
 
@@ -114,13 +117,14 @@ def setup_bed(bed):
     files = re.findall(r"^\+\+\+ b/(\S+)", plan.stdout, re.M)
     run([sys.executable, str(ROOT / "scripts" / "setup_project.py"), "apply", "--project", str(bed),
          "--with-default-permissions", "--accept", *files])
-    role = bed / ".codex" / "agents" / "issue-worker.toml"
-    text = role.read_text()
-    role.write_text(re.sub(r'(?m)^model = ".*"$', f'model = "{WORKER_MODEL}"', text, count=1))
+    for role in sorted((bed / ".codex" / "agents").glob("*.toml")):
+        text = role.read_text()
+        role.write_text(re.sub(r'(?m)^model = ".*"$', f'model = "{WORKER_MODEL}"', text, count=1))
     config = dict(CONFIG, forge={"type": "github", "host": "github.com",
                                  "owner": "Crank-Git", "repo": "issue-flow-codex-testbed",
                                  "interface": "cli"})
     (bed / ".issue-flow.json").write_text(json.dumps(config, indent=2) + "\n")
+    (bed / ".issue-flow.codex.json").write_text(json.dumps(CODEX_CONFIG, indent=2) + "\n")
     return files
 
 
@@ -144,23 +148,56 @@ def cmd_setup(args):
     print(json.dumps(info))
 
 
-def exec_codex(work, prompt, name, model=PM_MODEL, timeout=3300):
+def exec_codex(work, prompt, name, model=PM_MODEL, timeout=3300, trust_hooks=True,
+               extra=(), resume=None):
+    """Run `codex exec` (or `codex exec resume <session>`) with stdin closed. Return the session id.
+
+    `trust_hooks=False` omits --dangerously-bypass-hook-trust (probe M1). `extra` holds
+    `-c key=value` overrides, for example a low `model_auto_compact_token_limit`.
+    """
     work, home, bed, out = paths(work)
-    argv = ["codex", "exec", "-m", model, "--json", "--dangerously-bypass-hook-trust",
-            "-c", 'approval_policy="never"', "-C", str(bed), prompt]
+    argv = ["codex", "exec"]
+    if resume:
+        argv.append("resume")
+    argv += ["-m", model, "--json"]
+    if trust_hooks:
+        argv.append("--dangerously-bypass-hook-trust")
+    argv += ["-c", 'approval_policy="never"']
+    for item in extra:
+        argv += ["-c", item]
+    if not resume:
+        argv += ["-C", str(bed)]
+    argv += [resume, prompt] if resume else [prompt]
+    cwd = bed if resume else None
+    session = resume
     try:
-        done = run(argv, env=codex_env(home), check=False, timeout=timeout)
-        (out / f"{name}.jsonl").write_text(done.stdout)
-        (out / f"{name}.stderr").write_text(done.stderr)
-        print(f"{name}: exit {done.returncode}, {len(done.stdout.splitlines())} events")
+        done = run(argv, cwd=cwd, env=codex_env(home), check=False, timeout=timeout)
+        stdout, stderr, code = done.stdout, done.stderr, done.returncode
     except subprocess.TimeoutExpired as exc:
-        (out / f"{name}.jsonl").write_text((exc.stdout or b"").decode() if isinstance(exc.stdout, bytes)
-                                           else (exc.stdout or ""))
-        print(f"{name}: timeout after {timeout} s")
+        stdout = exc.stdout.decode() if isinstance(exc.stdout, bytes) else (exc.stdout or "")
+        stderr, code = "", "timeout"
+    (out / f"{name}.jsonl").write_text(stdout)
+    (out / f"{name}.stderr").write_text(stderr)
+    for line in stdout.splitlines():
+        try:
+            event = json.loads(line)
+        except ValueError:
+            continue
+        if event.get("type") == "thread.started":
+            session = event.get("thread_id")
+            break
+    print(f"{name}: exit {code}, {len(stdout.splitlines())} events, session {session}")
+    return session
 
 
 def cmd_main(args):
-    exec_codex(args.work, MAIN_PROMPT, f"main-{args.attempt}")
+    """Attempt N: the PM asks the run-configuration question (M4); the reply continues the run."""
+    work, _, _, out = paths(args.work)
+    extra = list(args.config or [])
+    session = exec_codex(args.work, MAIN_PROMPT, f"main-{args.attempt}", extra=extra)
+    (out / f"main-{args.attempt}.session").write_text(f"{session}\n")
+    if args.reply:
+        exec_codex(args.work, args.reply, f"main-{args.attempt}-reply", extra=extra, resume=session)
 
 
 # Fixture roles replace the worker's runbook, to produce answers a normal worker never gives.
@@ -181,27 +218,47 @@ FIXTURES = {
 
 
 def cmd_probe(args):
-    """Run one probe. Config knobs and the fixture role last for this probe only."""
+    """Run one probe. Every change to the test bed lasts for this probe only."""
     _, _, bed, _ = paths(args.work)
     prompt = Path(args.prompt_file).read_text()
     config_path = bed / ".issue-flow.json"
+    codex_path = bed / ".issue-flow.codex.json"
     role = bed / ".codex" / "agents" / "issue-worker.toml"
-    saved_config, saved_role = config_path.read_text(), role.read_text()
-    config = json.loads(saved_config)
+    project_toml = bed / ".codex" / "config.toml"
+    saved = {path: path.read_text() for path in (config_path, codex_path, role, project_toml)}
+    saved_ci_role = bed / ".codex" / "agents" / "ci-watcher.toml"
+    saved_ci = saved_ci_role.read_text() if saved_ci_role.exists() else None
+    config = json.loads(saved[config_path])
+    codex = json.loads(saved[codex_path])
     if args.concurrency:
         config["concurrency"] = args.concurrency
     if args.wait_ms:
-        config["codex"]["waitMs"] = args.wait_ms
+        codex["waitMs"] = args.wait_ms
     config_path.write_text(json.dumps(config, indent=2) + "\n")
+    codex_path.write_text(json.dumps(codex, indent=2) + "\n")
     if args.fixture != "none":
         body = f"developer_instructions = '''\n{FIXTURES[args.fixture]}\n'''"
         role.write_text(re.sub(r"(?s)developer_instructions = '''.*?'''", lambda _: body,
-                               saved_role, count=1))
+                               saved[role], count=1))
+    if args.drop_role:
+        role.unlink()
+    if args.drop_profile:
+        project_toml.write_text(re.sub(r"(?ms)^\[permissions\.[^\n]*\n.*?(?=^\[(?!permissions)|\Z)", "",
+                                       saved[project_toml]))
+        project_toml.write_text(re.sub(r'(?m)^default_permissions\s*=.*\n', "", project_toml.read_text()))
     try:
-        exec_codex(args.work, prompt, f"probe-{args.name}", model=args.model, timeout=args.timeout)
+        session = exec_codex(args.work, prompt, f"probe-{args.name}", model=args.model,
+                             timeout=args.timeout, trust_hooks=not args.untrusted,
+                             extra=list(args.config or []))
+        if args.reply:
+            exec_codex(args.work, args.reply, f"probe-{args.name}-reply", model=args.model,
+                       timeout=args.timeout, trust_hooks=not args.untrusted,
+                       extra=list(args.config or []), resume=session)
     finally:
-        config_path.write_text(saved_config)
-        role.write_text(saved_role)
+        for path, text in saved.items():
+            path.write_text(text)
+        if saved_ci is not None:
+            saved_ci_role.write_text(saved_ci)
 
 
 def cmd_timeline(args):
@@ -239,6 +296,8 @@ def main():
         p = sub.add_parser(name)
         p.add_argument("--work", required=True)
     sub.choices["main"].add_argument("--attempt", type=int, default=1)
+    sub.choices["main"].add_argument("--reply", help="text for `codex exec resume` after the first turn")
+    sub.choices["main"].add_argument("--config", action="append", help="extra `-c key=value`, repeatable")
     sub.choices["probe"].add_argument("name")
     sub.choices["probe"].add_argument("--prompt-file", required=True)
     sub.choices["probe"].add_argument("--model", default=WORKER_MODEL)
@@ -246,6 +305,14 @@ def main():
     sub.choices["probe"].add_argument("--fixture", choices=["none", *FIXTURES], default="none")
     sub.choices["probe"].add_argument("--concurrency", type=int)
     sub.choices["probe"].add_argument("--wait-ms", type=int)
+    sub.choices["probe"].add_argument("--untrusted", action="store_true",
+                                      help="omit --dangerously-bypass-hook-trust (probe M1)")
+    sub.choices["probe"].add_argument("--drop-role", action="store_true",
+                                      help="delete issue-worker.toml from the test bed (probe M2)")
+    sub.choices["probe"].add_argument("--drop-profile", action="store_true",
+                                      help="remove the permission profile from .codex/config.toml (probe M3)")
+    sub.choices["probe"].add_argument("--reply")
+    sub.choices["probe"].add_argument("--config", action="append")
     sub.choices["timeline"].add_argument("--width", type=int, default=240)
     sub.choices["timeline"].add_argument("--messages", action="store_true")
     args = parser.parse_args()

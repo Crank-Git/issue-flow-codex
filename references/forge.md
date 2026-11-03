@@ -162,7 +162,7 @@ worktree guard in a dogfood run), then pass the path. Two reasons, both measured
   nothing — or runs a command.
 - In a worktree-isolated worker, the guard refused an inline multi-line body
   ("runs tea with the text … cannot be shown not to be git") and refuses any body built
-  with `$(…)`. The file forms above were allowed on both forges (Claude Code 2.1.285).
+  with `$(…)`. The file forms above were allowed on both forges.
 
 On Gitea the JSON file holds the fields; build it with `jq -n --rawfile body <file>
 '{title: "WIP: <t>", head: "<branch>", base: "<base>", body: $body}' > <json>` so quoting
@@ -192,8 +192,8 @@ by its head ref. Measured on gh 2.88.1, Gitea 1.25.3 and tea 0.15.1:
   `tea api` also exits 0 on an API error and prints the error object, so check the shape.
   Page until an empty page — a short page is not proof of the end, because the cap is
   per-server. This loop is for the PM. **A worker cannot run it:** in a worktree-isolated
-  agent the guard refuses a `tea` call whose URL is built at runtime (`page=$page`) —
-  measured on Claude Code 2.1.284. A worker makes one call per page with the number typed
+  agent the guard refuses a `tea` call whose URL is built at runtime (`page=$page`), as
+  measured in an upstream run. A worker makes one call per page with the number typed
   in (`agents/issue-worker.md`, runbook step 2). The PM's loop:
 
   ```bash

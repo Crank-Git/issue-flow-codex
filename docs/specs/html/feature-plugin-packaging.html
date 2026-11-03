@@ -166,7 +166,7 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li>As the operator, I want the PM to stop when its hooks did not run, so that the loop never runs without its guards.
 </li>
-<li>As the maintainer, I want the spawn guard to deny the spawn shapes that upstream measured as unsafe, so that the Codex loop keeps the upstream protection.
+<li>As the maintainer, I want the spawn guard to deny the spawn shapes that are unsafe, so that the Codex loop keeps the upstream protection against a runaway worker.
 </li>
 </ul>
 <h3 id="plugin-packaging-functional-requirements">Functional requirements</h3>
@@ -234,11 +234,11 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li>FR-plugin-packaging-28 — The preflight hook adds the line <code>issue-flow preflight: source=&lt;source&gt;</code> from the SessionStart <code>source</code> field.
 </li>
-<li>FR-plugin-packaging-29 — The spawn guard denies a spawn whose <code>message</code> is a handoff brief when <code>fork_turns</code> is not <code>"none"</code>.
+<li>FR-plugin-packaging-29 — The spawn guard denies a spawn when <code>fork_turns</code> is not <code>"none"</code>. An omitted <code>fork_turns</code> means <code>"all"</code> and is denied.
 </li>
-<li>FR-plugin-packaging-30 — The spawn guard denies a spawn whose <code>message</code> is a handoff brief when <code>agent_type</code> is not <code>issue_worker</code>.
+<li>FR-plugin-packaging-30 — The spawn guard denies a spawn whose <code>task_name</code> matches <code>^worker_\d+(_c\d+)?$</code> when <code>agent_type</code> is not <code>issue_worker</code>.
 </li>
-<li>FR-plugin-packaging-31 — The spawn guard detects a handoff brief with the upstream rule: three or more brief field labels at line starts.
+<li>FR-plugin-packaging-31 — The spawn guard reads only <code>fork_turns</code>, <code>task_name</code>, and <code>agent_type</code>. It never reads <code>message</code>, because <code>message</code> arrives in the hook payload as an encrypted token.
 </li>
 <li>FR-plugin-packaging-32 — The spawn guard denies with <code>permissionDecision: "deny"</code> and a reason that states the correct call.
 </li>
@@ -297,11 +297,11 @@ body.rv-open .layout { padding-right:21rem; }
 <div class="diagram"><pre class="mermaid">flowchart TD
     A["PreToolUse: tool_name matches spawn_agent$"] --&gt; B{"Payload parses?"}
     B -- "no" --&gt; OK["Allow"]
-    B -- "yes" --&gt; C{"message is a handoff brief?"}
-    C -- "no" --&gt; OK
-    C -- "yes" --&gt; D{"fork_turns is none?"}
+    B -- "yes" --&gt; D{"fork_turns is none?"}
     D -- "no" --&gt; X1["Deny: use fork_turns none"]
-    D -- "yes" --&gt; E{"agent_type is issue_worker?"}
+    D -- "yes" --&gt; C{"task_name matches worker_n?"}
+    C -- "no" --&gt; OK
+    C -- "yes" --&gt; E{"agent_type is issue_worker?"}
     E -- "no" --&gt; X2["Deny: use agent_type issue_worker"]
     E -- "yes" --&gt; OK</pre></div>
 <ol>
@@ -309,11 +309,9 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li>If the payload does not parse, the guard allows the call.
 </li>
-<li>If the message is not a handoff brief, the guard allows the call.
+<li>If <code>fork_turns</code> is not <code>"none"</code> (or is omitted), the guard denies the call.
 </li>
-<li>If <code>fork_turns</code> is not <code>"none"</code>, the guard denies the call.
-</li>
-<li>If <code>agent_type</code> is not <code>issue_worker</code>, the guard denies the call.
+<li>If <code>task_name</code> matches <code>^worker_\d+(_c\d+)?$</code> and <code>agent_type</code> is not <code>issue_worker</code>, the guard denies the call.
 </li>
 <li>Else the guard allows the call.
 </li>
@@ -434,7 +432,7 @@ enabled = true
 </li>
 <li>[ ] With trusted hooks, a new session's context holds <code>issue-flow preflight: ran 0.1.0</code>. (FR-plugin-packaging-26)
 </li>
-<li>[ ] The spawn guard test denies a brief with <code>fork_turns: "all"</code>, denies a brief with <code>agent_type: "default"</code>, and allows a brief with <code>issue_worker</code> and <code>"none"</code>. (FR-plugin-packaging-29 to 33)
+<li>[ ] The spawn guard test denies a spawn with <code>fork_turns: "all"</code> and with <code>fork_turns</code> omitted, denies a worker <code>task_name</code> without <code>agent_type: "issue_worker"</code>, and allows a worker <code>task_name</code> with <code>issue_worker</code> and <code>"none"</code>. (FR-plugin-packaging-29 to 33)
 </li>
 <li>[ ] The role guard test denies <code>apply_patch</code> for <code>code_auditor</code> and allows it for <code>issue_worker</code>. (FR-plugin-packaging-34 to 36)
 </li>

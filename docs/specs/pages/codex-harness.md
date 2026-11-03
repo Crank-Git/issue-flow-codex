@@ -55,6 +55,7 @@ Evidence tags:
 10. **Hooks fire inside a subagent with its role.** PreToolUse for the subagent's `Bash` calls had `agent_type: "git_worker"` and an `agent_id`.
 11. **`codex exec` has no `-a` flag**, and it waits for stdin unless stdin is closed. Use `-c approval_policy="never"` and `</dev/null`.
 12. **A root TOML key after a table header fails.** `default_permissions` placed after `[permissions.gitw]` gave: "config defines `[permissions]` profiles but does not set `default_permissions`".
+13. **The spawn message is encrypted in the hook payload.** PreToolUse for a V2 spawn had `tool_input` keys `task_name`, `fork_turns`, and `message`, plus `agent_type` only when the model set a role. `message` was a token that starts `gAAAAA`, also when the model sent a plain multi-line text. The session rollout file holds the same token. Evidence: two `gpt-6-luna` runs, codex-cli 0.166.0, 2026-11-03; payload in `tests/fixtures/hooks/pre_tool_use_spawn.json`.
 
 The profile used in facts 8 and 9:
 

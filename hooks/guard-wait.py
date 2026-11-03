@@ -11,6 +11,10 @@ When `tool_input.timeout_ms` differs or is absent, the guard allows the call wit
 `updatedInput`: the same `tool_input` and the configured `timeout_ms`. Codex then runs the
 corrected call, and the model needs no second turn.
 
+A pending timeout (hooks/wait_state.py) makes the guard deny a PM `wait_agent` call until the
+Stage A0 list calls run. The guard ignores subagent payloads, which carry `agent_id`. After two
+denials it allows the next call with a `systemMessage` that names the missed sweep.
+
 Fail open: a parse error, a non-object payload, or a non-object `tool_input` exits 0 with no
 output. An unreadable or invalid configuration file counts as absent, and the default applies.
 """
@@ -18,6 +22,8 @@ output. An unreadable or invalid configuration file counts as absent, and the de
 import json
 import sys
 from pathlib import Path
+
+from wait_state import clear_pending, count_denial, read_state
 
 DEFAULT_WAIT_MS = 600000
 
@@ -46,24 +52,53 @@ def decide(payload):
     return {**tool_input, "timeout_ms": configured}
 
 
+DENY_REASON = (
+    "Run forge.issue.list.since and forge.pr.list.since before the next wait_agent call. "
+    "Use gh issue list and gh pr list, or tea issues and tea pulls."
+)
+MISSED_SWEEP = (
+    "issue-flow: the Stage A0 sweep was skipped after a wait_agent timeout. The guard denied "
+    "wait_agent twice and now allows it. Run forge.issue.list.since and forge.pr.list.since now."
+)
+
+
 def main():
     try:
         payload = json.load(sys.stdin)
-        corrected = decide(payload) if isinstance(payload, dict) else None
+        if not isinstance(payload, dict):
+            return
+        output = {}
+        is_pm_wait = str(payload.get("tool_name", "")).endswith("wait_agent") and "agent_id" not in payload
+        state = read_state(payload.get("session_id")) if is_pm_wait else None
+        if state is not None:
+            # Two denials without a sweep mean the hook state or the sweep detection is wrong.
+            # Allow the call so that a hook bug cannot deadlock the loop.
+            if state.get("denials", 0) < 2:
+                count_denial(payload.get("session_id"))
+                json.dump(
+                    {
+                        "hookSpecificOutput": {
+                            "hookEventName": "PreToolUse",
+                            "permissionDecision": "deny",
+                            "permissionDecisionReason": DENY_REASON,
+                        }
+                    },
+                    sys.stdout,
+                )
+                return
+            clear_pending(payload.get("session_id"))
+            output["systemMessage"] = MISSED_SWEEP
+        corrected = decide(payload)
     except Exception:  # fail open, see the module docstring
         return
-    if corrected is None:
-        return
-    json.dump(
-        {
-            "hookSpecificOutput": {
-                "hookEventName": "PreToolUse",
-                "permissionDecision": "allow",
-                "updatedInput": corrected,
-            }
-        },
-        sys.stdout,
-    )
+    if corrected is not None:
+        output["hookSpecificOutput"] = {
+            "hookEventName": "PreToolUse",
+            "permissionDecision": "allow",
+            "updatedInput": corrected,
+        }
+    if output:
+        json.dump(output, sys.stdout)
 
 
 if __name__ == "__main__":

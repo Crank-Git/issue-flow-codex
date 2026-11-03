@@ -7,6 +7,7 @@ applies `updatedInput` to `wait_agent` (docs/specs/pages/codex-harness.md).
 
 import copy
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -19,6 +20,10 @@ RECORDED = json.loads((ROOT / "tests" / "fixtures" / "hooks" / "pre_tool_use_wai
 
 
 class GuardWaitTest(unittest.TestCase):
+    def setUp(self):
+        self.data = tempfile.TemporaryDirectory()
+        self.addCleanup(self.data.cleanup)
+
     def project(self, config=None):
         """Return a temporary project directory, with `config` as its .issue-flow.codex.json text."""
         directory = tempfile.TemporaryDirectory()
@@ -41,7 +46,8 @@ class GuardWaitTest(unittest.TestCase):
         result = subprocess.run(
             [sys.executable, str(HOOK)],
             input=payload if isinstance(payload, str) else json.dumps(payload),
-            capture_output=True, text=True)
+            capture_output=True, text=True,
+            env=dict(os.environ, PLUGIN_DATA=self.data.name))
         self.assertEqual(result.returncode, 0, result.stderr)
         return json.loads(result.stdout) if result.stdout.strip() else None
 
@@ -89,6 +95,49 @@ class GuardWaitTest(unittest.TestCase):
     def test_ignores_a_tool_other_than_wait_agent(self):
         payload = self.payload(self.project(), 10000)
         payload["tool_name"] = "collaborationlist_agents"
+        self.assertIsNone(self.run_hook(payload))
+
+    def test_denies_wait_until_the_stage_a0_lists_run(self):
+        payload = self.payload(self.project('{"version": 1, "waitMs": 10000}'), 10000)
+        state = Path(self.data.name) / f"wait-timeout-{payload['session_id']}.json"
+        state.write_text('{"timed_out": true}')
+        output = self.run_hook(payload)
+        decision = output["hookSpecificOutput"]
+        self.assertEqual(decision["permissionDecision"], "deny")
+        reason = decision["permissionDecisionReason"]
+        self.assertIn("forge.issue.list.since", reason)
+        self.assertIn("forge.pr.list.since", reason)
+        self.assertIn("gh issue list", reason)
+        self.assertIn("gh pr list", reason)
+        self.assertIn("tea issues", reason)
+        self.assertIn("tea pulls", reason)
+
+    def pending_payload(self):
+        payload = self.payload(self.project('{"version": 1, "waitMs": 10000}'), 10000)
+        state = Path(self.data.name) / f"wait-timeout-{payload['session_id']}.json"
+        state.write_text('{"timed_out": true}')
+        return payload, state
+
+    def test_allows_the_third_wait_after_two_denials_and_names_the_missed_sweep(self):
+        payload, state = self.pending_payload()
+        for _ in range(2):
+            output = self.run_hook(payload)
+            self.assertEqual(output["hookSpecificOutput"]["permissionDecision"], "deny")
+        output = self.run_hook(payload)
+        self.assertNotIn("deny", json.dumps(output))
+        self.assertIn("forge.issue.list.since", output["systemMessage"])
+        self.assertFalse(state.exists())
+        self.assertIsNone(self.run_hook(payload))
+
+    def test_never_denies_a_subagent_wait(self):
+        payload, state = self.pending_payload()
+        payload["agent_id"] = "00000000-0000-7000-8000-0000000000a1"
+        self.assertIsNone(self.run_hook(payload))
+        self.assertTrue(state.exists())
+
+    def test_creates_no_state_when_the_plugin_data_directory_is_missing(self):
+        payload, _ = self.pending_payload()
+        self.data.cleanup()
         self.assertIsNone(self.run_hook(payload))
 
 

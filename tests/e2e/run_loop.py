@@ -8,6 +8,7 @@ spends Codex quota and changes the test bed repository `Crank-Git/issue-flow-cod
     python3 tests/e2e/run_loop.py setup --work <dir>      # home, plugin, test bed reset, clone
     python3 tests/e2e/run_loop.py main  --work <dir>      # one `codex exec` PM run
     python3 tests/e2e/run_loop.py probe --work <dir> <name>
+    python3 tests/e2e/run_loop.py wait-sweep --work <dir> # five timeout and sweep cycles
 
 `<dir>` holds the isolated CODEX_HOME (`home/`), the test bed clone (`bed/`), and the
 raw output of each run (`out/`). The operator's `~/.codex` is never changed: `auth.json`
@@ -30,6 +31,7 @@ BED_REPO = "Crank-Git/issue-flow-codex-testbed"
 PM_MODEL = "gpt-6.1-sol"
 WORKER_MODEL = "gpt-6-luna"
 WAIT_MS = 60000
+WAIT_SWEEP_MS = 1000
 
 CONFIG = {
     "version": 1,
@@ -63,6 +65,16 @@ Take the run configuration through the normal confirmation step.
 Run the whole loop for one batch: build both members, sub-merge them, open the batch PR, have a ci_watcher
 watch its CI, merge the batch PR when the verdict is success, and post the digest on the status issue.
 Then end your turn with a one-paragraph summary.
+"""
+
+WAIT_SWEEP_PROMPT = """\
+Use the test bed repository only. Spawn one helper with fork_turns="none" and model="gpt-6-luna".
+Ask it to run `sleep 8` in the test bed and then return a short result. Keep your turn open.
+Call wait_agent with timeout_ms 1000 until the helper returns. When a wait times out, run these
+two commands before the next wait_agent call: `gh issue list --state all --search
+\"updated:>=2026-11-03T00:00:00Z\"` and `gh pr list --state open --search
+\"updated:>=2026-11-03T00:00:00Z\"`. Run both commands as one Stage A0 sweep. Repeat until five
+wait_agent calls have timed out, then end with the five timeout and sweep pairs you observed.
 """
 
 
@@ -227,6 +239,22 @@ def cmd_main(args):
     (out / f"main-{args.attempt}.session").write_text(f"{session}\n")
     if args.reply:
         exec_codex(args.work, args.reply, f"main-{args.attempt}-reply", extra=extra, resume=session)
+
+
+def cmd_wait_sweep(args):
+    """Run the five-timeout Stage A0 case for the batch gate."""
+    _, _, bed, out = paths(args.work)
+    codex_path = bed / ".issue-flow.codex.json"
+    saved = codex_path.read_text()
+    config = json.loads(saved)
+    config["waitMs"] = WAIT_SWEEP_MS
+    codex_path.write_text(json.dumps(config, indent=2) + "\n")
+    try:
+        session = exec_codex(args.work, WAIT_SWEEP_PROMPT, f"wait-sweep-{args.attempt}",
+                             model=WORKER_MODEL, timeout=args.timeout)
+        (out / f"wait-sweep-{args.attempt}.session").write_text(f"{session}\n")
+    finally:
+        codex_path.write_text(saved)
 
 
 # Fixture roles replace the worker's runbook, to produce answers a normal worker never gives.
@@ -403,7 +431,8 @@ def main():
     require_opt_in()
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="command", required=True)
-    for name in ("setup", "main", "probe", "timeline", "upstream", "show", "sleeper", "resume"):
+    for name in ("setup", "main", "probe", "timeline", "upstream", "show", "sleeper", "resume",
+                 "wait-sweep"):
         p = sub.add_parser(name)
         p.add_argument("--work", required=True)
     sub.choices["upstream"].add_argument("--branch", default="dev")
@@ -420,6 +449,8 @@ def main():
     sub.choices["main"].add_argument("--attempt", type=int, default=1)
     sub.choices["main"].add_argument("--reply", help="text for `codex exec resume` after the first turn")
     sub.choices["main"].add_argument("--config", action="append", help="extra `-c key=value`, repeatable")
+    sub.choices["wait-sweep"].add_argument("--attempt", type=int, default=1)
+    sub.choices["wait-sweep"].add_argument("--timeout", type=int, default=900)
     sub.choices["probe"].add_argument("name")
     sub.choices["probe"].add_argument("--prompt-file", required=True)
     sub.choices["probe"].add_argument("--model", default=WORKER_MODEL)
@@ -437,7 +468,8 @@ def main():
     sub.choices["timeline"].add_argument("--messages", action="store_true")
     args = parser.parse_args()
     {"setup": cmd_setup, "main": cmd_main, "probe": cmd_probe,
-     "timeline": cmd_timeline, "upstream": cmd_upstream, "show": cmd_show, "sleeper": cmd_sleeper, "resume": cmd_resume}[args.command](args)
+     "timeline": cmd_timeline, "upstream": cmd_upstream, "show": cmd_show, "sleeper": cmd_sleeper,
+     "resume": cmd_resume, "wait-sweep": cmd_wait_sweep}[args.command](args)
 
 
 if __name__ == "__main__":

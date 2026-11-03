@@ -10,7 +10,7 @@ import sys
 import tempfile
 import tomllib
 import unittest
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -34,7 +34,7 @@ class SetupProjectTest(unittest.TestCase):
         for name in ROLE_NAMES:
             role_name = name.replace("-", "_")
             (self.plugin / "roles" / f"{name}.toml").write_text(
-                f'name = "{role_name}"\nmodel = "plugin-model"\n'
+                f'name = "{role_name}"\ndescription = "{name}"\nmodel = "plugin-model"\n'
                 f'model_reasoning_effort = "medium"\n'
                 f'developer_instructions = "{name}"\n', encoding="utf-8")
         (self.plugin / ".codex-plugin").mkdir()
@@ -117,9 +117,10 @@ class SetupProjectTest(unittest.TestCase):
         self.apply()
         for name in ROLE_NAMES:
             self.assertEqual((self.project / ".codex" / "agents" / f"{name}.toml").read_text(encoding="utf-8"),
-                             f'name = "{name.replace("-", "_")}"\nmodel = "plugin-model"\n'
+                             f'name = "{name.replace("-", "_")}"\ndescription = "{name}"\n'
+                             f'model = "plugin-model"\n'
                              f'model_reasoning_effort = "medium"\n'
-                             f'developer_instructions = "{name}"\n')
+                             f"developer_instructions = '''\n{name}\n'''\n")
 
     def test_applies_configured_worker_model_and_effort_to_worker_role(self):
         (self.project / ".issue-flow.codex.json").write_text(
@@ -130,7 +131,7 @@ class SetupProjectTest(unittest.TestCase):
         self.assertEqual(role["model"], "gpt-6-luna")
         self.assertEqual(role["model_reasoning_effort"], "low")
         watcher = tomllib.loads((self.project / ".codex" / "agents" / "ci-watcher.toml").read_text())
-        self.assertEqual(watcher["model"], "plugin-model")
+        self.assertEqual(watcher["model"], "gpt-6.1-sol")
         self.assertEqual(watcher["model_reasoning_effort"], "medium")
         helper = tomllib.loads((self.project / ".codex" / "agents" / "code-auditor.toml").read_text())
         self.assertEqual(helper["model"], "gpt-6.1-sol")
@@ -148,7 +149,38 @@ class SetupProjectTest(unittest.TestCase):
             self.assertEqual(role["model"], "gpt-6.1-sol")
         for name in ("issue-worker", "ci-watcher"):
             role = tomllib.loads((self.project / ".codex" / "agents" / f"{name}.toml").read_text())
-            self.assertEqual(role["model"], "plugin-model")
+            self.assertEqual(role["model"], "gpt-6.1-sol" if name == "ci-watcher" else "plugin-model")
+
+    def test_preserves_model_like_text_in_developer_instructions(self):
+        role = self.plugin / "roles" / "issue-worker.toml"
+        role.write_text(
+            'name = "issue_worker"\n'
+            'description = "Issue worker"\n'
+            "developer_instructions = '''Use this example:\nmodel = x\n'''\n"
+            'model = "plugin-model"\n'
+            'model_reasoning_effort = "medium"\n', encoding="utf-8")
+        self.apply()
+        rendered = (self.project / ".codex" / "agents" / "issue-worker.toml").read_text()
+        parsed = tomllib.loads(rendered)
+        self.assertEqual(parsed["developer_instructions"], "Use this example:\nmodel = x\n")
+
+    def test_writes_configured_models_at_document_root(self):
+        (self.project / ".issue-flow.codex.json").write_text(
+            json.dumps({"workerModel": "gpt-6-luna", "workerEffort": "low"}), encoding="utf-8")
+        self.apply()
+        rendered = (self.project / ".codex" / "agents" / "issue-worker.toml").read_text()
+        parsed = tomllib.loads(rendered)
+        self.assertEqual(parsed["model"], "gpt-6-luna")
+        self.assertEqual(parsed["model_reasoning_effort"], "low")
+
+    def test_applies_helper_model_to_watcher_role(self):
+        (self.project / ".issue-flow.codex.json").write_text(
+            json.dumps({"helperModel": "gpt-6-luna"}), encoding="utf-8")
+
+        self.apply()
+
+        watcher = tomllib.loads((self.project / ".codex" / "agents" / "ci-watcher.toml").read_text())
+        self.assertEqual(watcher["model"], "gpt-6-luna")
 
     def test_applies_only_the_config_file_after_concurrency_changes(self):
         self.apply("--with-default-permissions")
@@ -258,6 +290,46 @@ class SetupProjectTest(unittest.TestCase):
         code, text = self.run_check()
         self.assertEqual(code, 1)
         self.assertIn("roles        stale    5 of 6 match plugin 0.1.0", text)
+
+    def test_check_reports_stale_when_a_role_model_differs_from_config(self):
+        (self.project / ".issue-flow.codex.json").write_text(
+            json.dumps({"workerModel": "gpt-6-luna"}), encoding="utf-8")
+        self.apply("--with-default-permissions")
+        role = self.project / ".codex" / "agents" / "issue-worker.toml"
+        role.write_text(role.read_text().replace('model = "gpt-6-luna"', 'model = "wrong-model"'))
+
+        code, text = self.run_check()
+
+        self.assertEqual(code, 1)
+        self.assertIn("roles        stale", text)
+
+    def test_check_reports_malformed_role_as_stale(self):
+        self.apply("--with-default-permissions")
+        role = self.project / ".codex" / "agents" / "issue-worker.toml"
+        role.write_text("model = [invalid")
+        code, text = self.run_check()
+        self.assertEqual(code, 1)
+        self.assertIn("roles        stale", text)
+
+    def test_check_writes_one_stderr_line_for_a_malformed_role(self):
+        self.apply("--with-default-permissions")
+        role = self.project / ".codex" / "agents" / "issue-worker.toml"
+        role.write_text("model = [invalid")
+        err = io.StringIO()
+        with redirect_stderr(err):
+            self.run_check()
+        self.assertEqual(len(err.getvalue().splitlines()), 1)
+
+    def test_plan_reports_malformed_plugin_role_toml_on_one_stderr_line(self):
+        role = self.plugin / "roles" / "issue-worker.toml"
+        role.write_text("model = [invalid", encoding="utf-8")
+        err = io.StringIO()
+        with redirect_stderr(err):
+            code = setup_project.main(["plan", "--project", str(self.project),
+                                       "--plugin-root", str(self.plugin)])
+        self.assertEqual(code, 1)
+        self.assertEqual(len(err.getvalue().splitlines()), 1)
+        self.assertIn("setup_project:", err.getvalue())
 
     def test_check_reports_missing_roles_on_an_empty_project(self):
         code, text = self.run_check()

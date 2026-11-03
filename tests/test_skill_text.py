@@ -23,6 +23,20 @@ def stage_b():
     return section("SKILL.md", "## Stage B", "## Stage C")
 
 
+def verdict_section():
+    return section("SKILL.md", "### Reading a worker verdict", "### C1")
+
+
+def invariants():
+    return " ".join(section("SKILL.md", "## Core invariants", "# Phase 0").split())
+
+
+def cross_check_step():
+    text = (SKILL_DIR / "SKILL.md").read_text()
+    start = text.index("call `spawn_agent` once with")
+    return " ".join(text[start:start + 800].split())
+
+
 def worker_reference():
     return section("references/issue-worker.md", "# Working with issue-workers", "## Rework")
 
@@ -68,6 +82,55 @@ class StageBTest(unittest.TestCase):
 
     def test_stage_b_points_to_the_spawn_guard(self):
         self.assertIn("hooks/guard-spawn.py", stage_b())
+
+
+class VerdictLoopTest(unittest.TestCase):
+    def test_the_verdict_section_names_wait_agent_and_final_answer(self):
+        text = verdict_section()
+        self.assertIn("wait_agent", text)
+        self.assertIn("FINAL_ANSWER", text)
+        self.assertIn("codex.waitMs", text)
+
+    def test_the_verdict_section_has_no_interim_notification_rule(self):
+        text = verdict_section().lower()
+        self.assertNotIn("interim", text)
+        self.assertNotIn("sendmessage", text)
+
+    def test_the_verdict_section_keeps_the_one_followup_rule(self):
+        text = verdict_section()
+        self.assertIn("followup_task", text)
+        self.assertIn("blocked", text)
+
+    def test_the_verdict_section_handles_errored_workers_and_repeat_answers(self):
+        text = verdict_section()
+        self.assertIn("errored", text)
+        self.assertIn("latest", text)
+
+    def test_the_invariants_say_the_pm_ends_its_turn_only_when_the_loop_stops(self):
+        text = invariants()
+        self.assertIn("ends its turn only when the loop stops", text)
+        self.assertNotIn("The PM never blocks", text)
+
+    def test_the_invariants_give_the_reason_for_the_open_turn(self):
+        self.assertIn("does not wake an idle PM", invariants())
+
+    def test_the_pm_runs_on_gpt_6_1_sol_and_roles_declare_their_model(self):
+        text = section("SKILL.md", "**Model tiers.**", "## The batch model")
+        self.assertIn("gpt-6.1-sol", text)
+        self.assertNotIn("Opus", text)
+
+    def test_the_cross_check_step_spawns_an_explorer(self):
+        text = cross_check_step()
+        self.assertIn("spawn_agent", text)
+        self.assertIn('agent_type: "explorer"', text)
+        self.assertIn("FINAL_ANSWER", text)
+        self.assertNotIn("Haiku", text)
+
+    def test_the_doc_read_step_spawns_an_explorer(self):
+        text = section("SKILL.md", "   - **If the issue calls an external service", "   - Comment a short plan")
+        self.assertIn("spawn_agent", text)
+        self.assertIn('agent_type: "explorer"', text)
+        self.assertIn("gpt-6-luna", text)
 
 
 class PortedSectionsTest(unittest.TestCase):

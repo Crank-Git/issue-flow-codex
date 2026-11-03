@@ -151,7 +151,7 @@ class SetupProjectTest(unittest.TestCase):
             role = tomllib.loads((self.project / ".codex" / "agents" / f"{name}.toml").read_text())
             self.assertEqual(role["model"], "gpt-6.1-sol" if name == "ci-watcher" else "plugin-model")
 
-    def test_keeps_instruction_model_text_and_writes_top_level_models(self):
+    def test_preserves_model_like_text_in_developer_instructions(self):
         role = self.plugin / "roles" / "issue-worker.toml"
         role.write_text(
             'name = "issue_worker"\n'
@@ -159,16 +159,19 @@ class SetupProjectTest(unittest.TestCase):
             "developer_instructions = '''Use this example:\nmodel = x\n'''\n"
             'model = "plugin-model"\n'
             'model_reasoning_effort = "medium"\n', encoding="utf-8")
+        self.apply()
+        rendered = (self.project / ".codex" / "agents" / "issue-worker.toml").read_text()
+        parsed = tomllib.loads(rendered)
+        self.assertEqual(parsed["developer_instructions"], "Use this example:\nmodel = x\n")
+
+    def test_writes_configured_models_at_document_root(self):
         (self.project / ".issue-flow.codex.json").write_text(
             json.dumps({"workerModel": "gpt-6-luna", "workerEffort": "low"}), encoding="utf-8")
-
         self.apply()
-
         rendered = (self.project / ".codex" / "agents" / "issue-worker.toml").read_text()
         parsed = tomllib.loads(rendered)
         self.assertEqual(parsed["model"], "gpt-6-luna")
         self.assertEqual(parsed["model_reasoning_effort"], "low")
-        self.assertEqual(parsed["developer_instructions"], "Use this example:\nmodel = x\n")
 
     def test_applies_helper_model_to_watcher_role(self):
         (self.project / ".issue-flow.codex.json").write_text(
@@ -300,17 +303,33 @@ class SetupProjectTest(unittest.TestCase):
         self.assertEqual(code, 1)
         self.assertIn("roles        stale", text)
 
-    def test_check_reports_malformed_role_as_stale_on_one_stderr_line(self):
+    def test_check_reports_malformed_role_as_stale(self):
+        self.apply("--with-default-permissions")
+        role = self.project / ".codex" / "agents" / "issue-worker.toml"
+        role.write_text("model = [invalid")
+        code, text = self.run_check()
+        self.assertEqual(code, 1)
+        self.assertIn("roles        stale", text)
+
+    def test_check_writes_one_stderr_line_for_a_malformed_role(self):
         self.apply("--with-default-permissions")
         role = self.project / ".codex" / "agents" / "issue-worker.toml"
         role.write_text("model = [invalid")
         err = io.StringIO()
         with redirect_stderr(err):
-            code, text = self.run_check()
-
-        self.assertEqual(code, 1)
-        self.assertIn("roles        stale", text)
+            self.run_check()
         self.assertEqual(len(err.getvalue().splitlines()), 1)
+
+    def test_plan_reports_malformed_plugin_role_toml_on_one_stderr_line(self):
+        role = self.plugin / "roles" / "issue-worker.toml"
+        role.write_text("model = [invalid", encoding="utf-8")
+        err = io.StringIO()
+        with redirect_stderr(err):
+            code = setup_project.main(["plan", "--project", str(self.project),
+                                       "--plugin-root", str(self.plugin)])
+        self.assertEqual(code, 1)
+        self.assertEqual(len(err.getvalue().splitlines()), 1)
+        self.assertIn("setup_project:", err.getvalue())
 
     def test_check_reports_missing_roles_on_an_empty_project(self):
         code, text = self.run_check()

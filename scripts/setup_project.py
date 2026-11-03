@@ -154,7 +154,10 @@ def plan_files(project, plugin_root, with_default_permissions):
             raise SetupError(f".issue-flow.codex.json: {key} must be a string")
     for role in sorted((plugin_root / "roles").glob("*.toml")):
         text = role.read_text(encoding="utf-8")
-        parsed = tomllib.loads(text)
+        try:
+            parsed = tomllib.loads(text)
+        except tomllib.TOMLDecodeError as exc:
+            raise SetupError(f"role source is not valid TOML: {role}: {exc}") from exc
         if role.stem == "issue-worker":
             parsed["model"] = codex.get("workerModel", parsed["model"])
             parsed["model_reasoning_effort"] = codex.get("workerEffort", parsed["model_reasoning_effort"])

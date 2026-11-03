@@ -11,9 +11,11 @@ reading a checkout one merge behind the remote).
 
 Scope, deliberately narrow:
 
-* **Silent everywhere except an issue-flow project.** The hook emits nothing unless the
-  repository root carries a committed `.issue-flow.json` — the file the run
-  configuration writes. Every other repo with this plugin installed pays one stat call.
+* **The digest only in an issue-flow project.** Every session gets the `ran` and
+  `source` lines, because the PM reads a missing `ran` line as "hooks not trusted" and
+  a first run has no config yet. The digest, the fetch, and the forge calls need a
+  repository root that carries a committed `.issue-flow.json` — the file the run
+  configuration writes.
 * **Read-only, plus one `git fetch --prune`.** Nothing is created, labeled, or pushed.
   Label *creation* stays in Phase 0 where the PM can act on it; the hook only reports
   what is missing.
@@ -25,7 +27,9 @@ Scope, deliberately narrow:
   whatever partial digest was gathered. A convenience hook must never be the reason a
   session cannot start.
 
-`ISSUE_FLOW_PREFLIGHT=off` disables it. Codex reads the environment at session start.
+`ISSUE_FLOW_PREFLIGHT=off` disables it completely: no output at all. The PM's hook check
+then cannot pass, because the `ran` line is missing, and the PM stops. Codex reads the
+environment at session start.
 """
 
 import json
@@ -241,13 +245,21 @@ def forge_lines(root, config):
     return lines
 
 
+def ran_lines(source):
+    """The lines the PM's hook check looks for (FR-plugin-packaging-26, -28)."""
+    lines = [f"issue-flow preflight: ran {plugin_version() or 'unknown'}"]
+    if source:
+        lines.append(f"issue-flow preflight: source={source}")
+    return lines
+
+
 def digest(cwd, source):
     root = repo_root(cwd)
-    if not root:
-        return None
-    config_path = os.path.join(root, ".issue-flow.json")
-    if not os.path.isfile(config_path):
-        return None
+    config_path = os.path.join(root, ".issue-flow.json") if root else None
+    if not config_path or not os.path.isfile(config_path):
+        # A first run has no config yet. The `ran` line must still appear, or the PM
+        # reads the silence as "hooks not trusted". No fetch and no forge call here.
+        return "\n".join(ran_lines(source))
     try:
         with open(config_path, encoding="utf-8") as handle:
             config = json.load(handle)
@@ -256,10 +268,7 @@ def digest(cwd, source):
     except Exception:
         config = {}
 
-    # The PM looks for the `ran` line to learn that the hook ran (FR-plugin-packaging-26).
-    lines = [f"issue-flow preflight: ran {plugin_version() or 'unknown'}"]
-    if source:
-        lines.append(f"issue-flow preflight: source={source}")
+    lines = ran_lines(source)
     lines.append("issue-flow preflight (mechanical facts, gathered by the SessionStart hook):")
 
     drift = version_line(config)

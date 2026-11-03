@@ -1,9 +1,10 @@
 """Tests for hooks/preflight.py. Ported from upstream scripts/test-preflight.py.
 
 Runs the hook as a subprocess fed a SessionStart payload on stdin, against throwaway git
-repositories. Three properties matter: the hook is silent everywhere except a repository
-that carries `.issue-flow.json`, its digest reports the facts Phase 0 would otherwise
-re-derive, and it fails open on anything it does not understand. Forge queries run only
+repositories. Three properties matter: the hook prints the `ran` line in every session and
+the digest only in a repository that carries `.issue-flow.json`, the digest reports the
+facts Phase 0 would otherwise re-derive, and the hook fails open on anything it does not
+understand. Forge queries run only
 through their skip path, so the suite passes offline and unauthenticated.
 """
 
@@ -91,14 +92,37 @@ class PreflightTest(unittest.TestCase):
         os.makedirs(path)
         return path
 
-    def test_stays_silent_in_a_repository_without_an_issue_flow_config(self):
+    def installed(self):
+        return json.loads(MANIFEST.read_text(encoding="utf-8"))["version"]
+
+    def test_prints_the_ran_line_in_a_project_without_an_issue_flow_config(self):
         plain = os.path.join(self.base, "plain")
         subprocess.run(["git", "init", "-q", "-b", "main", plain], check=True)
-        self.assertIsNone(self.run_hook(dict(PAYLOAD, cwd=plain), plain))
+        out = self.run_hook(dict(PAYLOAD, cwd=plain), plain)
+        self.assertEqual(out.splitlines(), [
+            f"issue-flow preflight: ran {self.installed()}",
+            "issue-flow preflight: source=startup"])
 
-    def test_stays_silent_in_a_directory_that_is_not_a_repository(self):
+    def test_prints_the_ran_line_in_a_directory_that_is_not_a_repository(self):
         not_repo = self.not_a_repo()
-        self.assertIsNone(self.run_hook(dict(PAYLOAD, cwd=not_repo), not_repo))
+        out = self.run_hook(dict(PAYLOAD, cwd=not_repo), not_repo)
+        self.assertEqual(out.splitlines()[0], f"issue-flow preflight: ran {self.installed()}")
+
+    def test_makes_no_fetch_or_forge_call_without_an_issue_flow_config(self):
+        plain = os.path.join(self.base, "plain")
+        subprocess.run(["git", "init", "-q", "-b", "main", plain], check=True)
+        log = os.path.join(self.base, "calls.log")
+        fakes = os.path.join(self.base, "fakes")
+        os.makedirs(fakes)
+        for tool in ("git", "gh", "tea"):
+            fake = os.path.join(fakes, tool)
+            with open(fake, "w", encoding="utf-8") as handle:
+                handle.write(f'#!/bin/sh\necho "{tool} $*" >> "{log}"\n')
+            os.chmod(fake, 0o755)
+        path = fakes + os.pathsep + os.environ["PATH"]
+        self.run_hook(dict(PAYLOAD, cwd=plain), plain, env={"PATH": path})
+        calls = Path(log).read_text(encoding="utf-8") if os.path.exists(log) else ""
+        self.assertNotRegex(calls, r"fetch|^gh |^tea ")
 
     def test_stays_silent_when_the_kill_switch_is_off(self):
         out = self.run_hook(dict(PAYLOAD, cwd=self.project), self.project,
@@ -166,8 +190,9 @@ class PreflightTest(unittest.TestCase):
         out = self.run_hook("{not json", self.project)
         self.assertTrue(out.startswith("issue-flow preflight: ran "))
 
-    def test_stays_silent_for_malformed_stdin_outside_a_project(self):
-        self.assertIsNone(self.run_hook("", self.not_a_repo()))
+    def test_prints_only_the_ran_line_for_malformed_stdin_outside_a_project(self):
+        out = self.run_hook("", self.not_a_repo())
+        self.assertEqual(out, f"issue-flow preflight: ran {self.installed()}")
 
     def test_keeps_the_git_side_digest_when_the_config_is_unreadable(self):
         with open(os.path.join(self.project, ".issue-flow.json"), "w", encoding="utf-8") as handle:

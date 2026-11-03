@@ -264,6 +264,11 @@ class RunConfigurationTextTest(unittest.TestCase):
         self.assertIn("end your turn", text)
         self.assertIn(".issue-flow.codex.json", text)
 
+    def test_run_configuration_keeps_the_upstream_version_stamp_unchanged(self):
+        text = " ".join(section("SKILL.md", "11. **Run configuration", "   **You create worker").split())
+        self.assertIn("Codex version as `pluginVersion` in `.issue-flow.codex.json`", text)
+        self.assertIn("leave `.issue-flow.json`'s `pluginVersion` unchanged", text)
+
     def test_upstream_file_without_codex_block_gets_only_codex_questions(self):
         text = " ".join((SKILL_DIR / "references" / "session-config.md").read_text().split())
         self.assertIn("no `.issue-flow.codex.json`", text)

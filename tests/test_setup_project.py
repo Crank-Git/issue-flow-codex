@@ -116,6 +116,35 @@ class SetupProjectTest(unittest.TestCase):
             self.assertEqual((self.project / ".codex" / "agents" / f"{name}.toml").read_text(encoding="utf-8"),
                              f'developer_instructions = "{name}"\n')
 
+    def test_applies_configured_worker_model_and_effort_to_worker_role(self):
+        (self.project / ".issue-flow.codex.json").write_text(
+            json.dumps({"workerModel": "gpt-6-luna", "workerEffort": "low"}), encoding="utf-8")
+        self.apply()
+        role = tomllib.loads((self.project / ".codex" / "agents" / "issue_worker.toml").read_text())
+        self.assertEqual(role["model"], "gpt-6-luna")
+        self.assertEqual(role["model_reasoning_effort"], "low")
+        self.apply("--with-default-permissions")
+        code, text = self.run_check()
+        self.assertEqual(code, 0)
+        self.assertIn("roles        ok", text)
+
+    def test_applies_configured_helper_model_to_helper_roles(self):
+        (self.project / ".issue-flow.codex.json").write_text(
+            json.dumps({"helperModel": "gpt-6.1-sol"}), encoding="utf-8")
+        self.apply()
+        role = tomllib.loads((self.project / ".codex" / "agents" / "code_auditor.toml").read_text())
+        self.assertEqual(role["model"], "gpt-6.1-sol")
+
+    def test_applies_only_the_config_file_after_concurrency_changes(self):
+        self.apply("--with-default-permissions")
+        (self.project / ".issue-flow.json").write_text(json.dumps({"concurrency": 5}), encoding="utf-8")
+        files = setup_project.plan_files(self.project, self.plugin, None)
+        written = setup_project.apply_files(self.project, files, [".codex/config.toml"])
+        self.assertEqual(written, [".codex/config.toml"])
+        code, text = self.run_check()
+        self.assertEqual(code, 0)
+        self.assertIn("threads      ok       max_concurrent_threads_per_session = 9", text)
+
     def test_adds_worktrees_to_gitignore_once(self):
         (self.project / ".gitignore").write_text("node_modules", encoding="utf-8")
         self.apply()

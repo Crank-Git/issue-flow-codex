@@ -50,7 +50,8 @@ directory two levels above it. Call it `<pluginRoot>`. The script is
 When the operator asks to check the setup, run
 `python3 <pluginRoot>/scripts/setup_project.py check --project <project>` and show the
 output. The command writes nothing. Each item is `ok`, `missing`, or `stale`. A role
-file is `stale` when its bytes differ from the plugin copy. The `hooks` item is always
+file is `stale` when its keys other than `model` and `model_reasoning_effort` differ from
+the plugin copy. The `hooks` item is always
 `unknown`: tell the operator to run `/hooks` to see the trust state. Exit code 1 means
 an item is `missing` or `stale`. Offer to run the setup procedure to repair it.
 
@@ -60,6 +61,10 @@ an item is `missing` or `stale`. Offer to run the setup procedure to repair it.
   `# issue-flow:end`. The script changes no text outside those lines.
 - The thread limit is the run concurrency plus 4. The script reads the concurrency from
   `<project>/.issue-flow.json` and uses 3 when the file has none.
+- Setup reads `workerModel`, `workerEffort`, and `helperModel` from
+  `<project>/.issue-flow.codex.json`. It uses each plugin role value when a key is absent.
+- If the operator changes concurrency, rerun `plan` and show its full diff. Ask about
+  `.codex/config.toml` only, then apply only that file with `--accept .codex/config.toml`.
 - A rerun of `apply` keeps a `default_permissions` line that the block holds, unless
   the operator rejects it.
 - If the script exits with an error, show the operator the message. Do not edit the files by hand.

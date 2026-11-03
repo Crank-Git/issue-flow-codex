@@ -129,18 +129,40 @@ dev ◄────────────────────────�
 
 # Phase 0 — Preflight (run once per session)
 
-**Look for the preflight digest before spending a single turn on mechanics.** The plugin
-ships a `SessionStart` hook (`hooks/preflight.py`) that, in a repo with a committed
-`.issue-flow.json`, has already run `git fetch` and put an `issue-flow preflight:` block
-into your context: remote name, default branch, live `epic/*`/`batch/*` branches,
-worktrees from an earlier session (check each issue's status before removing one — step 12), missing standard labels, and — when the forge CLI answered — open PRs
-and parked issues. Hooks cost CPU, not inference, and the fetch it already ran is what
-kills the stale-ref failure class measured in live runs. When the block is present, do
-not re-derive those facts with your own tool calls: verify anything surprising, then
-spend the saved turns on the judgment steps (foundation check, branch model, run
-configuration). When it is absent — hook disabled, no `.issue-flow.json` yet, CLI not
-authenticated — run every step below yourself; the hook is an accelerator, never a
-dependency.
+**Run the four Codex checks first, in this order. Stop at the first one that fails, name
+the failed item, and do not start any loop work.**
+
+1. **The preflight hook ran.** Look in your context for the line
+   `issue-flow preflight: ran <version>`. A missing line means the hook did not run, and
+   the loop must not continue without it. Stop and tell the operator to trust the plugin
+   hooks with `/hooks`, then to start a new session.
+2. **The worker role exists.** `spawn_agent` must offer `agent_type` `issue_worker`. If it
+   does not, stop and name `$issue-flow:setup`, which installs the role files.
+3. **The project passes the setup check.** Run
+   `python3 <pluginRoot>/scripts/setup_project.py check --project <dir>`. A nonzero exit
+   means an item is missing. Stop on the item that the output names, and name
+   `$issue-flow:setup` as the fix.
+4. **The sandbox probe passes.** Run `git update-ref refs/issue-flow/probe HEAD`, then
+   `git update-ref -d refs/issue-flow/probe`, then `git ls-remote <remote>`. All three
+   must exit 0. If one fails, stop and name the permission profile `issue_flow`: the
+   session runs without it, so ref writes or network access are blocked and a worker
+   could not push.
+
+**Read the preflight digest before you spend a turn on mechanics.** The plugin ships a
+`SessionStart` hook (`hooks/preflight.py`). It always emits `issue-flow preflight: ran
+<version>` and `source=<source>`. In a repo with a committed `.issue-flow.json`, it has
+also run `git fetch` and put an `issue-flow preflight:` block into your context: remote
+name, default branch, live `epic/*`/`batch/*` branches, worktrees from an earlier session
+(check each issue's status before removing one — step 12), missing standard labels, and —
+when the forge CLI answered — open PRs and parked issues. The hook can also emit
+`issue-flow preflight: digest truncated (time budget)`. That line means the digest is
+incomplete, so derive the missing facts yourself with the steps below. Hooks cost CPU, not
+inference, and the fetch it already ran is what kills the stale-ref failure class
+measured in live runs. When the digest is complete, do not re-derive those facts with
+your own tool calls: verify anything surprising, then spend the saved turns on the
+judgment steps (foundation check, branch model, run configuration). When the digest is
+absent or truncated — no `.issue-flow.json` yet, CLI not authenticated, time budget
+spent — run every step below yourself. The digest is an accelerator, never a dependency.
 
 1. **Repo and forge check.** `git rev-parse --is-inside-work-tree`, then work out which
    forge this repo lives on — see [../../references/forge.md](../../references/forge.md).
@@ -212,38 +234,35 @@ dependency.
      no CI in this repo, so the batch gate verifies nothing on its own"* — and repeat it
      in the first digest. Until a CI workflow exists (Epic 0 lands one), **the PM runs the
      project's full suite itself on the integration branch before merging any batch**:
-     an isolated subagent (`isolation: "worktree"`, `base: <remote>/<integration-branch>`)
+     a worker that you spawn in a fresh worktree. Run `python3 <pluginRoot>/scripts/worktree.py create --project <dir> --task suite_<n> --branch suite/<n> --base <remote>/<integration-branch> --remote <remote>`, then call `spawn_agent` with `fork_turns: "none"` and `workdir` set to the `path` that the script prints. The worker
      runs the project's test/lint/typecheck/build commands and returns a short pass/fail
      summary. That independent run — not a worker's self-reported `localChecks` — is the
      batch gate.
    - **Does the CI honor `[skip ci]`?** (GitHub Actions does natively; Gitea Actions does natively from Gitea 1.20. Both key on the head commit message.) If the provider doesn't (or workflows use `workflow_dispatch`/schedule triggers that don't care), fall back to the alternatives in [references/batching.md](references/batching.md) (path filters, branch filters excluding `epic/**`+`batch/**` — proposing that workflow edit to the user once).
-8. **Documentation access — offer the MCP servers (and marketplaces) that provide it.** Workers must
+8. **Documentation access — offer the MCP servers that provide it.** Workers must
    read real API docs rather than assume ([references/external-apis.md](../../references/external-apis.md)),
    and a connected documentation MCP server is far better at that than `WebFetch`. So
    before any work starts:
-   - **See what's already connected.** `claude mcp list`, plus a `ToolSearch` for
-     doc-serving tools. Anything already there needs no offer — note it and move on.
+   - **See what's already connected.** Run `codex mcp list`. Anything already there that
+     serves documentation needs no offer — note it and move on.
    - **Work out what the project actually depends on.** The spec's
      `Architecture & stack` / `Interfaces` sections when there is a spec; otherwise the
      package manifest, lockfile, IaC files and `amplify.yml`-style config. You want the
      named external services: cloud provider, payment, auth, data store, major framework.
-   - **Search the marketplaces the user has configured.** `claude plugin marketplace list`,
-     then read each listing for a server covering one of those services.
-   - **Offer a marketplace when the one you need is not added yet.** A doc server often
-     ships inside a plugin from a marketplace the user has never added. You may offer to
-     add it — `claude plugin marketplace add <source>` — **only when you have a concrete
-     source**: one the user just gave you, or one named in this repo (its README,
-     `CLAUDE.md`, spec, or `.claude/settings.json`). **Never invent a marketplace URL, a
-     plugin name, a server name, or an install command, and never present a guess as
-     available.** No concrete source → say you found nothing and move on.
-   - **Offer with `AskUserQuestion`** — one option per server (or marketplace) you actually
+   - **Offer only what Codex can install.** Codex has no command that lists or adds a
+     marketplace from the session, so offer no marketplace. Offer an MCP server only when
+     you have a concrete source: one the user just gave you, or one named in this repo
+     (its README, `AGENTS.md`, spec, or `.codex/config.toml`). **Never invent a server
+     name, a source, or an install command, and never present a guess as available.** No
+     concrete source → say you found nothing and move on.
+   - **Offer with a plain-text question** — one numbered option per server you actually
      found, each naming the service it covers and the exact command, plus an explicit
-     "none of these". **Adding a marketplace or installing an MCP server runs third-party
-     code and changes the user's configuration. They run the command, or they explicitly
-     approve it. Never do it silently.**
-   - **Say plainly that new servers need a session restart.** A marketplace added, a
-     plugin installed, or an MCP server connected during this session usually does not
-     appear until the session restarts (`/mcp` shows what is live now). Tell the user
+     "none of these". Then end your turn and wait for the answer. **Installing an MCP
+     server runs third-party code and changes the user's configuration. They run the
+     command, or they explicitly approve it. Never do it silently.**
+   - **Say plainly that new servers need a session restart.** An MCP server connected
+     during this session usually does not
+     appear until the session restarts (`codex mcp list` shows what is configured now). Tell the user
      that, and tell them the loop keeps running meanwhile on the `WebFetch` fallback.
      **Never stop the loop waiting for a restart** — record the decision and carry on.
    - Record the answer as `docsMcp` in the run configuration (step 11) so a decline is not
@@ -261,7 +280,7 @@ dependency.
 10. **Co-operator check.** List other open `flow:status` issues updated in the last 24h —
    each is another person running this loop on the same repo. Read their in-flight issue
    numbers and integration branches, treat them as taken, and never edit their status
-   issue. See [references/collaboration.md](references/collaboration.md). This runs
+   issue. See [references/collaboration.md](references/collaboration.md). Two sessions on the same forge login are a special case: read [references/collaboration.md#same-login-sessions](references/collaboration.md#same-login-sessions) before you treat the other session as your own. This runs
    **before** the run configuration on purpose: whether a co-operator is active decides
    which file step 11 writes.
 11. **Run configuration — confirm with the user, every session.** Load `.issue-flow.json`

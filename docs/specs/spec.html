@@ -527,6 +527,8 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li>2026-11-03 — Epic 0 batch gate (PR #50). The Gitea test bed moved from the stale <code>testgitea</code> login to <code>e/issue-flow-codex-testbed</code> on <code>https://telescope.lan</code> (operator decision). The operator deferred the live Gitea reset to #49, because the <code>telescope</code> token has no issue scope. The reset script now refuses a repository whose name does not end in <code>-testbed</code>.
 </li>
+<li>2026-11-03 — Epic 1 batch gate (PR #57). A live run showed that Codex encrypts <code>tool_input.message</code> in the spawn hook payload. The operator ruled on #17: the spawn guard denies every spawn whose <code>fork_turns</code> is not <code>"none"</code>, and a <code>worker_&lt;n&gt;</code> spawn without <code>agent_type: issue_worker</code>. FR-plugin-packaging-29 to 31 changed to match. The preflight hook prints its <code>ran</code> line in every session and runs within a 40 s budget.
+</li>
 </ul><nav class="pager">
 <span></span>
 <a href="html/page-codex-harness.html">Codex harness facts &rarr;</a>

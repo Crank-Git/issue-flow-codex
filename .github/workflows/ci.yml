@@ -22,5 +22,7 @@ jobs:
         run: python3 -m unittest discover -s tests
       - name: Lock check
         run: python3 scripts/upstream_sync.py --check
+      - name: Role file check
+        run: python3 scripts/build_roles.py --check
       - name: Manifest check
         run: python3 scripts/validate_manifests.py

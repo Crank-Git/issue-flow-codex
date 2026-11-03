@@ -7,31 +7,36 @@ point here.
 
 ## The one rule that makes hybrid safe
 
-**Decisions never run inside a background Workflow.** Workflow subagents are
-non-interactive — they cannot stop and ask the user mid-run. Anything that needs a
-human judgment call (product behavior, ambiguous requirement, irreversible choice)
-must be resolved on the **main thread**, where you can `AskUserQuestion` or park the
-issue `status:needs-feedback` immediately.
+**Decisions never run inside a subagent.** A subagent that `spawn_agent` starts cannot
+stop and ask the user mid-run. Anything that needs a human judgment call (product
+behavior, ambiguous requirement, irreversible choice) must be resolved on the **main
+thread**, where you can ask the user in plain text or park the issue
+`status:needs-feedback` immediately.
 
-A Workflow is a **pure, decision-free executor**. If a Workflow agent encounters a
-real decision, it does **not** guess: it returns
-`{ needsFeedback: true, question: "<the specific question>" }` for that work unit and
-stops that unit. The main thread reads this at the `<task-notification>` when the
-Workflow finishes, then surfaces it to the user / labels the issue.
+A subagent is a **pure, decision-free executor**. If it meets a real decision, it does
+**not** guess: it returns `{ needsFeedback: true, question: "<the specific question>" }`
+for that work unit and stops that unit. The main thread reads this when `wait_agent`
+reports that the subagent is done. The rules for `wait_agent` are in
+[SKILL.md](../SKILL.md) (the invariants and the verdict section).
 
-Consequence for alerting: work placed in a Workflow only reports "needs input" when
-that Workflow **completes**, not the instant the decision arises. So keep
-decision-prone work on the main thread; push only mechanical, already-decided work
-into Workflows.
+Consequence for alerting: work in a subagent reports "needs input" only when that
+subagent **finishes**, not the instant the decision arises. So keep decision-prone work
+on the main thread. Give subagents only mechanical, already-decided work.
+
+Every `spawn_agent` call passes `fork_turns: "none"`, and a subagent uses a thread slot.
+Call `list_agents` before each spawn. Spawn only when a slot is free. Else do the step
+on the main thread, or call `wait_agent` until a slot frees. `concurrency` counts workers
+only. Locate subagents, worker subagents, and watchers use the extra thread slots that
+the setup skill adds.
 
 ## What is safe to parallelize
 
 | Stage | Work | Parallel? | Mechanism |
 |---|---|---|---|
-| plan (PM, Stage B) | Locate files, map call sites | ✅ read-only | `Agent` fan-out (`Explore`) |
+| plan (PM, Stage B) | Locate files, map call sites | ✅ read-only | `spawn_agent` fan-out (`explorer`) |
 | implement (worker) | Edit code | ⚠️ only if file sets are **disjoint** | worktree-per-issue; within an issue, sequential unless partitioned |
-| self-review (worker) | Review diff by dimension | ✅ read-only | Workflow fan-out: correctness / security / maintainability / frontend / backend |
-| verify (worker/batch CI) | Read failing logs | ✅ read-only | `Agent` fan-out, one per failing job |
+| self-review (worker) | Review diff by dimension | ✅ read-only | `spawn_agent` fan-out: correctness / security / maintainability / frontend / backend |
+| verify (worker/batch CI) | Read failing logs | ✅ read-only | `spawn_agent` fan-out, one per failing job |
 | across issues | Multiple issues at once | ✅ with isolation | one git worktree + branch per issue, concurrency cap |
 | across batches | Multiple integration branches live | ✅ but prefer finishing one | batch-level conflicts resolved once at the batch gate |
 | within a dependency chain | Sequenced members | ❌ sequential by design | each forks the integration branch after its predecessor sub-merges |
@@ -49,41 +54,35 @@ simultaneously, **each in its own worktree**. Members of a dependency chain are 
 exception to "launch whenever a slot frees": they run **sequentially** within their
 batch — each launches after its predecessor sub-merges into the integration branch.
 
-Setup per issue: the PM creates no worktree. It launches the worker with
-`isolation: "worktree"` and the harness makes one under `.claude/worktrees/`, pinned to
-that worker alone (see [worktrees.md](worktrees.md)). The worker then points its worktree
-at its base (the batch's integration branch; `<remote>/<dev>` only for standalone/hotfix
-work — see [batching.md](batching.md)):
+Setup per issue: the PM creates the worktree with `scripts/worktree.py create` before it
+spawns the worker (see [worktrees.md](worktrees.md)). The worktree lives under
+`.worktrees/<task_name>`, and the worker's branch starts from its base: the batch's
+integration branch, or `<remote>/<dev>` for standalone/hotfix work (see
+[batching.md](batching.md)).
 
 ```bash
-# inside the worker's own worktree
-git fetch <remote>
-git checkout -B issue/<number>-<slug> <remote>/epic/<n>-<slug>
+python3 <pluginRoot>/scripts/worktree.py create --project <dir> --task worker_<n> \
+  --branch issue/<number>-<slug> --base <remote>/epic/<n>-<slug> --remote <remote>
 ```
 
-On a re-spawn for rework the base is the issue's **own published branch** instead
-(`<remote>/issue/<number>-<slug>`) — the worker checks for it before falling back, so a
-second attempt cannot reset away the first attempt's commits.
+On a re-spawn for rework or after a checkpoint, the base is the issue's **own published
+branch** instead (`<remote>/issue/<number>-<slug>`), so a second attempt cannot reset away
+the first attempt's commits.
 
 - `<remote>` is detected in preflight (`git remote` — usually `origin` but never
   hardcode it).
 - Each worktree is a fully independent checkout: build, test, commit, push there.
-- The main thread owns the loop and the gates; it may launch a background implement
-  Workflow per issue and react to each `<task-notification>` as issues complete.
+- The main thread owns the loop and the gates. It reads each worker verdict with
+  `wait_agent` (SKILL.md, *Reading a worker verdict*).
 
-Cleanup on merge (or abandonment) — the harness auto-removes an isolated worktree only if
-it is *unchanged*, and a worker's is never unchanged, so the PM removes it. Use the path
-from the worker's completion notification (`worktreePath`) or its verdict, and sweep for
-leftovers from earlier sessions:
+Cleanup on merge (or abandonment): the PM removes the worktree with `worktree.py remove`,
+because a worker's worktree is never unchanged. It then sweeps for leftovers from earlier
+sessions:
 
 ```bash
-git worktree remove -f -f <path from the completion notification>   # after the branch is merged/deleted
-git branch -D <worktreeBranch from the notification>                # the harness branch the removal leaves
-git worktree list --porcelain                                       # leftovers on issue/* branches
-git worktree remove -f -f <leftover>                                # -f -f: a killed session leaves the lock
+python3 <pluginRoot>/scripts/worktree.py remove --project <dir> --task <task_name>   # after the sub-merge
+git worktree list --porcelain                                                         # leftovers on issue/* branches
 git worktree prune
-git for-each-ref --format='%(refname:lstrip=2) %(worktreepath)' 'refs/heads/worktree-agent-*' \
-  | awk '$2 == "" {print $1}' | xargs -r git branch -D              # dead harness branches (worktrees.md)
 ```
 
 **Two different issues touching the same files is allowed and expected.** Their edits
@@ -111,7 +110,7 @@ workers can both read "unclaimed" and both proceed to set the forge labels.
 Gate entry to that write with the git-native CAS helper first — it doesn't
 replace the forge label swap, it decides who is allowed to attempt it:
 
-    python3 "${CLAUDE_PLUGIN_ROOT}/scripts/state_cas.py" set --repo . --remote origin \
+    python3 "<pluginRoot>/scripts/state_cas.py" set --repo . --remote origin \
       --key issue-<n> --expect absent --value '{"owner":"<worker-id>"}'
 
 Only the worker whose call exits 0 proceeds to set `status:in-progress` and
@@ -134,7 +133,7 @@ prior `get` — that's what Takeover below relies on). When a worker finishes
 an issue, or abandons a claim it made (crash, reassignment, the issue
 getting reopened), release the key with the CAS-guarded `delete`:
 
-    python3 "${CLAUDE_PLUGIN_ROOT}/scripts/state_cas.py" delete --repo . --remote origin \
+    python3 "<pluginRoot>/scripts/state_cas.py" delete --repo . --remote origin \
       --key issue-<n> --expect '{"owner":"<worker-id>"}'
 
 **Takeover**, for when the forge says unclaimed but the ref still says
@@ -143,9 +142,9 @@ never got to run it): `get` the current value and `set` with that exact
 value as `--expect`, so the takeover only succeeds against the state you
 actually observed, not a guess:
 
-    python3 "${CLAUDE_PLUGIN_ROOT}/scripts/state_cas.py" get --repo . --remote origin --key issue-<n>
+    python3 "<pluginRoot>/scripts/state_cas.py" get --repo . --remote origin --key issue-<n>
     # → {"key": "issue-<n>", "value": {"owner": "worker-a"}}
-    python3 "${CLAUDE_PLUGIN_ROOT}/scripts/state_cas.py" set --repo . --remote origin \
+    python3 "<pluginRoot>/scripts/state_cas.py" set --repo . --remote origin \
       --key issue-<n> --expect '{"owner":"worker-a"}' --value '{"owner":"<worker-id>"}'
 
 **What this actually guards, today.** `issue-flow` documents one PM per repo per
@@ -170,14 +169,16 @@ this, but is not implemented.
 
 ## Specialist reviewers (worker self-review)
 
-Run reviewers as a Workflow fan-out over the PR diff. Default lenses, pruned to what
-the diff actually touches:
+Run reviewers as parallel `spawn_agent` calls over the PR diff. Call `list_agents` first
+and spawn only when a thread slot is free. Give each reviewer `fork_turns: "none"`, model
+`gpt-6-luna`, a unique `task_name`, and the diff, and read its result from its
+`FINAL_ANSWER`. Default lenses, pruned to what the diff actually touches:
 
 - **correctness** — logic, edge cases, regressions
 - **security** — injection, authz, secrets, unsafe deserialization
 - **maintainability** — always on: the slop a green suite never catches. Check the diff
-  **rule by rule** against the project's `.claude/rules/quality.md` when it exists (the
-  planner scaffolds it), reporting a pass/fail verdict per rule; else use this default
+  **rule by rule** against the `qualityRule` path of the brief (`docs/rules/quality.md`
+  when the project has it), reporting a pass/fail verdict per rule; else use this default
   list: try/catch that only rethrows or logs-and-continues; defensive casts or null
   checks against states the types already exclude; abstractions with a single caller;
   configuration for a value nothing varies; dead or commented-out code; comments that
@@ -187,7 +188,7 @@ the diff actually touches:
 - **frontend** — only if the diff touches UI/client code: a11y, state, render cost
 - **backend** — only if the diff touches server/data code: API contracts, queries, migrations
 
-Each reviewer returns structured findings; the main thread dedupes, posts them as PR
+Each reviewer returns structured findings as JSON (severity, file, line, problem, fix); the main thread dedupes, posts them as PR
 comments, and fixes the real ones. A reviewer that wants a product decision returns
 `needsFeedback` rather than inventing intent.
 
@@ -215,51 +216,6 @@ line-count delta looks implausibly small next to their blob-size delta, or check
 file against the host's diff-size cap directly.) Route flagged paths to a direct-read
 step before the review agent ever sees the PR diff, rather than trusting it to catch
 the gap.
-
-### Example Workflow script (self-review fan-out)
-
-The main thread can lift this and pass it to the `Workflow` tool. It is decision-free:
-it only *finds and reports*, it never edits or merges.
-
-```js
-export const meta = {
-  name: 'issue-flow-review',
-  description: 'Parallel specialist review of a PR diff for issue-flow',
-  phases: [{ title: 'Review' }],
-}
-const FINDINGS = {
-  type: 'object',
-  required: ['lens', 'findings'],
-  properties: {
-    lens: { type: 'string' },
-    findings: {
-      type: 'array',
-      items: {
-        type: 'object',
-        required: ['severity', 'file', 'line', 'problem', 'fix'],
-        properties: {
-          severity: { type: 'string', enum: ['blocker', 'major', 'minor'] },
-          file: { type: 'string' }, line: { type: 'number' },
-          problem: { type: 'string' }, fix: { type: 'string' },
-          needsFeedback: { type: 'boolean' },
-        },
-      },
-    },
-  },
-}
-// args = { diff: "<unified diff, from `forge.pr.diff`>", lenses: ["correctness","security","maintainability","frontend","backend"] }
-// For the maintainability lens, append the project's .claude/rules/quality.md to the
-// prompt when it exists, and ask for a pass/fail verdict per rule.
-phase('Review')
-const reviews = await parallel(args.lenses.map(lens => () =>
-  agent(
-    `Review this PR diff through the ${lens} lens ONLY. Report real, actionable issues.\n` +
-    `Do NOT invent product intent — if a finding needs a human decision, set needsFeedback:true.\n\n` +
-    args.diff,
-    { label: `review:${lens}`, phase: 'Review', schema: FINDINGS })
-))
-return reviews.filter(Boolean)
-```
 
 ## How many issues per session?
 

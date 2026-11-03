@@ -47,6 +47,7 @@ The port keeps upstream paths, so a sync compares files one to one.
 | Unit tests | `python3 -m unittest discover -s tests` |
 | Manifest check | `python3 scripts/validate_manifests.py` |
 | Lock check | `python3 scripts/upstream_sync.py --check` |
+| Build role files | `python3 scripts/build_roles.py` (`--check` fails on a stale file; CI runs it) |
 | Render the spec | `python3 docs/specs/render-spec.py` |
 | Live conformance | `python3 scripts/conformance.py` (uses the operator's Codex quota; ask first) |
 

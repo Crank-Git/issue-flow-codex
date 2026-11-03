@@ -369,6 +369,18 @@ upstream_sha256 = "77628f46bd90f3e0376268b8ecec3253fdf33650662a0b027366f08c33c06
 notes = "The artifact table names `AGENTS.md` and `docs/rules/`."
 
 [[file]]
+path = "roles/issue-worker.toml"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file. Built from `agents/issue-worker.md` by `scripts/build_roles.py`."
+
+[[file]]
+path = "scripts/build_roles.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
 path = "scripts/conformance.py"
 mode = "new"
 upstream_sha256 = ""
@@ -711,6 +723,12 @@ upstream_sha256 = ""
 notes = "Port-only file."
 
 [[file]]
+path = "tests/test_build_roles.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
 path = "tests/test_conformance.py"
 mode = "new"
 upstream_sha256 = ""
@@ -811,3 +829,33 @@ path = "tests/fixtures/hooks/pre_tool_use_apply_patch.json"
 mode = "new"
 upstream_sha256 = ""
 notes = "port-only: live subagent PreToolUse apply_patch payload (#18)"
+
+[[file]]
+path = "scripts/worktree.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: create and remove worker worktrees (#19)"
+
+[[file]]
+path = "tests/test_worktree.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: tests for scripts/worktree.py (#19)"
+
+[[file]]
+path = "tests/test_skill_text.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: section-scoped checks on the ported skill text (#21)"
+
+[[file]]
+path = "tests/e2e/run_loop.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: live Epic 2 batch-gate harness, opt-in with ISSUE_FLOW_E2E=1 (#3)"
+
+[[file]]
+path = "docs/e2e/2026-11-03-epic-2.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: Epic 2 batch-gate live run report (#3)"

@@ -1,0 +1,632 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>issue-flow for Codex — Feature: Foundation</title>
+<style>
+:root { --bg:#ffffff; --fg:#1a1a24; --muted:#5a5a68; --line:#e3e3ea; --accent:#3452c8;
+        --card:#f6f6f9; --warn-bg:#fff7e8; --warn-line:#e8b34a; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#14141b; --fg:#e8e8ee; --muted:#9a9aa8; --line:#2c2c38; --accent:#8ea6ff;
+          --card:#1c1c26; --warn-bg:#2a2318; --warn-line:#a87c2a; } }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+       font:16px/1.6 system-ui,-apple-system,sans-serif; }
+.layout { display:flex; min-height:100vh; }
+aside.site { width:17rem; flex:none; border-right:1px solid var(--line);
+             padding:1.2rem 1rem 3rem; position:sticky; top:0; height:100vh;
+             overflow-y:auto; background:var(--card); }
+aside.site h2 { font-size:.8rem; text-transform:uppercase; letter-spacing:.06em;
+                color:var(--muted); margin:1.2rem 0 .3rem; border:none; padding:0; }
+aside.site ul { list-style:none; margin:0; padding:0; }
+aside.site li { margin:.15rem 0; }
+aside.site a { text-decoration:none; color:var(--fg); font-size:.92rem;
+               display:block; padding:.15rem .5rem; border-radius:6px; }
+aside.site a:hover { background:var(--bg); }
+aside.site a.current { background:var(--accent); color:#fff; }
+aside.site a.sub { padding-left:1.3rem; font-size:.84rem; color:var(--muted); }
+aside.site .brand { font-weight:700; font-size:1.05rem; }
+main { max-width:60rem; margin:0 auto; padding:2rem 1.5rem 6rem; min-width:0; flex:1; }
+h1,h2,h3,h4 { line-height:1.25; }
+h1 { font-size:2rem; margin:.2rem 0; }
+h2 { border-bottom:1px solid var(--line); padding-bottom:.3rem; margin-top:2.5rem; }
+a { color:var(--accent); }
+code { background:var(--card); padding:.1em .35em; border-radius:4px; font-size:.9em; }
+pre.code { background:var(--card); border:1px solid var(--line); border-radius:8px;
+           padding:1rem; overflow-x:auto; }
+pre.code code { background:none; padding:0; }
+.table-wrap { overflow-x:auto; }
+table { border-collapse:collapse; margin:1rem 0; min-width:50%; }
+th,td { border:1px solid var(--line); padding:.4rem .7rem; text-align:left; }
+th { background:var(--card); }
+blockquote { border-left:3px solid var(--accent); margin:1rem 0; padding:.2rem 1rem;
+             color:var(--muted); }
+.meta { color:var(--muted); margin-bottom:2rem; }
+.badge { display:inline-block; padding:.1rem .6rem; border-radius:999px;
+         border:1px solid var(--accent); color:var(--accent); font-size:.85rem; }
+.diagram { background:var(--card); border:1px solid var(--line); border-radius:8px;
+           padding:1rem; margin:1rem 0; overflow-x:auto; }
+.diagram pre.mermaid { margin:0; }
+.diagram.raw::before { content:"diagram source (assets/mermaid.min.js not vendored)";
+                       display:block; color:var(--muted); font-size:.8rem;
+                       margin-bottom:.5rem; }
+.callout-h, .callout-h ~ p, .callout-h ~ ul { background:var(--warn-bg); }
+.callout-h { border-left:4px solid var(--warn-line); padding:.3rem .8rem; }
+.mockup { margin:1.5rem 0; }
+.mockup iframe { width:100%; height:32rem; border:1px solid var(--line);
+                 border-radius:8px; background:#fff; }
+nav.pager { display:flex; justify-content:space-between; margin-top:3rem;
+            border-top:1px solid var(--line); padding-top:1rem; }
+@media (max-width: 900px) {
+  .layout { display:block; }
+  aside.site { width:auto; height:auto; position:static; border-right:none;
+               border-bottom:1px solid var(--line); }
+}
+h1[id]:hover .rv-add, h2[id]:hover .rv-add, h3[id]:hover .rv-add,
+h4[id]:hover .rv-add { opacity:1; }
+.rv-add { opacity:0; margin-left:.5rem; font-size:.75rem; cursor:pointer;
+          border:1px solid var(--accent); color:var(--accent); background:none;
+          border-radius:6px; padding:0 .45rem; vertical-align:middle;
+          transition:opacity .15s; }
+.rv-comment { border:1px solid var(--warn-line); border-left-width:4px;
+              background:var(--warn-bg); border-radius:8px; padding:.6rem .9rem;
+              margin:.8rem 0; font-size:.92rem; }
+.rv-comment.rv-resolved { opacity:.6; border-left-color:var(--line); }
+.rv-comment .rv-head { display:flex; gap:.6rem; align-items:center;
+                       color:var(--muted); font-size:.8rem; margin-bottom:.3rem; }
+.rv-comment .rv-head button { font-size:.75rem; cursor:pointer; background:none;
+                              border:1px solid var(--line); border-radius:6px;
+                              color:var(--muted); padding:0 .4rem; }
+.rv-comment .rv-body { white-space:pre-wrap; }
+.rv-editor textarea { width:100%; min-height:5rem; background:var(--bg);
+                      color:var(--fg); border:1px solid var(--line);
+                      border-radius:6px; padding:.5rem; font:inherit; }
+.rv-editor .rv-actions { margin-top:.4rem; display:flex; gap:.5rem; }
+.rv-editor button { cursor:pointer; border-radius:6px; padding:.2rem .8rem;
+                    border:1px solid var(--accent); background:var(--accent);
+                    color:#fff; }
+.rv-editor button.rv-cancel { background:none; color:var(--accent); }
+#rv-toggle { position:fixed; right:1rem; bottom:1rem; z-index:60;
+             background:var(--accent); color:#fff; border:none; cursor:pointer;
+             border-radius:999px; padding:.5rem 1rem; font-size:.85rem;
+             box-shadow:0 2px 10px rgba(0,0,0,.2); }
+#rv-drawer { position:fixed; top:0; right:0; bottom:0; width:21rem; z-index:55;
+             background:var(--card); border-left:1px solid var(--line);
+             display:flex; flex-direction:column; transform:translateX(100%);
+             transition:transform .2s ease; box-shadow:-4px 0 16px rgba(0,0,0,.12); }
+body.rv-open #rv-drawer { transform:none; }
+body.rv-open .layout { padding-right:21rem; }
+#rv-drawer header { padding:.8rem 1rem .5rem; border-bottom:1px solid var(--line); }
+#rv-drawer header .rv-count { color:var(--muted); font-size:.8rem; }
+#rv-drawer .rv-compose { padding:.8rem 1rem; border-bottom:1px solid var(--line); }
+#rv-drawer .rv-compose label { display:block; font-size:.75rem;
+                               color:var(--muted); margin-bottom:.25rem; }
+#rv-drawer .rv-compose select { width:100%; margin-bottom:.4rem;
+             background:var(--bg); color:var(--fg); border:1px solid var(--line);
+             border-radius:6px; padding:.3rem; font:inherit; font-size:.85rem; }
+#rv-drawer .rv-compose textarea { width:100%; min-height:5.5rem;
+             background:var(--bg); color:var(--fg); border:1px solid var(--line);
+             border-radius:6px; padding:.5rem; font:inherit; font-size:.9rem; }
+#rv-drawer .rv-compose .rv-live { font-size:.72rem; color:var(--muted); }
+#rv-drawer .rv-list { flex:1; overflow-y:auto; padding:.6rem 1rem; }
+#rv-drawer .rv-item { border:1px solid var(--line); border-left:3px solid
+             var(--warn-line); border-radius:8px; padding:.45rem .6rem;
+             margin-bottom:.6rem; font-size:.82rem; cursor:pointer; }
+#rv-drawer .rv-item.rv-resolved { opacity:.55; border-left-color:var(--line); }
+#rv-drawer .rv-item .rv-where { color:var(--accent); font-size:.72rem; }
+#rv-drawer .rv-item .rv-meta { color:var(--muted); font-size:.72rem;
+                               display:flex; gap:.5rem; align-items:center; }
+#rv-drawer .rv-item .rv-meta button { font-size:.7rem; cursor:pointer;
+             background:none; border:1px solid var(--line); border-radius:5px;
+             color:var(--muted); padding:0 .35rem; }
+#rv-drawer .rv-item .rv-text { white-space:pre-wrap; margin:.15rem 0; }
+#rv-drawer footer { padding:.6rem 1rem; border-top:1px solid var(--line);
+                    display:flex; gap:.5rem; flex-wrap:wrap; }
+#rv-drawer footer button, #rv-drawer .rv-compose button {
+  cursor:pointer; border:1px solid var(--accent); background:none;
+  color:var(--accent); border-radius:6px; padding:.2rem .7rem; font-size:.8rem; }
+#rv-drawer .rv-compose button.rv-primary { background:var(--accent); color:#fff; }
+#rv-drawer .rv-otherpages { color:var(--muted); font-size:.75rem;
+                            margin:.4rem 0 0; }
+@media (max-width: 1200px) { body.rv-open .layout { padding-right:0; } }
+</style>
+</head>
+<body data-page="feature-foundation" data-rvkey="issue-flow-codex">
+<div class="layout">
+<aside class="site"><a class="brand" href="../spec.html">issue-flow for Codex</a>
+<h2>Spec</h2><ul>
+<li><a href="../spec.html">Overview &amp; index</a></li>
+</ul>
+<h2>Pages</h2><ul>
+<li><a href="page-codex-harness.html">Codex harness facts</a></li>
+<li><a href="page-porting-inventory.html">Porting inventory</a></li>
+</ul>
+<h2>Features</h2><ul>
+<li><a class="current" href="feature-foundation.html">Foundation</a></li>
+<li><a href="feature-plugin-packaging.html">Plugin packaging and hooks</a></li>
+<li><a href="feature-worker-dispatch.html">Worker dispatch</a></li>
+<li><a href="feature-loop-operations.html">Loop operations</a></li>
+<li><a href="feature-spec-skills.html">Spec skills</a></li>
+<li><a href="feature-project-review.html">Project review</a></li>
+<li><a href="feature-mirror-and-sync.html">Mirror and sync</a></li>
+</ul></aside>
+<main>
+<h1>Feature: Foundation</h1>
+<p class="meta">Epic 0: Foundation &nbsp; <span class="badge">planned</span></p>
+<h3 id="foundation-purpose">Purpose</h3>
+<p>The foundation gives every later epic a repository to build in. It imports upstream 0.17.0 with a complete upstream lock. It adds the unit tests, the CI workflow, the conformance suite, and the two test beds. After this epic, a worker can land in the repository and run every check with one command.</p>
+<h3 id="foundation-user-stories">User stories</h3>
+<ul>
+<li>As the maintainer, I want every upstream file imported at its upstream path, so that a later sync compares files one to one.
+</li>
+<li>As the maintainer, I want a lock that records the port mode of each file, so that the sync script knows which files it can copy.
+</li>
+<li>As the maintainer, I want a conformance suite, so that I know within one run if a Codex release breaks the port.
+</li>
+<li>As the operator, I want test beds on GitHub and Gitea, so that end-to-end runs never touch a real project.
+</li>
+</ul>
+<h3 id="foundation-functional-requirements">Functional requirements</h3>
+<ul>
+<li>FR-foundation-1 — The repository holds every upstream file of <code>issue-flow/</code> at tag <code>issue-flow--v0.17.0</code>, at the same relative path, with the <code>issue-flow/</code> prefix removed.
+</li>
+<li>FR-foundation-2 — The repository holds <code>upstream.lock</code> at the root.
+</li>
+<li>FR-foundation-3 — <code>upstream.lock</code> records the upstream repository URL, the tag, and the commit SHA.
+</li>
+<li>FR-foundation-4 — <code>upstream.lock</code> holds one entry for each upstream file and for each port-only file.
+</li>
+<li>FR-foundation-5 — Each lock entry records <code>path</code>, <code>mode</code>, <code>upstream_sha256</code>, and <code>notes</code>.
+</li>
+<li>FR-foundation-6 — The initial lock sets each file's <code>mode</code> from the <a href="page-porting-inventory.html">porting inventory</a>.
+</li>
+<li>FR-foundation-7 — <code>scripts/upstream_sync.py --check</code> exits 0 when every <code>verbatim</code> file hashes equal to its upstream file.
+</li>
+<li>FR-foundation-8 — <code>scripts/upstream_sync.py --check</code> exits 1 and names each <code>verbatim</code> file that differs from upstream.
+</li>
+<li>FR-foundation-9 — The unit tests run with <code>python3 -m unittest discover -s tests</code>.
+</li>
+<li>FR-foundation-10 — The repository holds the upstream tests from <code>claude-plugins/scripts/test-*.py</code> under <code>tests/</code>, ported to the port's paths.
+</li>
+<li>FR-foundation-11 — A GitHub Actions workflow runs the unit tests, the manifest check, and the lock check on each pull request into <code>dev</code> and <code>main</code>.
+</li>
+<li>FR-foundation-12 — The repository has a <code>dev</code> branch, and <code>dev</code> is the default branch for pull requests.
+</li>
+<li>FR-foundation-13 — <code>scripts/conformance.py</code> runs each conformance probe in a new temporary <code>CODEX_HOME</code>.
+</li>
+<li>FR-foundation-14 — <code>scripts/conformance.py</code> links <code>auth.json</code> from the operator's <code>~/.codex</code> into the temporary <code>CODEX_HOME</code> and never copies it.
+</li>
+<li>FR-foundation-15 — <code>scripts/conformance.py</code> reports one line per probe: the probe id, <code>pass</code> or <code>fail</code>, and the evidence.
+</li>
+<li>FR-foundation-16 — The conformance suite holds the probes in the table under Behaviour rules.
+</li>
+<li>FR-foundation-17 — <code>scripts/conformance.py</code> records the Codex version in its report.
+</li>
+<li>FR-foundation-18 — <code>scripts/testbed-reset.py --forge github</code> returns the GitHub test bed to its seed state.
+</li>
+<li>FR-foundation-19 — <code>scripts/testbed-reset.py --forge gitea</code> returns the Gitea test bed to its seed state.
+</li>
+<li>FR-foundation-20 — The test bed seed state holds a small Python web app with tests, a CI workflow, the upstream labels, and five open issues in one epic.
+</li>
+<li>FR-foundation-21 — The repository holds <code>AGENTS.md</code>, <code>CLAUDE.md</code>, <code>.codex/</code>, and <code>.claude/</code> per the scaffold that the spec approval round accepted.
+</li>
+<li>FR-foundation-22 — <code>README.md</code> states the upstream project, its license, and its author, and links to the upstream repository.
+</li>
+<li>FR-foundation-23 — <code>LICENSE</code> holds the MIT license text with the upstream copyright line and the port copyright line.
+</li>
+</ul>
+<h3 id="foundation-user-flows">User flows</h3>
+<h4 id="foundation-flow-1-import-upstream">Flow 1 — Import upstream</h4>
+<div class="diagram"><pre class="mermaid">flowchart TD
+    A["Maintainer runs upstream_sync.py --import issue-flow--v0.17.0"] --&gt; B{"Tag exists upstream?"}
+    B -- "no" --&gt; X["Exit 1: tag not found"]
+    B -- "yes" --&gt; C["Copy every file under issue-flow/ to the repository root"]
+    C --&gt; D["Write upstream.lock: one entry per file, mode from the inventory"]
+    D --&gt; E["Run --check"]
+    E -- "pass" --&gt; F["Commit: import upstream issue-flow--v0.17.0"]
+    E -- "fail" --&gt; Y["Exit 1: list the differing verbatim files"]</pre></div>
+<ol>
+<li>The maintainer runs <code>python3 scripts/upstream_sync.py --import issue-flow--v0.17.0</code>.
+</li>
+<li>The script fetches the tag from the upstream repository.
+</li>
+<li>If the tag does not exist, the script exits 1.
+</li>
+<li>The script copies each file under <code>issue-flow/</code> to the same path without the prefix.
+</li>
+<li>The script writes <code>upstream.lock</code>.
+</li>
+<li>The script runs the check.
+</li>
+<li>The maintainer commits the import.
+</li>
+</ol>
+<h4 id="foundation-flow-2-run-the-conformance-suite">Flow 2 — Run the conformance suite</h4>
+<div class="diagram"><pre class="mermaid">flowchart TD
+    A["Maintainer runs conformance.py"] --&gt; B{"codex on PATH and logged in?"}
+    B -- "no" --&gt; X["Exit 2: codex missing or not logged in"]
+    B -- "yes" --&gt; C["Create a temporary CODEX_HOME, link auth.json"]
+    C --&gt; D["Install the probe plugin from a local marketplace"]
+    D --&gt; E["Run each probe with codex exec, stdin closed"]
+    E --&gt; F["Write the report: version, probe, pass or fail, evidence"]
+    F --&gt; G{"Any probe failed?"}
+    G -- "yes" --&gt; H["Exit 1"]
+    G -- "no" --&gt; I["Exit 0"]
+    F --&gt; Z["Delete the temporary CODEX_HOME"]</pre></div>
+<ol>
+<li>The maintainer runs <code>python3 scripts/conformance.py</code>.
+</li>
+<li>If <code>codex</code> is not on the path, the script exits 2.
+</li>
+<li>The script creates a temporary <code>CODEX_HOME</code> and links <code>auth.json</code>.
+</li>
+<li>The script installs a probe plugin from a local marketplace.
+</li>
+<li>The script runs each probe with <code>codex exec</code> and closes stdin.
+</li>
+<li>The script writes the report to <code>conformance-report.md</code> and to stdout.
+</li>
+<li>The script deletes the temporary <code>CODEX_HOME</code>.
+</li>
+</ol>
+<h3 id="foundation-screens-states">Screens &amp; states</h3>
+<p>The feature has no screens. The conformance report is plain text:</p>
+<pre class="code"><code>codex-cli 0.166.0
+P1  pass  plugin skill listed as issue-flow-probe:ping
+P2  pass  SessionStart additionalContext reached the model
+...</code></pre>
+<h3 id="foundation-behaviour-rules">Behaviour rules</h3>
+<h4 id="foundation-conformance-probes">Conformance probes</h4>
+<div class="table-wrap"><table>
+<tr><th>Id</th><th>Proves</th><th>Pass condition</th></tr>
+<tr><td>P1</td><td>Codex loads plugin skills with a namespace.</td><td>The model lists <code>&lt;plugin&gt;:ping</code>.</td></tr>
+<tr><td>P2</td><td>Codex runs plugin hooks with hook trust bypassed, and SessionStart context reaches the model.</td><td>The model repeats a token that only the hook output holds.</td></tr>
+<tr><td>P3</td><td>Codex skips an untrusted plugin hook in <code>codex exec</code>.</td><td>The hook log is empty without <code>--dangerously-bypass-hook-trust</code>.</td></tr>
+<tr><td>P4</td><td>V2 spawn of a custom role works, and the PM receives each verdict.</td><td>The model prints two JSON verdicts from two subagents.</td></tr>
+<tr><td>P5</td><td>The PreToolUse <code>tool_name</code> of a V2 spawn matches <code>spawn_agent$</code>, and <code>tool_input.agent_type</code> holds the role.</td><td>The hook log has the expected fields.</td></tr>
+<tr><td>P6</td><td>A PreToolUse deny blocks a spawn.</td><td>The subagent does not start, and the model reports the deny reason.</td></tr>
+<tr><td>P7</td><td>The default <code>workspace-write</code> sandbox blocks <code>.git</code> writes.</td><td><code>git worktree add</code> fails.</td></tr>
+<tr><td>P8</td><td>The <code>issue_flow</code> permission profile allows worktree, commit, and network.</td><td>All three commands exit 0.</td></tr>
+<tr><td>P9</td><td>A subagent inherits the permission profile.</td><td>A subagent creates a worktree and commits.</td></tr>
+<tr><td>P10</td><td>Hooks fire inside a subagent with <code>agent_type</code> set.</td><td>The hook log has <code>agent_type</code> equal to the role.</td></tr>
+<tr><td>P11</td><td><code>wait_agent</code> returns early when a subagent finishes.</td><td>The elapsed time is less than the <code>timeout_ms</code> value.</td></tr>
+<tr><td>P12</td><td><code>followup_task</code> starts a new turn in an idle subagent.</td><td>The subagent returns a second verdict.</td></tr>
+</table></div>
+<h4 id="foundation-lock-rules">Lock rules</h4>
+<ul>
+<li><code>verbatim</code> — the file is byte-equal to upstream. The sync script copies it.
+</li>
+<li><code>patched</code> — the file is upstream plus small port edits. The sync script writes the upstream diff to the change list.
+</li>
+<li><code>rewritten</code> — the port rewrote sections of the file. The sync script writes the upstream diff to the change list.
+</li>
+<li><code>dropped</code> — the port does not use the file. The sync script writes the upstream diff to the change list only if the file changed.
+</li>
+<li><code>new</code> — the file exists only in the port. The sync script ignores it.
+</li>
+</ul>
+<h3 id="foundation-data-touched">Data touched</h3>
+<ul>
+<li><code>upstream.lock</code> (new): TOML. Top-level <code>repository</code>, <code>tag</code>, <code>commit</code>. Then one <code>[[file]]</code> table per entry.
+</li>
+<li><code>conformance-report.md</code> (generated, ignored by git).
+</li>
+<li>Test bed repositories (remote).
+</li>
+</ul>
+<h3 id="foundation-interfaces">Interfaces</h3>
+<ul>
+<li><strong>Codex CLI:</strong> <code>codex exec</code> with <code>--json</code>, <code>-m</code>, <code>-s</code>, <code>-c</code>, <code>--dangerously-bypass-hook-trust</code>, and stdin closed. Verified against: <code>codex exec --help</code> (codex-cli 0.166.0). Note: <code>codex exec</code> has no <code>-a</code> flag. Set the approval policy with <code>-c approval_policy="never"</code>. Note: <code>codex exec</code> waits for stdin unless stdin is closed (measured 2026-11-03).
+</li>
+<li><strong>Codex plugin CLI:</strong> <code>codex plugin marketplace add &lt;path&gt;</code>, <code>codex plugin add &lt;name&gt;@&lt;marketplace&gt;</code>. Verified against: <code>codex plugin --help</code> (0.166.0).
+</li>
+<li><strong>GitHub:</strong> <code>gh repo create</code>, <code>gh label create</code>, <code>gh issue create</code>. Verified against: <code>gh help</code> at the version on the machine; the worker records the version in the PR.
+</li>
+<li><strong>Gitea:</strong> <code>tea repo create</code>, <code>tea labels create</code>, <code>tea issues create</code>. Verified against: <code>tea --help</code>; the worker records the version in the PR. Upstream <code>references/forge.md</code> maps each operation.
+</li>
+</ul>
+<h3 id="foundation-edge-cases-failures">Edge cases &amp; failures</h3>
+<ul>
+<li>If the upstream tag moves, the lock still holds the old commit SHA. The check compares against the SHA, not the tag.
+</li>
+<li>If <code>codex</code> is not logged in, the conformance suite exits 2 before it runs a probe.
+</li>
+<li>If a probe times out, the report marks it <code>fail</code> with the evidence <code>timeout after &lt;n&gt; s</code>.
+</li>
+<li>If the test bed does not exist, <code>testbed-reset.py</code> creates it from the seed.
+</li>
+<li>If the Gitea server is down, <code>testbed-reset.py --forge gitea</code> exits 1 and names the URL.
+</li>
+</ul>
+<h3 id="foundation-acceptance-criteria">Acceptance criteria</h3>
+<ul>
+<li>[ ] <code>python3 -m unittest discover -s tests</code> exits 0 on a fresh clone. (FR-foundation-9, FR-foundation-10)
+</li>
+<li>[ ] <code>python3 scripts/upstream_sync.py --check</code> exits 0 on a fresh clone. (FR-foundation-7)
+</li>
+<li>[ ] A change of one byte in a <code>verbatim</code> file makes <code>--check</code> exit 1 and name the file. (FR-foundation-8)
+</li>
+<li>[ ] <code>upstream.lock</code> holds one entry for each file under <code>issue-flow/</code> at the tag. (FR-foundation-1 to FR-foundation-6)
+</li>
+<li>[ ] A pull request into <code>dev</code> runs the CI workflow, and the workflow runs all three checks. (FR-foundation-11, FR-foundation-12)
+</li>
+<li>[ ] <code>python3 scripts/conformance.py</code> prints a pass line for P1 to P12 on Codex 0.166.0. (FR-foundation-13 to FR-foundation-17)
+</li>
+<li>[ ] After a conformance run, <code>~/.codex/config.toml</code> is byte-equal to its state before the run. (FR-foundation-14)
+</li>
+<li>[ ] <code>testbed-reset.py</code> returns each test bed to five open issues and no open pull requests. (FR-foundation-18 to FR-foundation-20)
+</li>
+<li>[ ] <code>README.md</code> names sniper7kills, the MIT license, and the upstream URL. (FR-foundation-22, FR-foundation-23)
+</li>
+</ul>
+<h3 id="foundation-out-of-scope">Out of scope</h3>
+<ul>
+<li>The port does not run the conformance suite in CI, because it needs the operator's Codex login.
+</li>
+<li>The foundation does not port any skill text.
+</li>
+</ul>
+<h3 id="foundation-open-questions" class="callout-h">Open questions</h3><nav class="pager">
+<a href="page-porting-inventory.html">&larr; Porting inventory</a>
+<a href="feature-plugin-packaging.html">Feature: Plugin packaging and hooks &rarr;</a>
+</nav>
+</main>
+</div>
+<script src="../assets/mermaid.min.js"></script>
+<script>mermaid.initialize({startOnLoad:true,theme:matchMedia('(prefers-color-scheme: dark)').matches?'dark':'default'});</script>
+<script type="application/json" id="rv-embedded">[]</script>
+<script>
+(function(){
+  'use strict';
+  var PAGE = document.body.getAttribute('data-page');
+  // storage key carries the spec's slug: file:// pages can share one
+  // localStorage pool, and two specs must never share a comment store
+  var RVKEY = 'spec-review:' + (document.body.getAttribute('data-rvkey') || 'spec');
+  var EMBED = [];
+  var embedEl = document.getElementById('rv-embedded');
+  if (embedEl) { try { EMBED = JSON.parse(embedEl.textContent); } catch(e){} }
+  function loadLocal(){ try { return JSON.parse(localStorage.getItem(RVKEY)) || {comments:[], deleted:[]}; } catch(e){ return {comments:[], deleted:[]}; } }
+  function saveLocal(s){ try { localStorage.setItem(RVKEY, JSON.stringify(s)); } catch(e){} }
+  function cid(c){ return c.page + '|' + c.section + '|' + (c.date||'') + '|' + c.body.slice(0,24); }
+  function allComments(){
+    var s = loadLocal(), map = {};
+    EMBED.forEach(function(c){ map[cid(c)] = c; });
+    s.comments.forEach(function(c){ map[cid(c)] = c; });
+    s.deleted.forEach(function(id){ delete map[id]; });
+    return Object.keys(map).map(function(k){ return map[k]; });
+  }
+  function upsert(c){
+    var s = loadLocal(), id = cid(c);
+    s.comments = s.comments.filter(function(x){ return cid(x) !== id; });
+    s.comments.push(c);
+    s.deleted = s.deleted.filter(function(x){ return x !== id; });
+    saveLocal(s); refresh();
+  }
+  function remove(c){
+    var s = loadLocal(), id = cid(c);
+    s.comments = s.comments.filter(function(x){ return cid(x) !== id; });
+    if (EMBED.some(function(x){ return cid(x) === id; })) s.deleted.push(id);
+    saveLocal(s); refresh();
+  }
+  function today(){ return new Date().toISOString().slice(0,10); }
+  function exportMd(){
+    var lines = ['# Review comments', '',
+      '<!-- Exported from the spec review layer. Save this file as',
+      '     docs/specs/review-comments.md and re-run render-spec.py to embed',
+      '     every comment under its section for the next review round. -->', ''];
+    allComments().sort(function(a,b){
+      return (a.page+a.section).localeCompare(b.page+b.section);
+    }).forEach(function(c){
+      lines.push('## [' + c.page + '] ' + (c.section||''));
+      lines.push('status: ' + (c.status||'open'));
+      lines.push('date: ' + (c.date||today()));
+      lines.push(c.body); lines.push('');
+    });
+    var blob = new Blob([lines.join('\n')], {type:'text/markdown'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'review-comments.md';
+    a.click(); URL.revokeObjectURL(a.href);
+  }
+  function importMd(file){
+    var reader = new FileReader();
+    reader.onload = function(){
+      var text = String(reader.result);
+      var blocks = text.split(/^## /m).slice(1);
+      blocks.forEach(function(b){
+        var head = b.match(/^\[([^\]]+)\]\s*(\S*)/);
+        if (!head) return;
+        var status = (b.match(/^status:\s*(\S+)/m)||[])[1] || 'open';
+        var date = (b.match(/^date:\s*(\S+)/m)||[])[1] || today();
+        var body = b.replace(/^\[[^\]]*\]\s*\S*\s*\n/, '')
+                    .replace(/^status:.*\n?/m,'').replace(/^date:.*\n?/m,'').trim();
+        if (body) upsert({page:head[1], section:head[2]||'', status:status, date:date, body:body});
+      });
+      refresh();
+    };
+    reader.readAsText(file);
+  }
+  function commentBox(c){
+    var div = document.createElement('div');
+    div.className = 'rv-comment' + (c.status === 'resolved' ? ' rv-resolved' : '');
+    var head = document.createElement('div'); head.className = 'rv-head';
+    head.textContent = '💬 ' + (c.date||'') + ' · ' + (c.status||'open');
+    var tog = document.createElement('button');
+    tog.textContent = c.status === 'resolved' ? 'reopen' : 'resolve';
+    tog.onclick = function(){ remove(c); c = Object.assign({}, c, {status: c.status === 'resolved' ? 'open' : 'resolved'}); upsert(c); };
+    var del = document.createElement('button'); del.textContent = 'delete';
+    del.onclick = function(){ if (confirm('Delete this comment?')) remove(c); };
+    head.appendChild(tog); head.appendChild(del);
+    var body = document.createElement('div'); body.className = 'rv-body';
+    body.textContent = c.body;
+    div.appendChild(head); div.appendChild(body);
+    return div;
+  }
+  function editor(section, after){
+    var wrap = document.createElement('div');
+    wrap.className = 'rv-comment rv-editor';
+    var ta = document.createElement('textarea');
+    ta.placeholder = 'Comment on this section…';
+    var actions = document.createElement('div'); actions.className = 'rv-actions';
+    var save = document.createElement('button'); save.textContent = 'Save';
+    save.onclick = function(){
+      if (ta.value.trim()) upsert({page:PAGE, section:section, status:'open', date:today(), body:ta.value.trim()});
+      wrap.remove();
+    };
+    var cancel = document.createElement('button'); cancel.textContent = 'Cancel';
+    cancel.className = 'rv-cancel'; cancel.onclick = function(){ wrap.remove(); };
+    actions.appendChild(save); actions.appendChild(cancel);
+    wrap.appendChild(ta); wrap.appendChild(actions);
+    after.insertAdjacentElement('afterend', wrap);
+    ta.focus();
+  }
+  // --- headings, inline buttons ---
+  var mainH1 = document.querySelector('main h1');
+  if (mainH1 && !mainH1.id) { mainH1.id = 'page-title'; }
+  var headings = Array.prototype.slice.call(
+    document.querySelectorAll('main h1[id], main h2[id], main h3[id], main h4[id]'));
+  headings.forEach(function(h){
+    var b = document.createElement('button');
+    b.className = 'rv-add'; b.textContent = '💬 comment'; b.title = 'Comment on this section';
+    b.onclick = function(){ editor(h.id, h); };
+    h.appendChild(b);
+  });
+  function headingTitle(h){
+    var t = h.childNodes[0] ? h.childNodes[0].textContent : h.textContent;
+    return t.trim();
+  }
+  function titleFor(section){
+    var el = section && document.getElementById(section);
+    return el ? headingTitle(el) : (section || '(page)');
+  }
+
+  // --- drawer ---
+  var drawer = document.createElement('div');
+  drawer.id = 'rv-drawer';
+  drawer.innerHTML =
+    '<header><strong>Review</strong> <span class="rv-count"></span></header>' +
+    '<div class="rv-compose">' +
+    '<div class="rv-live">Commenting on the section in view:</div>' +
+    '<label for="rv-sec"></label><select id="rv-sec"></select>' +
+    '<textarea id="rv-text" placeholder="Type as you read… (Ctrl+Enter saves)"></textarea>' +
+    '<div style="margin-top:.4rem; display:flex; gap:.5rem;">' +
+    '<button class="rv-primary" id="rv-save">Save comment</button>' +
+    '<button id="rv-clear">Clear</button></div></div>' +
+    '<div class="rv-list"></div>' +
+    '<footer><button id="rv-export">Export .md</button>' +
+    '<button id="rv-import">Import</button>' +
+    '<span class="rv-otherpages"></span></footer>';
+  document.body.appendChild(drawer);
+  var toggle = document.createElement('button');
+  toggle.id = 'rv-toggle';
+  toggle.onclick = function(){
+    document.body.classList.toggle('rv-open');
+    try { localStorage.setItem(RVKEY + ':open', document.body.classList.contains('rv-open') ? '1' : ''); } catch(e){}
+  };
+  document.body.appendChild(toggle);
+  try { if (localStorage.getItem(RVKEY + ':open')) document.body.classList.add('rv-open'); } catch(e){}
+
+  var sel = drawer.querySelector('#rv-sec');
+  headings.forEach(function(h){
+    var opt = document.createElement('option');
+    opt.value = h.id; opt.textContent = headingTitle(h);
+    sel.appendChild(opt);
+  });
+  var followScroll = true;
+  sel.onchange = function(){ followScroll = false; };
+
+  // scroll spy: pick the last heading above the upper third of the viewport
+  function currentSection(){
+    var line = window.innerHeight * 0.33, best = headings[0];
+    for (var i = 0; i < headings.length; i++) {
+      if (headings[i].getBoundingClientRect().top <= line) best = headings[i];
+    }
+    return best ? best.id : '';
+  }
+  window.addEventListener('scroll', function(){
+    if (!followScroll) return;
+    var s = currentSection();
+    if (s && sel.value !== s) sel.value = s;
+  }, {passive:true});
+  // typing pins the target section so a stray scroll can't retarget the comment
+  drawer.querySelector('#rv-text').addEventListener('input', function(){
+    if (this.value.trim()) followScroll = false;
+    else followScroll = true;
+  });
+
+  function saveFromDrawer(){
+    var ta = drawer.querySelector('#rv-text');
+    if (!ta.value.trim()) return;
+    upsert({page:PAGE, section:sel.value, status:'open', date:today(), body:ta.value.trim()});
+    ta.value = ''; followScroll = true;
+  }
+  drawer.querySelector('#rv-save').onclick = saveFromDrawer;
+  drawer.querySelector('#rv-text').addEventListener('keydown', function(e){
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') saveFromDrawer();
+  });
+  drawer.querySelector('#rv-clear').onclick = function(){
+    drawer.querySelector('#rv-text').value = ''; followScroll = true;
+  };
+  drawer.querySelector('#rv-export').onclick = exportMd;
+  var fileIn = document.createElement('input');
+  fileIn.type = 'file'; fileIn.accept = '.md,text/markdown'; fileIn.style.display = 'none';
+  fileIn.onchange = function(){ if (fileIn.files[0]) importMd(fileIn.files[0]); };
+  drawer.appendChild(fileIn);
+  drawer.querySelector('#rv-import').onclick = function(){ fileIn.click(); };
+
+  function drawerItem(c){
+    var div = document.createElement('div');
+    div.className = 'rv-item' + (c.status === 'resolved' ? ' rv-resolved' : '');
+    var where = document.createElement('div'); where.className = 'rv-where';
+    where.textContent = titleFor(c.section);
+    var text = document.createElement('div'); text.className = 'rv-text';
+    text.textContent = c.body;
+    var meta = document.createElement('div'); meta.className = 'rv-meta';
+    meta.textContent = (c.date||'') + ' · ' + (c.status||'open');
+    var tog = document.createElement('button');
+    tog.textContent = c.status === 'resolved' ? 'reopen' : 'resolve';
+    tog.onclick = function(e){ e.stopPropagation(); remove(c);
+      upsert(Object.assign({}, c, {status: c.status === 'resolved' ? 'open' : 'resolved'})); };
+    var del = document.createElement('button'); del.textContent = 'delete';
+    del.onclick = function(e){ e.stopPropagation();
+      if (confirm('Delete this comment?')) remove(c); };
+    meta.appendChild(tog); meta.appendChild(del);
+    div.appendChild(where); div.appendChild(text); div.appendChild(meta);
+    div.onclick = function(){
+      var el = c.section && document.getElementById(c.section);
+      if (el) el.scrollIntoView({behavior:'smooth', block:'start'});
+    };
+    return div;
+  }
+
+  function refresh(){
+    document.querySelectorAll('.rv-comment:not(.rv-editor)').forEach(function(el){ el.remove(); });
+    var all = allComments();
+    var mine = all.filter(function(c){ return c.page === PAGE; });
+    mine.forEach(function(c){
+      var target = c.section && document.getElementById(c.section);
+      var anchor = target || mainH1 || document.body.querySelector('main') || document.body;
+      anchor.insertAdjacentElement('afterend', commentBox(c));
+    });
+    var open = all.filter(function(c){ return c.status !== 'resolved'; }).length;
+    toggle.textContent = '💬 Review (' + open + ')';
+    drawer.querySelector('.rv-count').textContent =
+      open + ' open / ' + all.length + ' total';
+    var list = drawer.querySelector('.rv-list');
+    list.innerHTML = '';
+    mine.slice().reverse().forEach(function(c){ list.appendChild(drawerItem(c)); });
+    var others = {};
+    all.forEach(function(c){ if (c.page !== PAGE) others[c.page] = (others[c.page]||0) + 1; });
+    var otherKeys = Object.keys(others);
+    drawer.querySelector('.rv-otherpages').textContent = otherKeys.length
+      ? 'Other pages: ' + otherKeys.map(function(k){ return k + ' (' + others[k] + ')'; }).join(', ')
+      : '';
+  }
+  refresh();
+  var s0 = currentSection();
+  if (s0) sel.value = s0;
+})();
+</script>
+</body>
+</html>

@@ -1,0 +1,10 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(python3 -m unittest:*)",
+      "Bash(python3 scripts/validate_manifests.py)",
+      "Bash(python3 scripts/upstream_sync.py --check)",
+      "Bash(python3 docs/specs/render-spec.py)"
+    ]
+  }
+}

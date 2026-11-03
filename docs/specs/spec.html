@@ -1,0 +1,739 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>issue-flow for Codex</title>
+<style>
+:root { --bg:#ffffff; --fg:#1a1a24; --muted:#5a5a68; --line:#e3e3ea; --accent:#3452c8;
+        --card:#f6f6f9; --warn-bg:#fff7e8; --warn-line:#e8b34a; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#14141b; --fg:#e8e8ee; --muted:#9a9aa8; --line:#2c2c38; --accent:#8ea6ff;
+          --card:#1c1c26; --warn-bg:#2a2318; --warn-line:#a87c2a; } }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+       font:16px/1.6 system-ui,-apple-system,sans-serif; }
+.layout { display:flex; min-height:100vh; }
+aside.site { width:17rem; flex:none; border-right:1px solid var(--line);
+             padding:1.2rem 1rem 3rem; position:sticky; top:0; height:100vh;
+             overflow-y:auto; background:var(--card); }
+aside.site h2 { font-size:.8rem; text-transform:uppercase; letter-spacing:.06em;
+                color:var(--muted); margin:1.2rem 0 .3rem; border:none; padding:0; }
+aside.site ul { list-style:none; margin:0; padding:0; }
+aside.site li { margin:.15rem 0; }
+aside.site a { text-decoration:none; color:var(--fg); font-size:.92rem;
+               display:block; padding:.15rem .5rem; border-radius:6px; }
+aside.site a:hover { background:var(--bg); }
+aside.site a.current { background:var(--accent); color:#fff; }
+aside.site a.sub { padding-left:1.3rem; font-size:.84rem; color:var(--muted); }
+aside.site .brand { font-weight:700; font-size:1.05rem; }
+main { max-width:60rem; margin:0 auto; padding:2rem 1.5rem 6rem; min-width:0; flex:1; }
+h1,h2,h3,h4 { line-height:1.25; }
+h1 { font-size:2rem; margin:.2rem 0; }
+h2 { border-bottom:1px solid var(--line); padding-bottom:.3rem; margin-top:2.5rem; }
+a { color:var(--accent); }
+code { background:var(--card); padding:.1em .35em; border-radius:4px; font-size:.9em; }
+pre.code { background:var(--card); border:1px solid var(--line); border-radius:8px;
+           padding:1rem; overflow-x:auto; }
+pre.code code { background:none; padding:0; }
+.table-wrap { overflow-x:auto; }
+table { border-collapse:collapse; margin:1rem 0; min-width:50%; }
+th,td { border:1px solid var(--line); padding:.4rem .7rem; text-align:left; }
+th { background:var(--card); }
+blockquote { border-left:3px solid var(--accent); margin:1rem 0; padding:.2rem 1rem;
+             color:var(--muted); }
+.meta { color:var(--muted); margin-bottom:2rem; }
+.badge { display:inline-block; padding:.1rem .6rem; border-radius:999px;
+         border:1px solid var(--accent); color:var(--accent); font-size:.85rem; }
+.diagram { background:var(--card); border:1px solid var(--line); border-radius:8px;
+           padding:1rem; margin:1rem 0; overflow-x:auto; }
+.diagram pre.mermaid { margin:0; }
+.diagram.raw::before { content:"diagram source (assets/mermaid.min.js not vendored)";
+                       display:block; color:var(--muted); font-size:.8rem;
+                       margin-bottom:.5rem; }
+.callout-h, .callout-h ~ p, .callout-h ~ ul { background:var(--warn-bg); }
+.callout-h { border-left:4px solid var(--warn-line); padding:.3rem .8rem; }
+.mockup { margin:1.5rem 0; }
+.mockup iframe { width:100%; height:32rem; border:1px solid var(--line);
+                 border-radius:8px; background:#fff; }
+nav.pager { display:flex; justify-content:space-between; margin-top:3rem;
+            border-top:1px solid var(--line); padding-top:1rem; }
+@media (max-width: 900px) {
+  .layout { display:block; }
+  aside.site { width:auto; height:auto; position:static; border-right:none;
+               border-bottom:1px solid var(--line); }
+}
+h1[id]:hover .rv-add, h2[id]:hover .rv-add, h3[id]:hover .rv-add,
+h4[id]:hover .rv-add { opacity:1; }
+.rv-add { opacity:0; margin-left:.5rem; font-size:.75rem; cursor:pointer;
+          border:1px solid var(--accent); color:var(--accent); background:none;
+          border-radius:6px; padding:0 .45rem; vertical-align:middle;
+          transition:opacity .15s; }
+.rv-comment { border:1px solid var(--warn-line); border-left-width:4px;
+              background:var(--warn-bg); border-radius:8px; padding:.6rem .9rem;
+              margin:.8rem 0; font-size:.92rem; }
+.rv-comment.rv-resolved { opacity:.6; border-left-color:var(--line); }
+.rv-comment .rv-head { display:flex; gap:.6rem; align-items:center;
+                       color:var(--muted); font-size:.8rem; margin-bottom:.3rem; }
+.rv-comment .rv-head button { font-size:.75rem; cursor:pointer; background:none;
+                              border:1px solid var(--line); border-radius:6px;
+                              color:var(--muted); padding:0 .4rem; }
+.rv-comment .rv-body { white-space:pre-wrap; }
+.rv-editor textarea { width:100%; min-height:5rem; background:var(--bg);
+                      color:var(--fg); border:1px solid var(--line);
+                      border-radius:6px; padding:.5rem; font:inherit; }
+.rv-editor .rv-actions { margin-top:.4rem; display:flex; gap:.5rem; }
+.rv-editor button { cursor:pointer; border-radius:6px; padding:.2rem .8rem;
+                    border:1px solid var(--accent); background:var(--accent);
+                    color:#fff; }
+.rv-editor button.rv-cancel { background:none; color:var(--accent); }
+#rv-toggle { position:fixed; right:1rem; bottom:1rem; z-index:60;
+             background:var(--accent); color:#fff; border:none; cursor:pointer;
+             border-radius:999px; padding:.5rem 1rem; font-size:.85rem;
+             box-shadow:0 2px 10px rgba(0,0,0,.2); }
+#rv-drawer { position:fixed; top:0; right:0; bottom:0; width:21rem; z-index:55;
+             background:var(--card); border-left:1px solid var(--line);
+             display:flex; flex-direction:column; transform:translateX(100%);
+             transition:transform .2s ease; box-shadow:-4px 0 16px rgba(0,0,0,.12); }
+body.rv-open #rv-drawer { transform:none; }
+body.rv-open .layout { padding-right:21rem; }
+#rv-drawer header { padding:.8rem 1rem .5rem; border-bottom:1px solid var(--line); }
+#rv-drawer header .rv-count { color:var(--muted); font-size:.8rem; }
+#rv-drawer .rv-compose { padding:.8rem 1rem; border-bottom:1px solid var(--line); }
+#rv-drawer .rv-compose label { display:block; font-size:.75rem;
+                               color:var(--muted); margin-bottom:.25rem; }
+#rv-drawer .rv-compose select { width:100%; margin-bottom:.4rem;
+             background:var(--bg); color:var(--fg); border:1px solid var(--line);
+             border-radius:6px; padding:.3rem; font:inherit; font-size:.85rem; }
+#rv-drawer .rv-compose textarea { width:100%; min-height:5.5rem;
+             background:var(--bg); color:var(--fg); border:1px solid var(--line);
+             border-radius:6px; padding:.5rem; font:inherit; font-size:.9rem; }
+#rv-drawer .rv-compose .rv-live { font-size:.72rem; color:var(--muted); }
+#rv-drawer .rv-list { flex:1; overflow-y:auto; padding:.6rem 1rem; }
+#rv-drawer .rv-item { border:1px solid var(--line); border-left:3px solid
+             var(--warn-line); border-radius:8px; padding:.45rem .6rem;
+             margin-bottom:.6rem; font-size:.82rem; cursor:pointer; }
+#rv-drawer .rv-item.rv-resolved { opacity:.55; border-left-color:var(--line); }
+#rv-drawer .rv-item .rv-where { color:var(--accent); font-size:.72rem; }
+#rv-drawer .rv-item .rv-meta { color:var(--muted); font-size:.72rem;
+                               display:flex; gap:.5rem; align-items:center; }
+#rv-drawer .rv-item .rv-meta button { font-size:.7rem; cursor:pointer;
+             background:none; border:1px solid var(--line); border-radius:5px;
+             color:var(--muted); padding:0 .35rem; }
+#rv-drawer .rv-item .rv-text { white-space:pre-wrap; margin:.15rem 0; }
+#rv-drawer footer { padding:.6rem 1rem; border-top:1px solid var(--line);
+                    display:flex; gap:.5rem; flex-wrap:wrap; }
+#rv-drawer footer button, #rv-drawer .rv-compose button {
+  cursor:pointer; border:1px solid var(--accent); background:none;
+  color:var(--accent); border-radius:6px; padding:.2rem .7rem; font-size:.8rem; }
+#rv-drawer .rv-compose button.rv-primary { background:var(--accent); color:#fff; }
+#rv-drawer .rv-otherpages { color:var(--muted); font-size:.75rem;
+                            margin:.4rem 0 0; }
+@media (max-width: 1200px) { body.rv-open .layout { padding-right:0; } }
+</style>
+</head>
+<body data-page="index" data-rvkey="issue-flow-codex">
+<div class="layout">
+<aside class="site"><a class="brand" href="spec.html">issue-flow for Codex</a>
+<h2>Spec</h2><ul>
+<li><a class="current" href="spec.html">Overview &amp; index</a></li>
+<li><a class="sub" href="#overview">Overview</a></li>
+<li><a class="sub" href="#terms">Terms</a></li>
+<li><a class="sub" href="#goals">Goals</a></li>
+<li><a class="sub" href="#non-goals">Non-goals</a></li>
+<li><a class="sub" href="#users-personas">Users &amp; personas</a></li>
+<li><a class="sub" href="#feature-map">Feature map</a></li>
+<li><a class="sub" href="#architecture-stack">Architecture &amp; stack</a></li>
+<li><a class="sub" href="#data-model">Data model</a></li>
+<li><a class="sub" href="#cross-cutting-concerns">Cross-cutting concerns</a></li>
+<li><a class="sub" href="#environments-config">Environments &amp; config</a></li>
+<li><a class="sub" href="#testing-strategy">Testing strategy</a></li>
+<li><a class="sub" href="#epics">Epics</a></li>
+<li><a class="sub" href="#milestones">Milestones</a></li>
+<li><a class="sub" href="#assumptions">Assumptions</a></li>
+<li><a class="sub" href="#risks-open-questions">Risks &amp; open questions</a></li>
+<li><a class="sub" href="#changelog">Changelog</a></li>
+</ul>
+<h2>Pages</h2><ul>
+<li><a href="html/page-codex-harness.html">Codex harness facts</a></li>
+<li><a href="html/page-porting-inventory.html">Porting inventory</a></li>
+</ul>
+<h2>Features</h2><ul>
+<li><a href="html/feature-foundation.html">Foundation</a></li>
+<li><a href="html/feature-plugin-packaging.html">Plugin packaging and hooks</a></li>
+<li><a href="html/feature-worker-dispatch.html">Worker dispatch</a></li>
+<li><a href="html/feature-loop-operations.html">Loop operations</a></li>
+<li><a href="html/feature-spec-skills.html">Spec skills</a></li>
+<li><a href="html/feature-project-review.html">Project review</a></li>
+<li><a href="html/feature-mirror-and-sync.html">Mirror and sync</a></li>
+</ul></aside>
+<main>
+<p class="meta"><span class="badge">approved</span> &nbsp; created 2026-11-03 &nbsp; rendered 2026-11-03</p>
+<h1>issue-flow for Codex</h1>
+<h1 id="issue-flow-for-codex">issue-flow for Codex</h1>
+<h2 id="overview">Overview</h2>
+<p>issue-flow is a Claude Code plugin by sniper7kills (MIT license). Its upstream repository is <code>Sniper7Kills-LLC/claude-plugins</code>. The plugin drives an autonomous development loop from tracker issues on GitHub or Gitea. A PM skill triages the tracker, groups issues into batches, and starts background workers. Each worker builds one issue in its own git worktree and returns a verdict.</p>
+<p>This project ports issue-flow to the OpenAI Codex CLI harness as a native Codex plugin. The operator uses Codex as a second model provider. The operator wants the same loop, the same tracker state, and the same seven skills in Codex.</p>
+<p>The port is possible now. A live test on Codex 0.166.0 (2026-11-03) confirmed the harness parts that the loop needs: plugin skills, plugin hooks, custom agent roles, multi-agent V2 spawn and wait, and git writes from a sandboxed worker. The page <a href="html/page-codex-harness.html">Codex harness facts</a> records each fact and its evidence. The page <a href="html/page-porting-inventory.html">Porting inventory</a> maps every upstream file to its port action.</p>
+<h2 id="terms">Terms</h2>
+<div class="table-wrap"><table>
+<tr><th>Term</th><th>Part of speech</th><th>Meaning in this project</th><th>Do not use</th></tr>
+<tr><td>upstream</td><td>noun</td><td>The Claude Code issue-flow plugin in <code>Sniper7Kills-LLC/claude-plugins</code>, at a release tag.</td><td>original, source plugin, parent</td></tr>
+<tr><td>port</td><td>noun</td><td>This project: the Codex version of issue-flow.</td><td>fork, clone, variant</td></tr>
+<tr><td>port (to)</td><td>verb</td><td>To change an upstream file so that it works in Codex.</td><td>convert, migrate, translate</td></tr>
+<tr><td>harness</td><td>noun</td><td>The agent program that runs the model and its tools: Codex CLI or Claude Code.</td><td>runtime, host, client</td></tr>
+<tr><td>Codex</td><td>noun</td><td>The OpenAI Codex CLI harness, <code>codex</code> binary, version 0.166.0 or later.</td><td>Codex app, OpenAI CLI</td></tr>
+<tr><td>plugin</td><td>noun</td><td>The installable Codex package that holds the skills, the hooks, and the scripts.</td><td>extension, add-on</td></tr>
+<tr><td>skill</td><td>noun</td><td>One <code>SKILL.md</code> procedure that the operator starts with <code>$issue-flow:&lt;name&gt;</code>.</td><td>command, prompt, slash command</td></tr>
+<tr><td>role</td><td>noun</td><td>One Codex custom agent definition: a TOML file in <code>.codex/agents/</code>.</td><td>agent type, subagent type, persona</td></tr>
+<tr><td>PM</td><td>noun</td><td>The main Codex thread that runs the issue-flow skill and makes every decision.</td><td>orchestrator, lead, coordinator</td></tr>
+<tr><td>worker</td><td>noun</td><td>A subagent of role <code>issue_worker</code> that builds one issue.</td><td>child, helper, subtask</td></tr>
+<tr><td>watcher</td><td>noun</td><td>A subagent of role <code>ci_watcher</code> that waits for one CI run or one deployment and returns a verdict.</td><td>monitor, poller</td></tr>
+<tr><td>subagent</td><td>noun</td><td>Any thread that a <code>spawn_agent</code> call creates.</td><td>child agent, sub-thread</td></tr>
+<tr><td>thread slot</td><td>noun</td><td>One unit of the Codex limit on concurrent threads in a session. The PM uses one.</td><td>seat, lane</td></tr>
+<tr><td>verdict</td><td>noun</td><td>The JSON object that a worker or a watcher returns as its final answer.</td><td>result, report, output</td></tr>
+<tr><td>worktree</td><td>noun</td><td>A git worktree that one worker creates for one issue, under <code>.worktrees/</code>.</td><td>sandbox, checkout copy</td></tr>
+<tr><td>permission profile</td><td>noun</td><td>A Codex <code>[permissions.&lt;name&gt;]</code> table that sets file and network access for the session.</td><td>sandbox config, policy</td></tr>
+<tr><td>spawn guard</td><td>noun</td><td>The PreToolUse hook that denies an unsafe <code>spawn_agent</code> call.</td><td>spawn hook, fork guard</td></tr>
+<tr><td>role guard</td><td>noun</td><td>The PreToolUse hook that denies a tool call that a role must not make.</td><td>tool filter, allowlist hook</td></tr>
+<tr><td>hook trust</td><td>noun</td><td>The Codex record that the operator approved a hook at its current content hash.</td><td>hook approval, allow</td></tr>
+<tr><td>setup skill</td><td>noun</td><td>The skill <code>$issue-flow:setup</code> that writes the Codex configuration into a project.</td><td>installer, bootstrap</td></tr>
+<tr><td>sync</td><td>verb</td><td>To copy upstream changes into the port by the rules in <code>upstream.lock</code>.</td><td>merge upstream, rebase</td></tr>
+<tr><td>upstream lock</td><td>noun</td><td>The file <code>upstream.lock</code> that records the upstream tag and the port mode of each file.</td><td>manifest, provenance file</td></tr>
+<tr><td>port mode</td><td>noun</td><td>One of <code>verbatim</code>, <code>patched</code>, <code>rewritten</code>, <code>dropped</code>, or <code>new</code>: how a file relates to upstream.</td><td>sync type, status</td></tr>
+<tr><td>conformance suite</td><td>noun</td><td>The scripted live checks that prove a Codex version still has the harness parts the port uses.</td><td>smoke test, spike</td></tr>
+<tr><td>test bed</td><td>noun</td><td>A throwaway repository on GitHub or Gitea that the end-to-end tests run against.</td><td>sandbox repo, playground</td></tr>
+<tr><td>tracker</td><td>noun</td><td>The issue tracker of the forge: GitHub Issues or Gitea Issues.</td><td>backlog tool, board</td></tr>
+<tr><td>forge</td><td>noun</td><td>GitHub or Gitea.</td><td>host, git server</td></tr>
+<tr><td>co-operator</td><td>noun</td><td>A second PM session, in either harness, that works the same tracker.</td><td>peer, teammate</td></tr>
+<tr><td>batch</td><td>noun</td><td>A group of issues that share one integration branch and one CI run.</td><td>bundle, wave</td></tr>
+<tr><td>digest</td><td>noun</td><td>The periodic status comment that the PM posts on its status issue.</td><td>report, summary</td></tr>
+</table></div>
+<h2 id="goals">Goals</h2>
+<ol>
+<li>An operator runs the full issue-flow loop in Codex with <code>$issue-flow:issue-flow</code>. The loop triages, plans, builds, gates, merges, and watches deployments.
+</li>
+<li>All seven upstream skills work in Codex: <code>issue-flow</code>, <code>spec-to-issues</code>, <code>project-planner</code>, <code>project-inherit</code>, <code>spec-update</code>, <code>project-review</code>, and <code>repo-mirror</code>.
+</li>
+<li>All five upstream roles work in Codex: <code>issue_worker</code>, <code>ux_explorer</code>, <code>deploy_verifier</code>, <code>review_scribe</code>, and <code>code_auditor</code>.
+</li>
+<li>A project stays compatible with upstream: a Claude Code PM and a Codex PM can work the same tracker as co-operators.
+</li>
+<li>The loop runs with a permission profile, not with <code>danger-full-access</code>.
+</li>
+<li>The port syncs each upstream release in one working session or less, because shared files are copied by a script.
+</li>
+<li>The conformance suite tells the operator within one run if a Codex release removes a harness part that the port uses.
+</li>
+</ol>
+<h2 id="non-goals">Non-goals</h2>
+<ul>
+<li>The port does not use an external orchestrator script. The PM runs inside Codex. <a href="../adr/0001-native-plugin.md">ADR 0001</a> records this decision.
+</li>
+<li>The port does not support Claude models in Codex. Codex runs OpenAI models.
+</li>
+<li>The port does not change upstream tracker formats: labels, markers, status issues, and <code>.issue-flow.json</code> keep the upstream schema.
+</li>
+<li>The port does not support the Codex desktop app or the Codex cloud in v1. The target is the Codex CLI.
+</li>
+<li>The port does not ship provider integrations for deployment. Upstream does not ship them either.
+</li>
+</ul>
+<h2 id="users-personas">Users &amp; personas</h2>
+<div class="table-wrap"><table>
+<tr><th>Persona</th><th>Needs</th><th>Can do</th></tr>
+<tr><td>Operator</td><td>Runs the loop in Codex on own projects. Wants the same results as upstream.</td><td>Installs the plugin, runs the setup skill, starts skills, answers questions, approves reviews.</td></tr>
+<tr><td>Maintainer</td><td>Keeps the port current with upstream and with new Codex releases.</td><td>Runs the sync, runs the conformance suite, merges port changes.</td></tr>
+<tr><td>Co-operator</td><td>Runs upstream issue-flow in Claude Code on the same tracker.</td><td>Works the same issues. Sees the same labels and status issues.</td></tr>
+<tr><td>Contributor</td><td>Proposes a change to the port through a pull request.</td><td>Opens issues and pull requests on the public repository.</td></tr>
+</table></div>
+<h2 id="feature-map">Feature map</h2>
+<div class="table-wrap"><table>
+<tr><th>Feature set</th><th>Spec file</th><th>Epic</th><th>Mockups</th></tr>
+<tr><td>Foundation</td><td><a href="html/feature-foundation.html">00-foundation</a></td><td>Epic 0</td><td>none</td></tr>
+<tr><td>Plugin packaging and hooks</td><td><a href="html/feature-plugin-packaging.html">01-plugin-packaging</a></td><td>Epic 1</td><td>none</td></tr>
+<tr><td>Worker dispatch</td><td><a href="html/feature-worker-dispatch.html">02-worker-dispatch</a></td><td>Epic 2</td><td>none</td></tr>
+<tr><td>Loop operations</td><td><a href="html/feature-loop-operations.html">03-loop-operations</a></td><td>Epic 3</td><td>none</td></tr>
+<tr><td>Spec skills</td><td><a href="html/feature-spec-skills.html">04-spec-skills</a></td><td>Epic 4</td><td>none</td></tr>
+<tr><td>Project review</td><td><a href="html/feature-project-review.html">05-project-review</a></td><td>Epic 5</td><td>none</td></tr>
+<tr><td>Mirror and sync</td><td><a href="html/feature-mirror-and-sync.html">06-mirror-and-sync</a></td><td>Epic 6</td><td>none</td></tr>
+</table></div>
+<p>The port is a command-line plugin. It has no screens, so the spec has no mockups.</p>
+<h2 id="architecture-stack">Architecture &amp; stack</h2>
+<div class="diagram"><pre class="mermaid">flowchart LR
+    OP["Operator"] --&gt;|"$issue-flow:issue-flow"| PM["PM thread&lt;br/&gt;(Codex root thread)"]
+    subgraph Codex["Codex CLI 0.166.0+"]
+        PM --&gt;|"spawn_agent / followup_task"| W1["worker&lt;br/&gt;role issue_worker"]
+        PM --&gt;|"spawn_agent"| W2["worker&lt;br/&gt;role issue_worker"]
+        PM --&gt;|"spawn_agent"| CW["watcher&lt;br/&gt;role ci_watcher"]
+        W1 --&gt;|"FINAL_ANSWER verdict"| PM
+        W2 --&gt;|"FINAL_ANSWER verdict"| PM
+        CW --&gt;|"FINAL_ANSWER verdict"| PM
+        HK["Plugin hooks&lt;br/&gt;SessionStart · PreToolUse"] -.-&gt;|"context · deny"| PM
+        HK -.-&gt;|"role guard"| W1
+    end
+    W1 --&gt;|"git worktree add"| WT1[".worktrees/issue-n"]
+    W2 --&gt;|"git worktree add"| WT2[".worktrees/issue-m"]
+    PM --&gt;|"gh / tea"| TR["Tracker&lt;br/&gt;GitHub or Gitea"]
+    W1 --&gt;|"git push · PR"| TR
+    CW --&gt;|"gh / tea poll"| TR
+    UP["upstream&lt;br/&gt;Sniper7Kills-LLC/claude-plugins"] --&gt;|"sync script"| REPO["port repository"]
+    REPO --&gt;|"codex plugin marketplace add"| Codex</pre></div>
+<h3 id="plugin-package">Plugin package</h3>
+<ul>
+<li><strong>Manifest:</strong> <code>.codex-plugin/plugin.json</code>, in the legacy manifest format. The Agent Plugin format (root <code>plugin.json</code> with <code>$schema</code>) loads no hooks in Codex 0.166.0, so the port does not use it. Verified against: source <code>codex-rs/core-plugins/src/loader.rs:985-997</code> (commit <code>dbaead01</code>) and the live test in <a href="html/page-codex-harness.html">Codex harness facts</a>.
+</li>
+<li><strong>Marketplace:</strong> <code>.agents/plugins/marketplace.json</code>, the Codex path. The port does not use <code>.claude-plugin/marketplace.json</code>, because Claude Code reads that path and would offer a plugin that does not work in Claude Code. Verified against: source <code>codex-rs/core-plugins/src/marketplace.rs:20-25</code>.
+</li>
+<li><strong>Skills:</strong> <code>skills/&lt;name&gt;/SKILL.md</code>. Codex names them <code>issue-flow:&lt;name&gt;</code>. The operator types <code>$issue-flow:&lt;name&gt;</code>. Verified against: live test (skill listed as <code>spikeplug:ping</code>).
+</li>
+<li><strong>Roles:</strong> Codex plugins cannot carry roles. The plugin ships role files under <code>roles/</code>. The setup skill copies them into the project's <code>.codex/agents/</code>. Verified against: source <code>codex-rs/core-plugins/src/manifest.rs:48-117</code> (no <code>agents</code> field).
+</li>
+<li><strong>Hooks:</strong> <code>hooks/hooks.json</code>. Hook commands use <code>$PLUGIN_ROOT</code>. Verified against: live test (<code>PLUGIN_ROOT</code> set to the install cache path).
+</li>
+<li><strong>Scripts:</strong> Python 3 standard library only, the same as upstream. No package install step.
+</li>
+</ul>
+<p>Why a native plugin beat an external orchestrator: an external script would duplicate the PM logic in code, and the upstream skill text would stop being the source of truth. The live test showed that V2 <code>wait_agent</code> gives the PM a working event loop. <a href="../adr/0001-native-plugin.md">ADR 0001</a>.</p>
+<h3 id="multi-agent-model">Multi-agent model</h3>
+<ul>
+<li>The port uses multi-agent V2. Current models select V2 through the model catalog, and no setting forces V1 on them. Verified against: <code>codex debug models --bundled</code> (0.166.0), source <code>codex-rs/core/src/config/mod.rs:1687-1714</code>.
+</li>
+<li>The PM always spawns with <code>fork_turns: "none"</code>. A full fork copies the whole PM context into the subagent. Upstream measured that this copy makes the subagent run the PM loop by itself.
+</li>
+<li>The PM reads a verdict from the <code>FINAL_ANSWER</code> message that Codex queues after <code>wait_agent</code> returns. <code>wait_agent</code> itself returns no content. Verified against: live test (two verdicts received).
+</li>
+<li>The PM ends its turn only when the loop stops. Codex does not start a new PM turn when a subagent finishes while the PM is idle (<code>wake_on_agent_messages</code> is under development). Verified against: source <code>codex-rs/core/src/session/handlers.rs:89-99</code>.
+</li>
+</ul>
+<h3 id="thread-slots">Thread slots</h3>
+<ul>
+<li>Codex counts the PM in its thread limit. The default limit is 4, so the default gives 3 subagent slots.
+</li>
+<li>The setup skill sets <code>[features.multi_agent_v2] max_concurrent_threads_per_session</code> to <code>concurrency + 4</code>. That gives one slot per worker, one watcher slot, two slots for worker subagents, and the PM.
+</li>
+<li>A worker subagent and a watcher use the same pool as the workers. The PM counts all live subagents with <code>list_agents</code> before each spawn.
+</li>
+</ul>
+<h3 id="sandbox">Sandbox</h3>
+<ul>
+<li>The setup skill writes a permission profile <code>issue_flow</code> that extends <code>:workspace</code>, makes <code>.git</code> writable, and enables network access. Verified against: live test (worktree add, commit, and <code>git ls-remote</code> all exit 0 under this profile, and all fail under the default <code>workspace-write</code>).
+</li>
+<li>Subagents inherit the profile from the PM. Verified against: live test (a <code>git_worker</code> subagent created a worktree and committed).
+</li>
+<li><a href="../adr/0003-permission-profile.md">ADR 0003</a> records the decision.
+</li>
+</ul>
+<h3 id="models">Models</h3>
+<div class="table-wrap"><table>
+<tr><th>Thread</th><th>Default model</th><th>Reason</th></tr>
+<tr><td>PM</td><td><code>gpt-6.1-sol</code></td><td>The docs call it the "Latest workhorse". The PM makes every decision.</td></tr>
+<tr><td>worker</td><td><code>gpt-6.1-sol</code>, effort <code>medium</code></td><td>A worker writes production code. The operator can lower it in the run configuration.</td></tr>
+<tr><td>watcher, code_auditor, worker subagents</td><td><code>gpt-6-luna</code></td><td>The docs call it the "most efficient model for focused, high-volume tasks".</td></tr>
+</table></div>
+<p>Verified against: <code>codex debug models --bundled</code> (0.166.0), https://learn.chatgpt.com/docs/models (retrieved 2026-11-03). The operator changes any model in <code>.issue-flow.json</code> (Feature 03).</p>
+<h3 id="upstream-tracking">Upstream tracking</h3>
+<p>The repository keeps upstream files in the same paths as upstream. <code>upstream.lock</code> records the upstream tag and the port mode of each file. The sync script copies <code>verbatim</code> files. It writes a change list for the other files. <a href="../adr/0002-separate-repo-tracks-upstream.md">ADR 0002</a>.</p>
+<h2 id="data-model">Data model</h2>
+<div class="diagram"><pre class="mermaid">erDiagram
+    UPSTREAM_RELEASE ||--o{ LOCK_ENTRY : "is recorded by"
+    LOCK_ENTRY }o--|| PORT_FILE : "describes"
+    PLUGIN ||--|{ SKILL : "contains"
+    PLUGIN ||--|{ HOOK : "contains"
+    PLUGIN ||--|{ ROLE_FILE : "ships"
+    PROJECT ||--|| RUN_CONFIG : "has"
+    PROJECT ||--o{ ROLE_FILE : "installs into .codex/agents"
+    PROJECT ||--|| CODEX_CONFIG : "has .codex/config.toml block"
+    PM_SESSION ||--o{ SUBAGENT : "spawns"
+    SUBAGENT ||--o| WORKTREE : "creates"
+    SUBAGENT ||--|| VERDICT : "returns"
+    ISSUE ||--o| SUBAGENT : "is built by"
+    BATCH ||--|{ ISSUE : "groups"
+    PM_SESSION ||--|| STATUS_ISSUE : "writes digests to"</pre></div>
+<div class="table-wrap"><table>
+<tr><th>Entity</th><th>Fields</th><th>Constraints</th><th>Lifecycle</th></tr>
+<tr><td>UPSTREAM_RELEASE</td><td><code>tag</code> (string, for example <code>issue-flow--v0.17.0</code>), <code>commit</code> (SHA)</td><td>One current release per lock.</td><td>Changes on each sync.</td></tr>
+<tr><td>LOCK_ENTRY</td><td><code>path</code> (repo-relative), <code>mode</code> (<code>verbatim</code> \</td><td><code>patched</code> \</td><td><code>rewritten</code> \</td><td><code>dropped</code> \</td><td><code>new</code>), <code>upstream_sha256</code> (hash of the upstream file at the tag), <code>notes</code> (string)</td><td>One entry per upstream file and per new file. <code>verbatim</code> files must hash equal to upstream.</td><td>The sync script updates <code>upstream_sha256</code>. A person changes <code>mode</code>.</td></tr>
+<tr><td>PORT_FILE</td><td><code>path</code>, content</td><td>Lives at the upstream path when one exists.</td><td>Changed by pull requests.</td></tr>
+<tr><td>PLUGIN</td><td><code>name</code> = <code>issue-flow</code>, <code>version</code> (semver, port-own)</td><td><code>version</code> is independent of upstream.</td><td>Released from <code>main</code>.</td></tr>
+<tr><td>SKILL</td><td><code>name</code>, <code>description</code>, path</td><td><code>description</code> is required by Codex.</td><td>Ported per Feature 01-06.</td></tr>
+<tr><td>HOOK</td><td>event, matcher, command</td><td>Matcher syntax per Codex.</td><td>Needs hook trust after each plugin update.</td></tr>
+<tr><td>ROLE_FILE</td><td><code>name</code>, <code>description</code>, <code>model</code>, <code>model_reasoning_effort</code>, <code>developer_instructions</code></td><td>Codex ignores <code>sandbox_mode</code>, <code>approval_policy</code> and <code>mcp_servers</code> in a role file.</td><td>Copied by the setup skill.</td></tr>
+<tr><td>RUN_CONFIG</td><td><code>.issue-flow.json</code>, upstream schema plus the <code>codex</code> block (Feature 03)</td><td>Upstream keys keep upstream meaning.</td><td>Written at the run configuration step.</td></tr>
+<tr><td>CODEX_CONFIG</td><td>the block between <code># issue-flow:begin</code> and <code># issue-flow:end</code> in <code>.codex/config.toml</code></td><td>The setup skill changes only this block.</td><td>Written by the setup skill.</td></tr>
+<tr><td>PM_SESSION</td><td>thread id, operator login</td><td>One PM per operator login per tracker.</td><td>Ends when the loop stops.</td></tr>
+<tr><td>SUBAGENT</td><td><code>task_name</code>, role, <code>agent_status</code></td><td><code>task_name</code> uses lowercase letters, digits, and underscores.</td><td><code>pending_init</code> → <code>running</code> → <code>completed</code> or <code>errored</code>.</td></tr>
+<tr><td>WORKTREE</td><td>path <code>.worktrees/&lt;task_name&gt;</code>, branch</td><td>Inside the project root, ignored by git.</td><td>Removed by the PM after the gate.</td></tr>
+<tr><td>VERDICT</td><td>upstream verdict JSON (<code>outcome</code>, <code>criteria</code>, <code>localChecks</code>, ...)</td><td>Same schema as upstream.</td><td>Read once by the PM.</td></tr>
+<tr><td>ISSUE, BATCH, STATUS_ISSUE</td><td>upstream tracker formats</td><td>Unchanged from upstream.</td><td>Upstream state machine.</td></tr>
+</table></div>
+<h2 id="cross-cutting-concerns">Cross-cutting concerns</h2>
+<ul>
+<li><strong>Upstream compatibility.</strong> Tracker labels, comment markers, status issue titles, branch names, and the <code>.issue-flow.json</code> keys stay identical to upstream 0.17.0. A port change that alters one of them is a defect.
+</li>
+<li><strong>Safety.</strong> The PM treats every tracker comment as untrusted input, as upstream does. The permission profile limits writes to the project root and the temporary directories. The spawn guard and the role guard deny unsafe tool calls.
+</li>
+<li><strong>Hook trust.</strong> Codex skips an untrusted hook in <code>codex exec</code> without a message. The PM checks at Phase 0 that the SessionStart hook ran. If the hook did not run, the PM stops and tells the operator to approve the hooks with <code>/hooks</code>.
+</li>
+<li><strong>Writing standard.</strong> Every prose file follows the STE rules in <code>references/ste.md</code>, the same as upstream.
+</li>
+<li><strong>Errors.</strong> A script exits nonzero and writes one line to stderr on failure. A hook fails open, as upstream hooks do, except the spawn guard deny path.
+</li>
+<li><strong>Performance.</strong> The PM context stays flat: the PM delegates token-heavy reads to subagents, as upstream does. Auto-compaction is expected. Phase 0 recovery rebuilds state from the tracker.
+</li>
+<li><strong>Cost.</strong> Multi-agent runs use quota fast (openai/codex issue #58898). The run configuration shows the models and the concurrency before the loop starts.
+</li>
+</ul>
+<h2 id="environments-config">Environments &amp; config</h2>
+<div class="table-wrap"><table>
+<tr><th>Environment</th><th>Purpose</th></tr>
+<tr><td>Developer machine</td><td>macOS or Linux, Codex 0.166.0 or later, Python 3.11 or later, <code>git</code>, <code>gh</code>, <code>tea</code>.</td></tr>
+<tr><td>CI (GitHub Actions)</td><td>Runs the unit tests, the manifest check, and the upstream lock check on pull requests. It does not run Codex.</td></tr>
+<tr><td>Test bed</td><td>One throwaway repository on GitHub and one on the operator's Gitea, reset by <code>scripts/testbed-reset.py</code>.</td></tr>
+</table></div>
+<div class="table-wrap"><table>
+<tr><th>Variable</th><th>Used by</th><th>Meaning</th></tr>
+<tr><td><code>ISSUE_FLOW_PREFLIGHT</code></td><td>SessionStart hook</td><td><code>off</code> disables the preflight digest. Upstream meaning.</td></tr>
+<tr><td><code>ISSUE_FLOW_SPAWN_GUARD</code></td><td>spawn guard</td><td><code>deny</code> (default) or <code>off</code>. Codex rejects <code>ask</code>, so the port drops it.</td></tr>
+<tr><td><code>ISSUE_FLOW_ROLE_GUARD</code></td><td>role guard</td><td><code>deny</code> (default) or <code>off</code>.</td></tr>
+<tr><td><code>ISSUE_FLOW_TESTBED_GITHUB</code></td><td>test bed scripts</td><td><code>owner/name</code> of the GitHub test bed.</td></tr>
+<tr><td><code>ISSUE_FLOW_TESTBED_GITEA</code></td><td>test bed scripts</td><td><code>owner/name</code> of the Gitea test bed.</td></tr>
+<tr><td><code>GITEA_SERVER_URL</code></td><td>test bed scripts, <code>tea</code></td><td>The Gitea base URL.</td></tr>
+</table></div>
+<p>Secrets: the forge tokens live in the <code>gh</code> and <code>tea</code> credential stores. No file in the repository holds a token. <code>docs/external.md</code> lists names only.</p>
+<h2 id="testing-strategy">Testing strategy</h2>
+<ul>
+<li><strong>Unit tests:</strong> <code>python3 -m unittest discover -s tests</code>. They cover every script and hook with recorded hook payloads. The payloads come from the live test, for example <code>tool_name: "collaborationspawn_agent"</code>.
+</li>
+<li><strong>Manifest check:</strong> <code>python3 scripts/validate_manifests.py</code> checks the plugin manifest, the marketplace file, every <code>SKILL.md</code> front-matter, and every role file.
+</li>
+<li><strong>Lock check:</strong> <code>python3 scripts/upstream_sync.py --check</code> fails when a <code>verbatim</code> file differs from upstream.
+</li>
+<li><strong>Conformance suite:</strong> <code>python3 scripts/conformance.py</code> runs live <code>codex exec</code> probes in an isolated <code>CODEX_HOME</code>. It proves each harness fact that the port uses. It uses the operator's Codex login and quota, so CI does not run it. The maintainer runs it on each new Codex release.
+</li>
+<li><strong>End-to-end tests:</strong> the maintainer runs a scripted loop on each test bed. The test bed holds a small app and five seeded issues. The run passes when the loop merges one batch and closes its issues.
+</li>
+<li><strong>Done for a change:</strong> unit tests pass, the manifest check passes, the lock check passes, and the change states which upstream file and section it ports.
+</li>
+</ul>
+<h2 id="epics">Epics</h2>
+<div class="table-wrap"><table>
+<tr><th>Epic</th><th>Goal</th><th>Feature files</th><th>Depends on</th><th>Exit criteria</th></tr>
+<tr><td>Epic 0: Foundation</td><td>The repository, the upstream import, the tests, CI, the conformance suite, and the test beds exist.</td><td>00-foundation</td><td>none</td><td>A fresh clone runs the unit tests and the lock check green. The conformance suite passes on Codex 0.166.0.</td></tr>
+<tr><td>Epic 1: Plugin packaging and hooks</td><td>The plugin installs in Codex, the setup skill configures a project, and the hooks work.</td><td>01-plugin-packaging</td><td>Epic 0</td><td><code>codex plugin add issue-flow@issue-flow-codex</code> succeeds. The setup skill writes the roles and the config block. Both guards deny their test cases.</td></tr>
+<tr><td>Epic 2: Worker dispatch</td><td>The PM spawns workers in worktrees, reads verdicts, and gates sub-merges.</td><td>02-worker-dispatch</td><td>Epic 1</td><td>On a test bed, the PM builds a two-member batch and sub-merges both members.</td></tr>
+<tr><td>Epic 3: Loop operations</td><td>Phase 0, CI and deployment watchers, digests, compaction recovery, and co-operator compatibility work.</td><td>03-loop-operations</td><td>Epic 2</td><td>A full end-to-end run passes on both test beds.</td></tr>
+<tr><td>Epic 4: Spec skills</td><td>The four spec skills run in Codex and write a Codex scaffold.</td><td>04-spec-skills</td><td>Epic 1</td><td><code>$issue-flow:project-planner</code> produces an approved spec package on a test project.</td></tr>
+<tr><td>Epic 5: Project review</td><td>The review PM and the four review roles run in Codex.</td><td>05-project-review</td><td>Epic 3</td><td><code>$issue-flow:project-review</code> files findings and lands a manual PR on a test bed.</td></tr>
+<tr><td>Epic 6: Mirror and sync</td><td><code>repo-mirror</code> works, the upstream sync is automated, and v0.1.0 ships.</td><td>06-mirror-and-sync</td><td>Epic 4, Epic 5</td><td>A scheduled CI job opens an issue for a new upstream tag. The marketplace serves v0.1.0.</td></tr>
+</table></div>
+<h2 id="milestones">Milestones</h2>
+<ol>
+<li><strong>M0 — Foundation (Epic 0).</strong> Shippable means: the repository holds upstream 0.17.0 with a complete lock, and the conformance suite passes.
+</li>
+<li><strong>M1 — Installable (Epic 1).</strong> Shippable means: an operator installs the plugin and runs the setup skill.
+</li>
+<li><strong>M2 — Core loop (Epics 2 and 3).</strong> Shippable means: the loop builds and merges a batch on both forges. From M2, the port can build its own later epics.
+</li>
+<li><strong>M3 — Full parity (Epics 4 and 5).</strong> Shippable means: all seven skills run in Codex.
+</li>
+<li><strong>M4 — Release (Epic 6).</strong> Shippable means: v0.1.0 is in the marketplace and the upstream sync runs on a schedule.
+</li>
+</ol>
+<h2 id="assumptions" class="callout-h">Assumptions</h2>
+<ul>
+<li>The operator runs the PM in the interactive Codex TUI. <code>codex exec</code> is used by the conformance suite and the end-to-end scripts only.
+</li>
+<li>The PM turn can last for hours. Codex compacts the context inside the turn. The live test did not run a turn this long; Epic 3 measures it.
+</li>
+<li>The first port release tracks upstream <code>issue-flow--v0.17.0</code>.
+</li>
+<li>The default models are the ones in the model table. The operator can change them.
+</li>
+<li>A worktree lives at <code>.worktrees/&lt;task_name&gt;</code> inside the project root. The permission profile makes only the project root writable, and upstream uses <code>.claude/worktrees/</code> for the same reason.
+</li>
+<li>One operator login runs one PM per tracker at a time, in either harness. Upstream keys the status issue on the login, so two PMs with one login would write the same status issue. The maintainer confirmed this limit for v1 on 2026-11-03.
+</li>
+</ul>
+<h2 id="risks-open-questions" class="callout-h">Risks &amp; open questions</h2>
+<ul>
+<li><strong>Long PM turn.</strong> The loop needs the PM turn to stay alive across many <code>wait_agent</code> calls and several compactions. Codex issues #45343 and #47592 report delegated tasks lost or repeated after compaction. Mitigation: Phase 0 recovery from the tracker, plus a <code>list_agents</code> check after each SessionStart with <code>source: compact</code> (Feature 03). Epic 3 measures it.
+</li>
+<li><strong>Hook trust after each update.</strong> Codex pins plugin hook trust to a hash of the whole plugin. Each plugin update disables the hooks until the operator approves them again. Mitigation: the PM checks at Phase 0 that the hooks ran (Feature 01).
+</li>
+<li><strong>Codex changes fast.</strong> The release notes from 0.129.0 to 0.166.0 show renamed tools and changed defaults. For example, 0.137.0 renamed <code>assign_task</code> to <code>followup_task</code>. Mitigation: the conformance suite (Feature 00).
+</li>
+<li><strong>Documentation and source disagree.</strong> The plugin docs say plugin hooks work "only for plugins installed manually in Codex desktop". The live test showed plugin hooks running in the CLI. The port relies on the observed behavior and the conformance suite checks it.
+</li>
+<li><strong>Quota.</strong> Concurrency 3 with <code>gpt-6.1-sol</code> workers can use a large share of a ChatGPT plan. The operator decides the worker model at each run.
+</li>
+</ul>
+<h2 id="changelog">Changelog</h2>
+<ul>
+<li>2026-11-03 — First draft. Interview rounds 1-3 settled: separate repository that tracks upstream; all seven skills in v1; GitHub and Gitea; dev-and-live; public; live test before the sandbox decision; top-tier PM with lower-tier subagents; test beds on both forges; plugin plus setup skill; both harnesses build this repository; plugin name <code>issue-flow</code>; tracker compatibility with upstream. Live test on Codex 0.166.0 confirmed the permission profile approach.
+</li>
+<li>2026-11-03 — Review round 1: approved. The maintainer confirmed one PM per login for v1, the default models (<code>gpt-6.1-sol</code> for the PM and workers, <code>gpt-6-luna</code> for helpers), and the scaffold proposal.
+</li>
+</ul><nav class="pager">
+<span></span>
+<a href="html/page-codex-harness.html">Codex harness facts &rarr;</a>
+</nav>
+</main>
+</div>
+<script src="assets/mermaid.min.js"></script>
+<script>mermaid.initialize({startOnLoad:true,theme:matchMedia('(prefers-color-scheme: dark)').matches?'dark':'default'});</script>
+<script type="application/json" id="rv-embedded">[]</script>
+<script>
+(function(){
+  'use strict';
+  var PAGE = document.body.getAttribute('data-page');
+  // storage key carries the spec's slug: file:// pages can share one
+  // localStorage pool, and two specs must never share a comment store
+  var RVKEY = 'spec-review:' + (document.body.getAttribute('data-rvkey') || 'spec');
+  var EMBED = [];
+  var embedEl = document.getElementById('rv-embedded');
+  if (embedEl) { try { EMBED = JSON.parse(embedEl.textContent); } catch(e){} }
+  function loadLocal(){ try { return JSON.parse(localStorage.getItem(RVKEY)) || {comments:[], deleted:[]}; } catch(e){ return {comments:[], deleted:[]}; } }
+  function saveLocal(s){ try { localStorage.setItem(RVKEY, JSON.stringify(s)); } catch(e){} }
+  function cid(c){ return c.page + '|' + c.section + '|' + (c.date||'') + '|' + c.body.slice(0,24); }
+  function allComments(){
+    var s = loadLocal(), map = {};
+    EMBED.forEach(function(c){ map[cid(c)] = c; });
+    s.comments.forEach(function(c){ map[cid(c)] = c; });
+    s.deleted.forEach(function(id){ delete map[id]; });
+    return Object.keys(map).map(function(k){ return map[k]; });
+  }
+  function upsert(c){
+    var s = loadLocal(), id = cid(c);
+    s.comments = s.comments.filter(function(x){ return cid(x) !== id; });
+    s.comments.push(c);
+    s.deleted = s.deleted.filter(function(x){ return x !== id; });
+    saveLocal(s); refresh();
+  }
+  function remove(c){
+    var s = loadLocal(), id = cid(c);
+    s.comments = s.comments.filter(function(x){ return cid(x) !== id; });
+    if (EMBED.some(function(x){ return cid(x) === id; })) s.deleted.push(id);
+    saveLocal(s); refresh();
+  }
+  function today(){ return new Date().toISOString().slice(0,10); }
+  function exportMd(){
+    var lines = ['# Review comments', '',
+      '<!-- Exported from the spec review layer. Save this file as',
+      '     docs/specs/review-comments.md and re-run render-spec.py to embed',
+      '     every comment under its section for the next review round. -->', ''];
+    allComments().sort(function(a,b){
+      return (a.page+a.section).localeCompare(b.page+b.section);
+    }).forEach(function(c){
+      lines.push('## [' + c.page + '] ' + (c.section||''));
+      lines.push('status: ' + (c.status||'open'));
+      lines.push('date: ' + (c.date||today()));
+      lines.push(c.body); lines.push('');
+    });
+    var blob = new Blob([lines.join('\n')], {type:'text/markdown'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'review-comments.md';
+    a.click(); URL.revokeObjectURL(a.href);
+  }
+  function importMd(file){
+    var reader = new FileReader();
+    reader.onload = function(){
+      var text = String(reader.result);
+      var blocks = text.split(/^## /m).slice(1);
+      blocks.forEach(function(b){
+        var head = b.match(/^\[([^\]]+)\]\s*(\S*)/);
+        if (!head) return;
+        var status = (b.match(/^status:\s*(\S+)/m)||[])[1] || 'open';
+        var date = (b.match(/^date:\s*(\S+)/m)||[])[1] || today();
+        var body = b.replace(/^\[[^\]]*\]\s*\S*\s*\n/, '')
+                    .replace(/^status:.*\n?/m,'').replace(/^date:.*\n?/m,'').trim();
+        if (body) upsert({page:head[1], section:head[2]||'', status:status, date:date, body:body});
+      });
+      refresh();
+    };
+    reader.readAsText(file);
+  }
+  function commentBox(c){
+    var div = document.createElement('div');
+    div.className = 'rv-comment' + (c.status === 'resolved' ? ' rv-resolved' : '');
+    var head = document.createElement('div'); head.className = 'rv-head';
+    head.textContent = '💬 ' + (c.date||'') + ' · ' + (c.status||'open');
+    var tog = document.createElement('button');
+    tog.textContent = c.status === 'resolved' ? 'reopen' : 'resolve';
+    tog.onclick = function(){ remove(c); c = Object.assign({}, c, {status: c.status === 'resolved' ? 'open' : 'resolved'}); upsert(c); };
+    var del = document.createElement('button'); del.textContent = 'delete';
+    del.onclick = function(){ if (confirm('Delete this comment?')) remove(c); };
+    head.appendChild(tog); head.appendChild(del);
+    var body = document.createElement('div'); body.className = 'rv-body';
+    body.textContent = c.body;
+    div.appendChild(head); div.appendChild(body);
+    return div;
+  }
+  function editor(section, after){
+    var wrap = document.createElement('div');
+    wrap.className = 'rv-comment rv-editor';
+    var ta = document.createElement('textarea');
+    ta.placeholder = 'Comment on this section…';
+    var actions = document.createElement('div'); actions.className = 'rv-actions';
+    var save = document.createElement('button'); save.textContent = 'Save';
+    save.onclick = function(){
+      if (ta.value.trim()) upsert({page:PAGE, section:section, status:'open', date:today(), body:ta.value.trim()});
+      wrap.remove();
+    };
+    var cancel = document.createElement('button'); cancel.textContent = 'Cancel';
+    cancel.className = 'rv-cancel'; cancel.onclick = function(){ wrap.remove(); };
+    actions.appendChild(save); actions.appendChild(cancel);
+    wrap.appendChild(ta); wrap.appendChild(actions);
+    after.insertAdjacentElement('afterend', wrap);
+    ta.focus();
+  }
+  // --- headings, inline buttons ---
+  var mainH1 = document.querySelector('main h1');
+  if (mainH1 && !mainH1.id) { mainH1.id = 'page-title'; }
+  var headings = Array.prototype.slice.call(
+    document.querySelectorAll('main h1[id], main h2[id], main h3[id], main h4[id]'));
+  headings.forEach(function(h){
+    var b = document.createElement('button');
+    b.className = 'rv-add'; b.textContent = '💬 comment'; b.title = 'Comment on this section';
+    b.onclick = function(){ editor(h.id, h); };
+    h.appendChild(b);
+  });
+  function headingTitle(h){
+    var t = h.childNodes[0] ? h.childNodes[0].textContent : h.textContent;
+    return t.trim();
+  }
+  function titleFor(section){
+    var el = section && document.getElementById(section);
+    return el ? headingTitle(el) : (section || '(page)');
+  }
+
+  // --- drawer ---
+  var drawer = document.createElement('div');
+  drawer.id = 'rv-drawer';
+  drawer.innerHTML =
+    '<header><strong>Review</strong> <span class="rv-count"></span></header>' +
+    '<div class="rv-compose">' +
+    '<div class="rv-live">Commenting on the section in view:</div>' +
+    '<label for="rv-sec"></label><select id="rv-sec"></select>' +
+    '<textarea id="rv-text" placeholder="Type as you read… (Ctrl+Enter saves)"></textarea>' +
+    '<div style="margin-top:.4rem; display:flex; gap:.5rem;">' +
+    '<button class="rv-primary" id="rv-save">Save comment</button>' +
+    '<button id="rv-clear">Clear</button></div></div>' +
+    '<div class="rv-list"></div>' +
+    '<footer><button id="rv-export">Export .md</button>' +
+    '<button id="rv-import">Import</button>' +
+    '<span class="rv-otherpages"></span></footer>';
+  document.body.appendChild(drawer);
+  var toggle = document.createElement('button');
+  toggle.id = 'rv-toggle';
+  toggle.onclick = function(){
+    document.body.classList.toggle('rv-open');
+    try { localStorage.setItem(RVKEY + ':open', document.body.classList.contains('rv-open') ? '1' : ''); } catch(e){}
+  };
+  document.body.appendChild(toggle);
+  try { if (localStorage.getItem(RVKEY + ':open')) document.body.classList.add('rv-open'); } catch(e){}
+
+  var sel = drawer.querySelector('#rv-sec');
+  headings.forEach(function(h){
+    var opt = document.createElement('option');
+    opt.value = h.id; opt.textContent = headingTitle(h);
+    sel.appendChild(opt);
+  });
+  var followScroll = true;
+  sel.onchange = function(){ followScroll = false; };
+
+  // scroll spy: pick the last heading above the upper third of the viewport
+  function currentSection(){
+    var line = window.innerHeight * 0.33, best = headings[0];
+    for (var i = 0; i < headings.length; i++) {
+      if (headings[i].getBoundingClientRect().top <= line) best = headings[i];
+    }
+    return best ? best.id : '';
+  }
+  window.addEventListener('scroll', function(){
+    if (!followScroll) return;
+    var s = currentSection();
+    if (s && sel.value !== s) sel.value = s;
+  }, {passive:true});
+  // typing pins the target section so a stray scroll can't retarget the comment
+  drawer.querySelector('#rv-text').addEventListener('input', function(){
+    if (this.value.trim()) followScroll = false;
+    else followScroll = true;
+  });
+
+  function saveFromDrawer(){
+    var ta = drawer.querySelector('#rv-text');
+    if (!ta.value.trim()) return;
+    upsert({page:PAGE, section:sel.value, status:'open', date:today(), body:ta.value.trim()});
+    ta.value = ''; followScroll = true;
+  }
+  drawer.querySelector('#rv-save').onclick = saveFromDrawer;
+  drawer.querySelector('#rv-text').addEventListener('keydown', function(e){
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') saveFromDrawer();
+  });
+  drawer.querySelector('#rv-clear').onclick = function(){
+    drawer.querySelector('#rv-text').value = ''; followScroll = true;
+  };
+  drawer.querySelector('#rv-export').onclick = exportMd;
+  var fileIn = document.createElement('input');
+  fileIn.type = 'file'; fileIn.accept = '.md,text/markdown'; fileIn.style.display = 'none';
+  fileIn.onchange = function(){ if (fileIn.files[0]) importMd(fileIn.files[0]); };
+  drawer.appendChild(fileIn);
+  drawer.querySelector('#rv-import').onclick = function(){ fileIn.click(); };
+
+  function drawerItem(c){
+    var div = document.createElement('div');
+    div.className = 'rv-item' + (c.status === 'resolved' ? ' rv-resolved' : '');
+    var where = document.createElement('div'); where.className = 'rv-where';
+    where.textContent = titleFor(c.section);
+    var text = document.createElement('div'); text.className = 'rv-text';
+    text.textContent = c.body;
+    var meta = document.createElement('div'); meta.className = 'rv-meta';
+    meta.textContent = (c.date||'') + ' · ' + (c.status||'open');
+    var tog = document.createElement('button');
+    tog.textContent = c.status === 'resolved' ? 'reopen' : 'resolve';
+    tog.onclick = function(e){ e.stopPropagation(); remove(c);
+      upsert(Object.assign({}, c, {status: c.status === 'resolved' ? 'open' : 'resolved'})); };
+    var del = document.createElement('button'); del.textContent = 'delete';
+    del.onclick = function(e){ e.stopPropagation();
+      if (confirm('Delete this comment?')) remove(c); };
+    meta.appendChild(tog); meta.appendChild(del);
+    div.appendChild(where); div.appendChild(text); div.appendChild(meta);
+    div.onclick = function(){
+      var el = c.section && document.getElementById(c.section);
+      if (el) el.scrollIntoView({behavior:'smooth', block:'start'});
+    };
+    return div;
+  }
+
+  function refresh(){
+    document.querySelectorAll('.rv-comment:not(.rv-editor)').forEach(function(el){ el.remove(); });
+    var all = allComments();
+    var mine = all.filter(function(c){ return c.page === PAGE; });
+    mine.forEach(function(c){
+      var target = c.section && document.getElementById(c.section);
+      var anchor = target || mainH1 || document.body.querySelector('main') || document.body;
+      anchor.insertAdjacentElement('afterend', commentBox(c));
+    });
+    var open = all.filter(function(c){ return c.status !== 'resolved'; }).length;
+    toggle.textContent = '💬 Review (' + open + ')';
+    drawer.querySelector('.rv-count').textContent =
+      open + ' open / ' + all.length + ' total';
+    var list = drawer.querySelector('.rv-list');
+    list.innerHTML = '';
+    mine.slice().reverse().forEach(function(c){ list.appendChild(drawerItem(c)); });
+    var others = {};
+    all.forEach(function(c){ if (c.page !== PAGE) others[c.page] = (others[c.page]||0) + 1; });
+    var otherKeys = Object.keys(others);
+    drawer.querySelector('.rv-otherpages').textContent = otherKeys.length
+      ? 'Other pages: ' + otherKeys.map(function(k){ return k + ' (' + others[k] + ')'; }).join(', ')
+      : '';
+  }
+  refresh();
+  var s0 = currentSection();
+  if (s0) sel.value = s0;
+})();
+</script>
+</body>
+</html>

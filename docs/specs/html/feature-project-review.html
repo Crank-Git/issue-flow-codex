@@ -1,0 +1,558 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>issue-flow for Codex — Feature: Project review</title>
+<style>
+:root { --bg:#ffffff; --fg:#1a1a24; --muted:#5a5a68; --line:#e3e3ea; --accent:#3452c8;
+        --card:#f6f6f9; --warn-bg:#fff7e8; --warn-line:#e8b34a; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#14141b; --fg:#e8e8ee; --muted:#9a9aa8; --line:#2c2c38; --accent:#8ea6ff;
+          --card:#1c1c26; --warn-bg:#2a2318; --warn-line:#a87c2a; } }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+       font:16px/1.6 system-ui,-apple-system,sans-serif; }
+.layout { display:flex; min-height:100vh; }
+aside.site { width:17rem; flex:none; border-right:1px solid var(--line);
+             padding:1.2rem 1rem 3rem; position:sticky; top:0; height:100vh;
+             overflow-y:auto; background:var(--card); }
+aside.site h2 { font-size:.8rem; text-transform:uppercase; letter-spacing:.06em;
+                color:var(--muted); margin:1.2rem 0 .3rem; border:none; padding:0; }
+aside.site ul { list-style:none; margin:0; padding:0; }
+aside.site li { margin:.15rem 0; }
+aside.site a { text-decoration:none; color:var(--fg); font-size:.92rem;
+               display:block; padding:.15rem .5rem; border-radius:6px; }
+aside.site a:hover { background:var(--bg); }
+aside.site a.current { background:var(--accent); color:#fff; }
+aside.site a.sub { padding-left:1.3rem; font-size:.84rem; color:var(--muted); }
+aside.site .brand { font-weight:700; font-size:1.05rem; }
+main { max-width:60rem; margin:0 auto; padding:2rem 1.5rem 6rem; min-width:0; flex:1; }
+h1,h2,h3,h4 { line-height:1.25; }
+h1 { font-size:2rem; margin:.2rem 0; }
+h2 { border-bottom:1px solid var(--line); padding-bottom:.3rem; margin-top:2.5rem; }
+a { color:var(--accent); }
+code { background:var(--card); padding:.1em .35em; border-radius:4px; font-size:.9em; }
+pre.code { background:var(--card); border:1px solid var(--line); border-radius:8px;
+           padding:1rem; overflow-x:auto; }
+pre.code code { background:none; padding:0; }
+.table-wrap { overflow-x:auto; }
+table { border-collapse:collapse; margin:1rem 0; min-width:50%; }
+th,td { border:1px solid var(--line); padding:.4rem .7rem; text-align:left; }
+th { background:var(--card); }
+blockquote { border-left:3px solid var(--accent); margin:1rem 0; padding:.2rem 1rem;
+             color:var(--muted); }
+.meta { color:var(--muted); margin-bottom:2rem; }
+.badge { display:inline-block; padding:.1rem .6rem; border-radius:999px;
+         border:1px solid var(--accent); color:var(--accent); font-size:.85rem; }
+.diagram { background:var(--card); border:1px solid var(--line); border-radius:8px;
+           padding:1rem; margin:1rem 0; overflow-x:auto; }
+.diagram pre.mermaid { margin:0; }
+.diagram.raw::before { content:"diagram source (assets/mermaid.min.js not vendored)";
+                       display:block; color:var(--muted); font-size:.8rem;
+                       margin-bottom:.5rem; }
+.callout-h, .callout-h ~ p, .callout-h ~ ul { background:var(--warn-bg); }
+.callout-h { border-left:4px solid var(--warn-line); padding:.3rem .8rem; }
+.mockup { margin:1.5rem 0; }
+.mockup iframe { width:100%; height:32rem; border:1px solid var(--line);
+                 border-radius:8px; background:#fff; }
+nav.pager { display:flex; justify-content:space-between; margin-top:3rem;
+            border-top:1px solid var(--line); padding-top:1rem; }
+@media (max-width: 900px) {
+  .layout { display:block; }
+  aside.site { width:auto; height:auto; position:static; border-right:none;
+               border-bottom:1px solid var(--line); }
+}
+h1[id]:hover .rv-add, h2[id]:hover .rv-add, h3[id]:hover .rv-add,
+h4[id]:hover .rv-add { opacity:1; }
+.rv-add { opacity:0; margin-left:.5rem; font-size:.75rem; cursor:pointer;
+          border:1px solid var(--accent); color:var(--accent); background:none;
+          border-radius:6px; padding:0 .45rem; vertical-align:middle;
+          transition:opacity .15s; }
+.rv-comment { border:1px solid var(--warn-line); border-left-width:4px;
+              background:var(--warn-bg); border-radius:8px; padding:.6rem .9rem;
+              margin:.8rem 0; font-size:.92rem; }
+.rv-comment.rv-resolved { opacity:.6; border-left-color:var(--line); }
+.rv-comment .rv-head { display:flex; gap:.6rem; align-items:center;
+                       color:var(--muted); font-size:.8rem; margin-bottom:.3rem; }
+.rv-comment .rv-head button { font-size:.75rem; cursor:pointer; background:none;
+                              border:1px solid var(--line); border-radius:6px;
+                              color:var(--muted); padding:0 .4rem; }
+.rv-comment .rv-body { white-space:pre-wrap; }
+.rv-editor textarea { width:100%; min-height:5rem; background:var(--bg);
+                      color:var(--fg); border:1px solid var(--line);
+                      border-radius:6px; padding:.5rem; font:inherit; }
+.rv-editor .rv-actions { margin-top:.4rem; display:flex; gap:.5rem; }
+.rv-editor button { cursor:pointer; border-radius:6px; padding:.2rem .8rem;
+                    border:1px solid var(--accent); background:var(--accent);
+                    color:#fff; }
+.rv-editor button.rv-cancel { background:none; color:var(--accent); }
+#rv-toggle { position:fixed; right:1rem; bottom:1rem; z-index:60;
+             background:var(--accent); color:#fff; border:none; cursor:pointer;
+             border-radius:999px; padding:.5rem 1rem; font-size:.85rem;
+             box-shadow:0 2px 10px rgba(0,0,0,.2); }
+#rv-drawer { position:fixed; top:0; right:0; bottom:0; width:21rem; z-index:55;
+             background:var(--card); border-left:1px solid var(--line);
+             display:flex; flex-direction:column; transform:translateX(100%);
+             transition:transform .2s ease; box-shadow:-4px 0 16px rgba(0,0,0,.12); }
+body.rv-open #rv-drawer { transform:none; }
+body.rv-open .layout { padding-right:21rem; }
+#rv-drawer header { padding:.8rem 1rem .5rem; border-bottom:1px solid var(--line); }
+#rv-drawer header .rv-count { color:var(--muted); font-size:.8rem; }
+#rv-drawer .rv-compose { padding:.8rem 1rem; border-bottom:1px solid var(--line); }
+#rv-drawer .rv-compose label { display:block; font-size:.75rem;
+                               color:var(--muted); margin-bottom:.25rem; }
+#rv-drawer .rv-compose select { width:100%; margin-bottom:.4rem;
+             background:var(--bg); color:var(--fg); border:1px solid var(--line);
+             border-radius:6px; padding:.3rem; font:inherit; font-size:.85rem; }
+#rv-drawer .rv-compose textarea { width:100%; min-height:5.5rem;
+             background:var(--bg); color:var(--fg); border:1px solid var(--line);
+             border-radius:6px; padding:.5rem; font:inherit; font-size:.9rem; }
+#rv-drawer .rv-compose .rv-live { font-size:.72rem; color:var(--muted); }
+#rv-drawer .rv-list { flex:1; overflow-y:auto; padding:.6rem 1rem; }
+#rv-drawer .rv-item { border:1px solid var(--line); border-left:3px solid
+             var(--warn-line); border-radius:8px; padding:.45rem .6rem;
+             margin-bottom:.6rem; font-size:.82rem; cursor:pointer; }
+#rv-drawer .rv-item.rv-resolved { opacity:.55; border-left-color:var(--line); }
+#rv-drawer .rv-item .rv-where { color:var(--accent); font-size:.72rem; }
+#rv-drawer .rv-item .rv-meta { color:var(--muted); font-size:.72rem;
+                               display:flex; gap:.5rem; align-items:center; }
+#rv-drawer .rv-item .rv-meta button { font-size:.7rem; cursor:pointer;
+             background:none; border:1px solid var(--line); border-radius:5px;
+             color:var(--muted); padding:0 .35rem; }
+#rv-drawer .rv-item .rv-text { white-space:pre-wrap; margin:.15rem 0; }
+#rv-drawer footer { padding:.6rem 1rem; border-top:1px solid var(--line);
+                    display:flex; gap:.5rem; flex-wrap:wrap; }
+#rv-drawer footer button, #rv-drawer .rv-compose button {
+  cursor:pointer; border:1px solid var(--accent); background:none;
+  color:var(--accent); border-radius:6px; padding:.2rem .7rem; font-size:.8rem; }
+#rv-drawer .rv-compose button.rv-primary { background:var(--accent); color:#fff; }
+#rv-drawer .rv-otherpages { color:var(--muted); font-size:.75rem;
+                            margin:.4rem 0 0; }
+@media (max-width: 1200px) { body.rv-open .layout { padding-right:0; } }
+</style>
+</head>
+<body data-page="feature-project-review" data-rvkey="issue-flow-codex">
+<div class="layout">
+<aside class="site"><a class="brand" href="../spec.html">issue-flow for Codex</a>
+<h2>Spec</h2><ul>
+<li><a href="../spec.html">Overview &amp; index</a></li>
+</ul>
+<h2>Pages</h2><ul>
+<li><a href="page-codex-harness.html">Codex harness facts</a></li>
+<li><a href="page-porting-inventory.html">Porting inventory</a></li>
+</ul>
+<h2>Features</h2><ul>
+<li><a href="feature-foundation.html">Foundation</a></li>
+<li><a href="feature-plugin-packaging.html">Plugin packaging and hooks</a></li>
+<li><a href="feature-worker-dispatch.html">Worker dispatch</a></li>
+<li><a href="feature-loop-operations.html">Loop operations</a></li>
+<li><a href="feature-spec-skills.html">Spec skills</a></li>
+<li><a class="current" href="feature-project-review.html">Project review</a></li>
+<li><a href="feature-mirror-and-sync.html">Mirror and sync</a></li>
+</ul></aside>
+<main>
+<h1>Feature: Project review</h1>
+<p class="meta">Epic 5: Project review &nbsp; <span class="badge">planned</span></p>
+<h3 id="project-review-purpose">Purpose</h3>
+<p>This feature ports <code>project-review</code> and its four roles: <code>ux_explorer</code>, <code>deploy_verifier</code>, <code>review_scribe</code>, and <code>code_auditor</code>. The review PM starts the project in a sandbox, sends browser subagents through user flows, sweeps the code, files findings through the upstream filing gate, and lands a manual and E2E-test PR. Codex cannot give a role its own MCP servers or tool list. The browser server is configured once for all threads, and the role guard limits each role.</p>
+<h3 id="project-review-user-stories">User stories</h3>
+<ul>
+<li>As the operator, I want a user-viewpoint review in Codex, so that the review step of the loop works in both harnesses.
+</li>
+<li>As the operator, I want the browser subagents to use Playwright, so that the review drives a real browser.
+</li>
+<li>As the operator, I want the read-only roles to stay read-only, so that a review never changes product code.
+</li>
+</ul>
+<h3 id="project-review-functional-requirements">Functional requirements</h3>
+<ul>
+<li>FR-project-review-1 — The plugin ships role files for <code>ux_explorer</code>, <code>deploy_verifier</code>, <code>review_scribe</code>, and <code>code_auditor</code> in <code>roles/</code>.
+</li>
+<li>FR-project-review-2 — Each role file holds the upstream agent instructions in <code>developer_instructions</code>, with each Claude Code tool name replaced by its Codex tool name.
+</li>
+<li>FR-project-review-3 — Each role file sets <code>model</code> per the table in Behaviour rules.
+</li>
+<li>FR-project-review-4 — The review PM checks with <code>codex mcp list</code> that a server named <code>playwright</code> exists before it spawns a browser role.
+</li>
+<li>FR-project-review-5 — When the <code>playwright</code> server is missing, the review PM shows the operator the command <code>codex mcp add playwright -- npx -y @playwright/mcp@&lt;pinned version&gt;</code> and stops.
+</li>
+<li>FR-project-review-6 — The review PM never runs <code>codex mcp add</code> itself.
+</li>
+<li>FR-project-review-7 — Browser roles call the Playwright tools by their Codex names <code>mcp__playwright__&lt;tool&gt;</code>.
+</li>
+<li>FR-project-review-8 — The role guard applies the role policy of Feature 01 to the four roles.
+</li>
+<li>FR-project-review-9 — The review PM spawns each role with <code>fork_turns: "none"</code>.
+</li>
+<li>FR-project-review-10 — The review PM spawns at most as many browser roles at once as the free thread slots allow.
+</li>
+<li>FR-project-review-11 — The review PM reads each role's verdict from its <code>FINAL_ANSWER</code>, as Feature 02 defines.
+</li>
+<li>FR-project-review-12 — The review PM keeps every upstream phase, the filing gate, and the review branch rules.
+</li>
+<li>FR-project-review-13 — <code>ux_explorer</code> writes screenshots and walkthrough files only in its scratch directory under <code>.worktrees/review/&lt;task_name&gt;/</code>.
+</li>
+<li>FR-project-review-14 — The review PM creates the review branch worktree for <code>review_scribe</code> with <code>scripts/worktree.py create</code>.
+</li>
+<li>FR-project-review-15 — The issue-flow PM spawns <code>deploy_verifier</code> after a successful deployment watch, per upstream Stage D.
+</li>
+</ul>
+<h3 id="project-review-user-flows">User flows</h3>
+<h4 id="project-review-flow-1-review-run">Flow 1 — Review run</h4>
+<div class="diagram"><pre class="mermaid">flowchart TD
+    A["$issue-flow:project-review"] --&gt; B{"playwright MCP server configured?"}
+    B -- "no" --&gt; X["Stop: show codex mcp add command"]
+    B -- "yes" --&gt; C["Start the sandbox app (project run skill)"]
+    C --&gt; D["Spawn ux_explorer per flow, code_auditor once"]
+    D --&gt; E["wait_agent until all verdicts arrive"]
+    E --&gt; F["Filing gate: file issues for qualifying findings"]
+    F --&gt; G["Create review worktree, spawn review_scribe"]
+    G --&gt; H["Scribe opens manual + E2E PR"]
+    H --&gt; I["Ask operator: start $issue-flow:issue-flow on the new issues?"]</pre></div>
+<ol>
+<li>The operator starts <code>$issue-flow:project-review</code>.
+</li>
+<li>If the <code>playwright</code> server is missing, the review PM shows the command and stops.
+</li>
+<li>The review PM starts the app in a sandbox with the project's <code>run</code> skill.
+</li>
+<li>The review PM spawns one <code>ux_explorer</code> per flow and one <code>code_auditor</code>.
+</li>
+<li>The review PM waits for all verdicts.
+</li>
+<li>The review PM files an issue for each finding that passes the filing gate.
+</li>
+<li>The review PM creates the review worktree and spawns <code>review_scribe</code>.
+</li>
+<li>The scribe opens the manual and E2E-test PR.
+</li>
+<li>The review PM asks the operator whether to start the issue-flow loop.
+</li>
+</ol>
+<h3 id="project-review-screens-states">Screens &amp; states</h3>
+<p>The feature has no screens of its own. The reviewed project's screens are the subject of the review.</p>
+<h3 id="project-review-behaviour-rules">Behaviour rules</h3>
+<div class="table-wrap"><table>
+<tr><th>Role</th><th>Model</th><th>Writes</th></tr>
+<tr><td><code>ux_explorer</code></td><td><code>gpt-6.1-sol</code></td><td>Its scratch directory only.</td></tr>
+<tr><td><code>deploy_verifier</code></td><td><code>gpt-6-luna</code></td><td>Nothing.</td></tr>
+<tr><td><code>review_scribe</code></td><td><code>gpt-6.1-sol</code></td><td><code>docs/manual/**</code> and E2E test files in the review worktree.</td></tr>
+<tr><td><code>code_auditor</code></td><td><code>gpt-6-luna</code></td><td>Nothing.</td></tr>
+</table></div>
+<ul>
+<li>Every thread in the session sees the <code>playwright</code> tools, because Codex gives each subagent the parent's MCP servers. The role guard denies <code>mcp__playwright__.*</code> for <code>code_auditor</code> and <code>review_scribe</code>.
+</li>
+</ul>
+<h3 id="project-review-data-touched">Data touched</h3>
+<ul>
+<li>Tracker: finding issues, per the upstream filing gate.
+</li>
+<li>Review branch: <code>docs/manual/**</code>, E2E tests.
+</li>
+<li><code>.worktrees/review/**</code> scratch files (ignored by git).
+</li>
+</ul>
+<h3 id="project-review-interfaces">Interfaces</h3>
+<ul>
+<li><strong>MCP configuration:</strong> <code>codex mcp add &lt;NAME&gt; -- &lt;COMMAND&gt;...</code>, <code>codex mcp list</code>. Verified against: <code>codex mcp --help</code> (codex-cli 0.166.0).
+</li>
+<li><strong>MCP tool names in hooks:</strong> <code>mcp__&lt;server&gt;__&lt;tool&gt;</code>. Verified against: source <code>codex-rs/core/src/tools/handlers/mcp.rs:139-140</code> (commit <code>dbaead01</code>).
+</li>
+<li><strong>Roles and MCP:</strong> a role file cannot set <code>mcp_servers</code>. Subagents inherit the parent's servers. Verified against: source <code>codex-rs/core/src/agent/role.rs:79-117</code>; https://learn.chatgpt.com/docs/agent-configuration/subagents (retrieved 2026-11-03).
+</li>
+<li><strong>Playwright MCP:</strong> <code>@playwright/mcp</code>, pinned in the role files at the version the worker confirms from the package's README. The worker records the version and URL in the PR.
+</li>
+</ul>
+<h3 id="project-review-edge-cases-failures">Edge cases &amp; failures</h3>
+<ul>
+<li>If a finished subagent keeps its MCP server process alive (openai/codex issue #38247), the review PM ends the server processes at the end of the run with the project's <code>run</code> skill stop step.
+</li>
+<li>If the sandbox app does not start, the review PM stops and files nothing.
+</li>
+<li>If a browser role cannot reach the app, its verdict is <code>unreachable</code>, and the review PM reports it without a finding.
+</li>
+</ul>
+<h3 id="project-review-acceptance-criteria">Acceptance criteria</h3>
+<ul>
+<li>[ ] With no <code>playwright</code> server, the review PM prints the <code>codex mcp add</code> command and spawns nothing. (FR-project-review-4 to 6)
+</li>
+<li>[ ] On a test bed, <code>ux_explorer</code> returns a walkthrough with at least one screenshot path. (FR-project-review-7, 13)
+</li>
+<li>[ ] <code>code_auditor</code> cannot change a file: the role guard denies its <code>apply_patch</code> call in a test. (FR-project-review-8)
+</li>
+<li>[ ] The review run files at least one seeded finding on the test bed and files no finding that the filing gate rejects. (FR-project-review-12)
+</li>
+<li>[ ] The scribe's PR holds a manual page and an E2E test that passes on the test bed. (FR-project-review-14)
+</li>
+<li>[ ] After a deployment watch, the issue-flow PM spawns <code>deploy_verifier</code> and records its verdict. (FR-project-review-15)
+</li>
+</ul>
+<h3 id="project-review-out-of-scope">Out of scope</h3>
+<ul>
+<li>The port does not add a browser server other than Playwright.
+</li>
+</ul>
+<h3 id="project-review-open-questions" class="callout-h">Open questions</h3><nav class="pager">
+<a href="feature-spec-skills.html">&larr; Feature: Spec skills</a>
+<a href="feature-mirror-and-sync.html">Feature: Mirror and sync &rarr;</a>
+</nav>
+</main>
+</div>
+<script src="../assets/mermaid.min.js"></script>
+<script>mermaid.initialize({startOnLoad:true,theme:matchMedia('(prefers-color-scheme: dark)').matches?'dark':'default'});</script>
+<script type="application/json" id="rv-embedded">[]</script>
+<script>
+(function(){
+  'use strict';
+  var PAGE = document.body.getAttribute('data-page');
+  // storage key carries the spec's slug: file:// pages can share one
+  // localStorage pool, and two specs must never share a comment store
+  var RVKEY = 'spec-review:' + (document.body.getAttribute('data-rvkey') || 'spec');
+  var EMBED = [];
+  var embedEl = document.getElementById('rv-embedded');
+  if (embedEl) { try { EMBED = JSON.parse(embedEl.textContent); } catch(e){} }
+  function loadLocal(){ try { return JSON.parse(localStorage.getItem(RVKEY)) || {comments:[], deleted:[]}; } catch(e){ return {comments:[], deleted:[]}; } }
+  function saveLocal(s){ try { localStorage.setItem(RVKEY, JSON.stringify(s)); } catch(e){} }
+  function cid(c){ return c.page + '|' + c.section + '|' + (c.date||'') + '|' + c.body.slice(0,24); }
+  function allComments(){
+    var s = loadLocal(), map = {};
+    EMBED.forEach(function(c){ map[cid(c)] = c; });
+    s.comments.forEach(function(c){ map[cid(c)] = c; });
+    s.deleted.forEach(function(id){ delete map[id]; });
+    return Object.keys(map).map(function(k){ return map[k]; });
+  }
+  function upsert(c){
+    var s = loadLocal(), id = cid(c);
+    s.comments = s.comments.filter(function(x){ return cid(x) !== id; });
+    s.comments.push(c);
+    s.deleted = s.deleted.filter(function(x){ return x !== id; });
+    saveLocal(s); refresh();
+  }
+  function remove(c){
+    var s = loadLocal(), id = cid(c);
+    s.comments = s.comments.filter(function(x){ return cid(x) !== id; });
+    if (EMBED.some(function(x){ return cid(x) === id; })) s.deleted.push(id);
+    saveLocal(s); refresh();
+  }
+  function today(){ return new Date().toISOString().slice(0,10); }
+  function exportMd(){
+    var lines = ['# Review comments', '',
+      '<!-- Exported from the spec review layer. Save this file as',
+      '     docs/specs/review-comments.md and re-run render-spec.py to embed',
+      '     every comment under its section for the next review round. -->', ''];
+    allComments().sort(function(a,b){
+      return (a.page+a.section).localeCompare(b.page+b.section);
+    }).forEach(function(c){
+      lines.push('## [' + c.page + '] ' + (c.section||''));
+      lines.push('status: ' + (c.status||'open'));
+      lines.push('date: ' + (c.date||today()));
+      lines.push(c.body); lines.push('');
+    });
+    var blob = new Blob([lines.join('\n')], {type:'text/markdown'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'review-comments.md';
+    a.click(); URL.revokeObjectURL(a.href);
+  }
+  function importMd(file){
+    var reader = new FileReader();
+    reader.onload = function(){
+      var text = String(reader.result);
+      var blocks = text.split(/^## /m).slice(1);
+      blocks.forEach(function(b){
+        var head = b.match(/^\[([^\]]+)\]\s*(\S*)/);
+        if (!head) return;
+        var status = (b.match(/^status:\s*(\S+)/m)||[])[1] || 'open';
+        var date = (b.match(/^date:\s*(\S+)/m)||[])[1] || today();
+        var body = b.replace(/^\[[^\]]*\]\s*\S*\s*\n/, '')
+                    .replace(/^status:.*\n?/m,'').replace(/^date:.*\n?/m,'').trim();
+        if (body) upsert({page:head[1], section:head[2]||'', status:status, date:date, body:body});
+      });
+      refresh();
+    };
+    reader.readAsText(file);
+  }
+  function commentBox(c){
+    var div = document.createElement('div');
+    div.className = 'rv-comment' + (c.status === 'resolved' ? ' rv-resolved' : '');
+    var head = document.createElement('div'); head.className = 'rv-head';
+    head.textContent = '💬 ' + (c.date||'') + ' · ' + (c.status||'open');
+    var tog = document.createElement('button');
+    tog.textContent = c.status === 'resolved' ? 'reopen' : 'resolve';
+    tog.onclick = function(){ remove(c); c = Object.assign({}, c, {status: c.status === 'resolved' ? 'open' : 'resolved'}); upsert(c); };
+    var del = document.createElement('button'); del.textContent = 'delete';
+    del.onclick = function(){ if (confirm('Delete this comment?')) remove(c); };
+    head.appendChild(tog); head.appendChild(del);
+    var body = document.createElement('div'); body.className = 'rv-body';
+    body.textContent = c.body;
+    div.appendChild(head); div.appendChild(body);
+    return div;
+  }
+  function editor(section, after){
+    var wrap = document.createElement('div');
+    wrap.className = 'rv-comment rv-editor';
+    var ta = document.createElement('textarea');
+    ta.placeholder = 'Comment on this section…';
+    var actions = document.createElement('div'); actions.className = 'rv-actions';
+    var save = document.createElement('button'); save.textContent = 'Save';
+    save.onclick = function(){
+      if (ta.value.trim()) upsert({page:PAGE, section:section, status:'open', date:today(), body:ta.value.trim()});
+      wrap.remove();
+    };
+    var cancel = document.createElement('button'); cancel.textContent = 'Cancel';
+    cancel.className = 'rv-cancel'; cancel.onclick = function(){ wrap.remove(); };
+    actions.appendChild(save); actions.appendChild(cancel);
+    wrap.appendChild(ta); wrap.appendChild(actions);
+    after.insertAdjacentElement('afterend', wrap);
+    ta.focus();
+  }
+  // --- headings, inline buttons ---
+  var mainH1 = document.querySelector('main h1');
+  if (mainH1 && !mainH1.id) { mainH1.id = 'page-title'; }
+  var headings = Array.prototype.slice.call(
+    document.querySelectorAll('main h1[id], main h2[id], main h3[id], main h4[id]'));
+  headings.forEach(function(h){
+    var b = document.createElement('button');
+    b.className = 'rv-add'; b.textContent = '💬 comment'; b.title = 'Comment on this section';
+    b.onclick = function(){ editor(h.id, h); };
+    h.appendChild(b);
+  });
+  function headingTitle(h){
+    var t = h.childNodes[0] ? h.childNodes[0].textContent : h.textContent;
+    return t.trim();
+  }
+  function titleFor(section){
+    var el = section && document.getElementById(section);
+    return el ? headingTitle(el) : (section || '(page)');
+  }
+
+  // --- drawer ---
+  var drawer = document.createElement('div');
+  drawer.id = 'rv-drawer';
+  drawer.innerHTML =
+    '<header><strong>Review</strong> <span class="rv-count"></span></header>' +
+    '<div class="rv-compose">' +
+    '<div class="rv-live">Commenting on the section in view:</div>' +
+    '<label for="rv-sec"></label><select id="rv-sec"></select>' +
+    '<textarea id="rv-text" placeholder="Type as you read… (Ctrl+Enter saves)"></textarea>' +
+    '<div style="margin-top:.4rem; display:flex; gap:.5rem;">' +
+    '<button class="rv-primary" id="rv-save">Save comment</button>' +
+    '<button id="rv-clear">Clear</button></div></div>' +
+    '<div class="rv-list"></div>' +
+    '<footer><button id="rv-export">Export .md</button>' +
+    '<button id="rv-import">Import</button>' +
+    '<span class="rv-otherpages"></span></footer>';
+  document.body.appendChild(drawer);
+  var toggle = document.createElement('button');
+  toggle.id = 'rv-toggle';
+  toggle.onclick = function(){
+    document.body.classList.toggle('rv-open');
+    try { localStorage.setItem(RVKEY + ':open', document.body.classList.contains('rv-open') ? '1' : ''); } catch(e){}
+  };
+  document.body.appendChild(toggle);
+  try { if (localStorage.getItem(RVKEY + ':open')) document.body.classList.add('rv-open'); } catch(e){}
+
+  var sel = drawer.querySelector('#rv-sec');
+  headings.forEach(function(h){
+    var opt = document.createElement('option');
+    opt.value = h.id; opt.textContent = headingTitle(h);
+    sel.appendChild(opt);
+  });
+  var followScroll = true;
+  sel.onchange = function(){ followScroll = false; };
+
+  // scroll spy: pick the last heading above the upper third of the viewport
+  function currentSection(){
+    var line = window.innerHeight * 0.33, best = headings[0];
+    for (var i = 0; i < headings.length; i++) {
+      if (headings[i].getBoundingClientRect().top <= line) best = headings[i];
+    }
+    return best ? best.id : '';
+  }
+  window.addEventListener('scroll', function(){
+    if (!followScroll) return;
+    var s = currentSection();
+    if (s && sel.value !== s) sel.value = s;
+  }, {passive:true});
+  // typing pins the target section so a stray scroll can't retarget the comment
+  drawer.querySelector('#rv-text').addEventListener('input', function(){
+    if (this.value.trim()) followScroll = false;
+    else followScroll = true;
+  });
+
+  function saveFromDrawer(){
+    var ta = drawer.querySelector('#rv-text');
+    if (!ta.value.trim()) return;
+    upsert({page:PAGE, section:sel.value, status:'open', date:today(), body:ta.value.trim()});
+    ta.value = ''; followScroll = true;
+  }
+  drawer.querySelector('#rv-save').onclick = saveFromDrawer;
+  drawer.querySelector('#rv-text').addEventListener('keydown', function(e){
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') saveFromDrawer();
+  });
+  drawer.querySelector('#rv-clear').onclick = function(){
+    drawer.querySelector('#rv-text').value = ''; followScroll = true;
+  };
+  drawer.querySelector('#rv-export').onclick = exportMd;
+  var fileIn = document.createElement('input');
+  fileIn.type = 'file'; fileIn.accept = '.md,text/markdown'; fileIn.style.display = 'none';
+  fileIn.onchange = function(){ if (fileIn.files[0]) importMd(fileIn.files[0]); };
+  drawer.appendChild(fileIn);
+  drawer.querySelector('#rv-import').onclick = function(){ fileIn.click(); };
+
+  function drawerItem(c){
+    var div = document.createElement('div');
+    div.className = 'rv-item' + (c.status === 'resolved' ? ' rv-resolved' : '');
+    var where = document.createElement('div'); where.className = 'rv-where';
+    where.textContent = titleFor(c.section);
+    var text = document.createElement('div'); text.className = 'rv-text';
+    text.textContent = c.body;
+    var meta = document.createElement('div'); meta.className = 'rv-meta';
+    meta.textContent = (c.date||'') + ' · ' + (c.status||'open');
+    var tog = document.createElement('button');
+    tog.textContent = c.status === 'resolved' ? 'reopen' : 'resolve';
+    tog.onclick = function(e){ e.stopPropagation(); remove(c);
+      upsert(Object.assign({}, c, {status: c.status === 'resolved' ? 'open' : 'resolved'})); };
+    var del = document.createElement('button'); del.textContent = 'delete';
+    del.onclick = function(e){ e.stopPropagation();
+      if (confirm('Delete this comment?')) remove(c); };
+    meta.appendChild(tog); meta.appendChild(del);
+    div.appendChild(where); div.appendChild(text); div.appendChild(meta);
+    div.onclick = function(){
+      var el = c.section && document.getElementById(c.section);
+      if (el) el.scrollIntoView({behavior:'smooth', block:'start'});
+    };
+    return div;
+  }
+
+  function refresh(){
+    document.querySelectorAll('.rv-comment:not(.rv-editor)').forEach(function(el){ el.remove(); });
+    var all = allComments();
+    var mine = all.filter(function(c){ return c.page === PAGE; });
+    mine.forEach(function(c){
+      var target = c.section && document.getElementById(c.section);
+      var anchor = target || mainH1 || document.body.querySelector('main') || document.body;
+      anchor.insertAdjacentElement('afterend', commentBox(c));
+    });
+    var open = all.filter(function(c){ return c.status !== 'resolved'; }).length;
+    toggle.textContent = '💬 Review (' + open + ')';
+    drawer.querySelector('.rv-count').textContent =
+      open + ' open / ' + all.length + ' total';
+    var list = drawer.querySelector('.rv-list');
+    list.innerHTML = '';
+    mine.slice().reverse().forEach(function(c){ list.appendChild(drawerItem(c)); });
+    var others = {};
+    all.forEach(function(c){ if (c.page !== PAGE) others[c.page] = (others[c.page]||0) + 1; });
+    var otherKeys = Object.keys(others);
+    drawer.querySelector('.rv-otherpages').textContent = otherKeys.length
+      ? 'Other pages: ' + otherKeys.map(function(k){ return k + ' (' + others[k] + ')'; }).join(', ')
+      : '';
+  }
+  refresh();
+  var s0 = currentSection();
+  if (s0) sel.value = s0;
+})();
+</script>
+</body>
+</html>

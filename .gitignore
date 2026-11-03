@@ -1,0 +1,16 @@
+# Claude Code
+.claude/settings.local.json
+.claude/worktrees/
+.claude/agent-memory-local/
+CLAUDE.local.md
+.claude.local.md
+.issue-flow.local.json
+
+# issue-flow-codex
+.worktrees/
+conformance-report.md
+sync-report.md
+__pycache__/
+*.pyc
+.playwright-mcp/
+.DS_Store

@@ -1,0 +1,10 @@
+{
+  "session_id": "01a1a37d-ddd6-7e11-897e-81197733200e",
+  "cwd": "/tmp/probe-project",
+  "hook_event_name": "PostToolUse",
+  "tool_name": "collaborationwait_agent",
+  "tool_input": {
+    "timeout_ms": 10000
+  },
+  "tool_response": "{\"message\":\"Wait timed out.\",\"timed_out\":true}"
+}

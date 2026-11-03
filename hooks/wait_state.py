@@ -1,0 +1,41 @@
+"""Store timeout state for one Codex session."""
+
+import json
+import os
+from pathlib import Path
+from uuid import UUID
+
+
+def state_path(session_id):
+    """Return the session state path when the session id and plugin data exist."""
+    data_root = os.environ.get("PLUGIN_DATA")
+    if not data_root or not isinstance(session_id, str):
+        return None
+    try:
+        UUID(session_id)
+    except ValueError:
+        return None
+    return Path(data_root) / f"wait-timeout-{session_id}.json"
+
+
+def clear_pending(session_id):
+    path = state_path(session_id)
+    if path is not None:
+        path.unlink(missing_ok=True)
+
+
+def mark_listed(session_id, key):
+    path = state_path(session_id)
+    if path is None:
+        return
+    try:
+        state = json.loads(path.read_text())
+    except (OSError, ValueError, AttributeError):
+        return
+    if state.get("timed_out") is not True:
+        return
+    state[key] = True
+    if state.get("issue_list") and state.get("pr_list"):
+        clear_pending(session_id)
+    else:
+        path.write_text(json.dumps(state) + "\n")

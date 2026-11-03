@@ -7,6 +7,7 @@ applies `updatedInput` to `wait_agent` (docs/specs/pages/codex-harness.md).
 
 import copy
 import json
+import os
 import subprocess
 import sys
 import tempfile
@@ -19,6 +20,10 @@ RECORDED = json.loads((ROOT / "tests" / "fixtures" / "hooks" / "pre_tool_use_wai
 
 
 class GuardWaitTest(unittest.TestCase):
+    def setUp(self):
+        self.data = tempfile.TemporaryDirectory()
+        self.addCleanup(self.data.cleanup)
+
     def project(self, config=None):
         """Return a temporary project directory, with `config` as its .issue-flow.codex.json text."""
         directory = tempfile.TemporaryDirectory()
@@ -41,7 +46,8 @@ class GuardWaitTest(unittest.TestCase):
         result = subprocess.run(
             [sys.executable, str(HOOK)],
             input=payload if isinstance(payload, str) else json.dumps(payload),
-            capture_output=True, text=True)
+            capture_output=True, text=True,
+            env=dict(os.environ, PLUGIN_DATA=self.data.name))
         self.assertEqual(result.returncode, 0, result.stderr)
         return json.loads(result.stdout) if result.stdout.strip() else None
 
@@ -90,6 +96,21 @@ class GuardWaitTest(unittest.TestCase):
         payload = self.payload(self.project(), 10000)
         payload["tool_name"] = "collaborationlist_agents"
         self.assertIsNone(self.run_hook(payload))
+
+    def test_denies_wait_until_the_stage_a0_lists_run(self):
+        payload = self.payload(self.project('{"version": 1, "waitMs": 10000}'), 10000)
+        state = Path(self.data.name) / f"wait-timeout-{payload['session_id']}.json"
+        state.write_text('{"timed_out": true}')
+        output = self.run_hook(payload)
+        decision = output["hookSpecificOutput"]
+        self.assertEqual(decision["permissionDecision"], "deny")
+        reason = decision["permissionDecisionReason"]
+        self.assertIn("forge.issue.list.since", reason)
+        self.assertIn("forge.pr.list.since", reason)
+        self.assertIn("gh issue list", reason)
+        self.assertIn("gh pr list", reason)
+        self.assertIn("tea issues", reason)
+        self.assertIn("tea pulls", reason)
 
 
 if __name__ == "__main__":

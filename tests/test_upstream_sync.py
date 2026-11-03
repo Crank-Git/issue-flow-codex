@@ -20,6 +20,12 @@ GIT = ["git", "-c", "user.name=test", "-c", "user.email=test@example.invalid",
        "-c", "commit.gpgsign=false", "-c", "tag.gpgsign=false"]
 
 
+def init_repo(path):
+    """Track every file under `path`, as `--check` reads `git ls-files`."""
+    for args in (["init", "-q"], ["add", "."]):
+        subprocess.run(GIT + args, cwd=path, check=True)
+
+
 def run_main(argv):
     err = io.StringIO()
     with contextlib.redirect_stderr(err):
@@ -33,6 +39,7 @@ class CheckTest(unittest.TestCase):
         self.addCleanup(shutil.rmtree, self.tmp)
         self.tree = self.tmp / "tree"
         shutil.copytree(FIXTURES / "tree", self.tree)
+        init_repo(self.tree)
 
     def check(self):
         return run_main(["--check", "--root", str(self.tree)])
@@ -60,6 +67,23 @@ class CheckTest(unittest.TestCase):
     def test_check_ignores_new_entries(self):
         (self.tree / "new.txt").unlink()
         self.assertEqual(self.check()[0], 0)
+
+    def test_check_fails_and_names_a_tracked_file_with_no_lock_entry(self):
+        (self.tree / "stray.txt").write_text("no row\n")
+        (self.tree / "other.txt").write_text("no row\n")
+        init_repo(self.tree)
+        code, err = self.check()
+        self.assertEqual(code, 1)
+        self.assertIn("stray.txt", err)
+        self.assertIn("other.txt", err)
+        self.assertNotIn("verbatim.txt", err)
+
+    def test_check_does_not_require_a_lock_entry_for_the_lock_itself(self):
+        self.assertEqual(self.check(), (0, ""))
+
+    def test_check_ignores_an_untracked_file_with_no_lock_entry(self):
+        (self.tree / "scratch.txt").write_text("untracked\n")
+        self.assertEqual(self.check(), (0, ""))
 
 
 class ImportTest(unittest.TestCase):
@@ -90,6 +114,7 @@ class ImportTest(unittest.TestCase):
         self.assertEqual([f["path"] for f in lock["file"]], ["a.md", "sub/b.py"])
         self.assertEqual([f["mode"] for f in lock["file"]], ["verbatim", "patched"])
         self.assertEqual((self.root / "sub" / "b.py").read_text(), "print(1)\n")
+        init_repo(self.root)
         self.assertEqual(run_main(["--check", "--root", str(self.root)]), (0, ""))
 
     def test_import_stops_when_an_upstream_file_has_no_mode(self):

@@ -22,6 +22,15 @@
         ]
       },
       {
+        "matcher": "wait_agent$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$PLUGIN_ROOT/hooks/guard-wait.py\""
+          }
+        ]
+      },
+      {
         "matcher": "*",
         "hooks": [
           {

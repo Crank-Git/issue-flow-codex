@@ -643,25 +643,50 @@ back in `notesForPM`.
 
 Codex sends no notification to an idle PM, so the PM fetches each verdict itself.
 Whenever the PM has no other step and a subagent is live, it calls `wait_agent` with
-`timeout_ms` set to `codex.waitMs` from `.issue-flow.json` (default 600000). The call
+`timeout_ms` set to `waitMs` from `.issue-flow.codex.json` (default 600000). The
+wait guard (`hooks/guard-wait.py`) sets that value when the call omits it or gives another
+value. The call
 returns `{message, timed_out}` and no content (codex-harness page). Read the result in
 this order:
 
-1. **`timed_out` is true** → run the Stage A0 sweep, then call `wait_agent` again.
-2. **The operator typed input** → handle the input, then call `wait_agent` again.
-3. **A subagent sent an update** → for each updated `task_name`, read its `FINAL_ANSWER`
+1. **`timed_out` is true** → go to step 2.
+2. **Sweep after every timeout, as your first action.** Run the Stage A0 sweep before you
+   do anything else, then call `wait_agent` again. A timeout is the only point at which an
+   idle PM can see a comment, a label change, or a merge that happened outside the run.
+   A PM that skips the sweep keeps waiting on a state that has already changed.
+3. **The operator typed input** → handle the input, then call `wait_agent` again.
+4. **A subagent sent an update** → for each updated `task_name`, read its `FINAL_ANSWER`
    message. Call `list_agents` to see the state of every worker.
    - **Two `FINAL_ANSWER` messages for one worker** → act on the latest.
    - **`list_agents` shows the worker as `errored`** → treat the outcome as `blocked`,
      with the error text as the `blocker`.
-4. **For an issue you have already gated or freed** → ignore the answer, whatever it
+5. **For an issue you have already gated or freed** → ignore the answer, whatever it
    carries. A late answer is not new work.
-5. **A `FINAL_ANSWER` with verdict JSON** → act on its `outcome` (C1 below, or the C2
+6. **A `FINAL_ANSWER` with verdict JSON** → act on its `outcome` (C1 below, or the C2
    step that spawned it).
-6. **A `FINAL_ANSWER` with no verdict JSON** (an error, a status line) → send one
+7. **A `FINAL_ANSWER` with no verdict JSON** (an error, a status line) → send one
    `followup_task` to the worker that asks for its verdict JSON, then call `wait_agent`.
    If the next answer still has none, treat the outcome as `blocked` with what the
    worker did say. Never hold the slot for an answer that nothing will send.
+
+### After a compaction
+
+Codex compacts the PM context during a long turn. Codex issues openai/codex #45343 and
+#47592 report delegated tasks lost or repeated after compaction, so the PM must
+reconcile before it builds anything twice. The preflight hook marks a compaction with the line
+`issue-flow: context compacted — reconcile before the next step`. When that line appears:
+
+1. Call `list_agents`, and read every open `worker launched:` comment, before the next
+   tracker write.
+2. Match each live subagent to an issue by its `task_name`: `worker_<n>`,
+   `worker_<n>_c<k>`, `ci_<pr>`, `deploy_<sha7>`, `locate_<n>_<k>`, or `crosscheck_<n>`.
+3. An issue that is `status:in-progress` with no live worker → follow the respawn path
+   in [references/collaboration.md](references/collaboration.md). Do not respawn by any
+   other route.
+4. A live worker with no matching issue state → send one `followup_task` that asks for
+   its verdict JSON.
+
+Then continue the loop.
 
 ### C1 — Sub-merge gate (on each worker verdict)
 
@@ -921,7 +946,7 @@ issues and batches from working memory** (fully recorded on the tracker); keep o
 session summary so context stays flat as the count grows. If context is compacted
 mid-loop, re-run Phase 0 recovery and continue.
 
-### Status reporting (three channels, low noise)
+### Status reporting (two channels, low noise)
 
 On every **milestone** — a batch merges, a deploy is verified or fails, the pipeline
 starves, or user input becomes gating — and otherwise at most every ~30 minutes of
@@ -942,10 +967,26 @@ activity:
    preserving everything outside the markers (re-read the body first — a human may have
    added notes). Don't spam comments; add one only for milestones worth a notification
    trail. Never touch another operator's status issue.
-3. **Push notification** for milestones only (batch merged, deploy verified/failed,
-   input needed, loop stopped): load `PushNotification` via
-   `ToolSearch` (`select:PushNotification`) and send a one-liner. If the tool isn't
-   available, skip silently — the other two channels carry it.
+   Add one line to the digest: `harness: codex <version>`. Take the version from
+   `codex --version`. An upstream PM that reads the digest ignores the line.
+
+The PM sends no push notification. The Codex CLI has no tool for it. The two channels
+above carry every milestone.
+
+### Compatibility with upstream 0.17.0
+
+The PM writes these in the upstream 0.17.0 format, so a PM in Claude Code reads them
+without a parse error:
+
+- Labels: `flow:status`, `status:ready`, `status:in-progress`, `status:in-review`,
+  `status:batched`, `status:needs-feedback`, `status:blocked` and the other `status:*` labels.
+- Comment markers: `<!-- issue-flow:begin @<me> -->`, `<!-- issue-flow:end @<me> -->` and
+  `<!-- issue-flow:convergence -->`.
+- Status issue titles: `issue-flow: session status — @<me>`.
+- Branch names: `issue/<n>-<slug>` and `epic/<n>-<slug>`.
+
+The Codex-only line `harness: codex <version>` and the Codex settings in
+`.issue-flow.codex.json` are the only additions.
 
 Between milestones, stay quiet. Never let reporting block scheduling.
 
@@ -1052,7 +1093,7 @@ business.
 - **CI runs once per batch.** Sub-issue PRs are drafts with `[skip ci]` into the integration branch; only batch PRs and urgent standalone PRs trigger provider CI. Never open a CI-running PR per sub-issue.
 - **Dependency chains share a batch.** Sequenced members of one integration branch — never a chain of stacked PRs into dev.
 - **One worktree per issue.** Different issues may touch the same files (separate worktrees, PM resolves conflicts at sub-merge); never two writers in one worktree on overlapping paths.
-- **Decisions and gates are the PM's.** Workers/Workflows are decision-free; one hitting a judgment call returns `needs-feedback`. Sub-merge, batch merge, ship-partial, conflict semantics, deploy-failure cause, and epic scope are PM decisions.
+- **Decisions and gates are the PM's.** Workers and subagents are decision-free; one hitting a judgment call returns `needs-feedback`. Sub-merge, batch merge, ship-partial, conflict semantics, deploy-failure cause, and epic scope are PM decisions.
 - **Anything needing human input is labeled `status:needs-feedback`** with a comment stating exactly what's needed — carried in every digest, never left to sit silently.
 - **Everything you author on the tracker is STE** (`references/ste.md`), written from the spec's `## Terms` vocabulary when the project has one. Evidence and other people's words are quoted verbatim, never reworded.
 - **External interfaces are read from their documentation, never assumed** (`references/external-apis.md`). This binds you as well as the workers: a plan, a verdict, or a deploy diagnosis that rests on an assumed AWS or third-party behaviour goes back — "it should support that" is not a source. Anything that creates, deletes or changes a cloud resource is confirmed with the user first.

@@ -89,7 +89,13 @@ class VerdictLoopTest(unittest.TestCase):
         text = verdict_section()
         self.assertIn("wait_agent", text)
         self.assertIn("FINAL_ANSWER", text)
-        self.assertIn("codex.waitMs", text)
+        self.assertIn("`waitMs` from `.issue-flow.codex.json`", text)
+        self.assertNotIn("codex.waitMs", text)
+
+    def test_the_sweep_after_a_timeout_is_its_own_first_action_step(self):
+        text = " ".join(verdict_section().split())
+        self.assertIn("2. **Sweep after every timeout, as your first action.** Run the Stage A0 sweep", text)
+        self.assertIn("`hooks/guard-wait.py`", text)
 
     def test_the_verdict_section_has_no_interim_notification_rule(self):
         text = verdict_section().lower()
@@ -404,3 +410,70 @@ class CiWatcherTextTest(unittest.TestCase):
                       "30 minutes", '"kind"'):
             with self.subTest(token=token):
                 self.assertIn(token, text)
+class AfterCompactionTest(unittest.TestCase):
+    def text(self):
+        return section("SKILL.md", "### After a compaction", "### C1")
+
+    def test_names_the_reconcile_line_and_the_tracker_comment(self):
+        text = self.text()
+        self.assertIn("list_agents", text)
+        self.assertIn("worker launched:", text)
+        self.assertIn("context compacted", text)
+
+    def test_links_the_respawn_path(self):
+        self.assertIn("references/collaboration.md", self.text())
+
+    def test_asks_a_live_worker_for_its_verdict(self):
+        self.assertIn("followup_task", self.text())
+def stage_e():
+    return section("SKILL.md", "## Stage E", "### Project review")
+
+
+def collaboration():
+    return (SKILL_DIR / "references" / "collaboration.md").read_text()
+
+
+class DigestAndCompatibilityTextTests(unittest.TestCase):
+    def test_stage_e_names_the_harness_line(self):
+        text = stage_e()
+        self.assertIn("harness: codex", text)
+        self.assertIn("codex --version", text)
+
+    def test_stage_e_has_no_push_notification(self):
+        text = stage_e()
+        for word in ("PushNotification", "ToolSearch"):
+            self.assertNotIn(word, text)
+
+    def test_stage_e_names_the_upstream_formats(self):
+        text = stage_e()
+        for word in ("0.17.0", "flow:status", "issue-flow: session status", "issue/<n>-<slug>"):
+            self.assertIn(word, text)
+
+    def test_hard_rules_say_subagents_not_workflows(self):
+        text = (SKILL_DIR / "SKILL.md").read_text()
+        self.assertNotIn("Workflows", text)
+
+    def test_collaboration_has_no_claude_messaging(self):
+        text = collaboration()
+        for word in ("SendMessage", "agentId", "worktree-agent-"):
+            self.assertNotIn(word, text)
+
+    def test_collaboration_routes_corrections_by_followup_task(self):
+        text = collaboration()
+        self.assertIn("followup_task", text)
+        self.assertIn("worker_<n>", text)
+        self.assertIn(".worktrees/<task_name>", text)
+
+    def test_collaboration_has_the_respawn_path(self):
+        text = " ".join(collaboration().split())
+        self.assertIn("worktree.py remove --project <dir> --task worker_<n>", text)
+
+    def test_collaboration_has_the_same_login_heading(self):
+        text = collaboration()
+        self.assertIn("\n## Same-login sessions\n", text)
+        self.assertIn("30 minutes", text)
+
+
+class NoAskUserQuestionTest(unittest.TestCase):
+    def test_the_pm_skill_names_no_ask_user_question_tool(self):
+        self.assertNotIn("AskUserQuestion", (SKILL_DIR / "SKILL.md").read_text())

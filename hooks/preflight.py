@@ -70,6 +70,7 @@ FETCH_TIMEOUT = 20
 FORGE_TIMEOUT = 10
 LIST_CAP = 10
 TIME_BUDGET = 40
+RECONCILE_LINE = "issue-flow: context compacted \u2014 reconcile before the next step"
 TRUNCATED_LINE = "issue-flow preflight: digest truncated (time budget)"
 
 # Monotonic deadline of the current digest, and whether a step was skipped for lack of time.
@@ -274,6 +275,9 @@ def ran_lines(source):
     lines = [f"issue-flow preflight: ran {plugin_version() or 'unknown'}"]
     if source:
         lines.append(f"issue-flow preflight: source={source}")
+    if source == "compact":
+        # The PM loses track of live workers when Codex compacts its context.
+        lines.append(RECONCILE_LINE)
     return lines
 
 

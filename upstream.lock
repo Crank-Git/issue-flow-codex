@@ -321,6 +321,12 @@ upstream_sha256 = ""
 notes = "Port-only file."
 
 [[file]]
+path = "hooks/guard-role.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: role guard (stub until #18)"
+
+[[file]]
 path = "hooks/guard-spawn.py"
 mode = "rewritten"
 upstream_sha256 = "4f505785d867897653f7ad3bbc261fe9489e9d9a7d331e9005910064a4b80b84"
@@ -609,6 +615,12 @@ upstream_sha256 = ""
 notes = "port-only: conformance suite (#10)"
 
 [[file]]
+path = "tests/fixtures/hooks/session_start.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: live SessionStart payload (#16)"
+
+[[file]]
 path = "tests/fixtures/conformance/plugin/hooks/hooks.json"
 mode = "new"
 upstream_sha256 = ""
@@ -715,12 +727,6 @@ path = "tests/test_mirror_filter.py"
 mode = "new"
 upstream_sha256 = ""
 notes = "from upstream scripts/test-mirror-filter.py"
-
-[[file]]
-path = "tests/test_peers.py"
-mode = "new"
-upstream_sha256 = ""
-notes = "from upstream scripts/test-peers.py"
 
 [[file]]
 path = "tests/test_preflight.py"

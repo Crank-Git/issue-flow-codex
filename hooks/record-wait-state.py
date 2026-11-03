@@ -5,7 +5,7 @@ import json
 import re
 import sys
 
-from wait_state import clear_pending, mark_listed, set_pending
+from wait_state import clear_pending, mark_listed, state_path
 
 
 ISSUE_LIST = re.compile(r"(?:^|(?:&&|[;|])\s*)(?:gh\s+issue\s+list|tea\s+issues)(?:\s|$)")
@@ -27,7 +27,9 @@ def record(payload):
         if not isinstance(response, dict) or not isinstance(response.get("timed_out"), bool):
             return
         if response["timed_out"]:
-            set_pending(session_id)
+            path = state_path(session_id)
+            if path is not None:
+                path.write_text('{"timed_out": true}\n')
         else:
             clear_pending(session_id)
         return

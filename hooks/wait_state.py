@@ -18,22 +18,6 @@ def state_path(session_id):
     return Path(data_root) / f"wait-timeout-{session_id}.json"
 
 
-def is_pending(session_id):
-    path = state_path(session_id)
-    if path is None:
-        return False
-    try:
-        return json.loads(path.read_text()).get("timed_out") is True
-    except (OSError, ValueError, AttributeError):
-        return False
-
-
-def set_pending(session_id):
-    path = state_path(session_id)
-    if path is not None:
-        path.write_text('{"timed_out": true}\n')
-
-
 def clear_pending(session_id):
     path = state_path(session_id)
     if path is not None:

@@ -19,7 +19,7 @@ import json
 import sys
 from pathlib import Path
 
-from wait_state import is_pending
+from wait_state import state_path
 
 DEFAULT_WAIT_MS = 600000
 
@@ -51,10 +51,17 @@ def decide(payload):
 def main():
     try:
         payload = json.load(sys.stdin)
+        path = state_path(payload.get("session_id")) if isinstance(payload, dict) else None
+        pending = False
+        if path is not None:
+            try:
+                pending = json.loads(path.read_text()).get("timed_out") is True
+            except (OSError, ValueError, AttributeError):
+                pending = False
         if (
             isinstance(payload, dict)
             and str(payload.get("tool_name", "")).endswith("wait_agent")
-            and is_pending(payload.get("session_id"))
+            and pending
         ):
             json.dump(
                 {

@@ -133,35 +133,6 @@ def issue_list():
     return json.loads(done.stdout)
 
 
-def restore_seed_issues():
-    """Give each seed issue its seed labels and body again.
-
-    `testbed-reset.py` reopens a closed seed issue but keeps its old labels and body. A second
-    run on the same repository then starts with `status:batched` labels and a stale batch
-    block in the epic body. Return the epic number.
-    """
-    seed = json.loads((ROOT / "testbed" / "seed" / "issues.json").read_text())
-    everything = json.loads(run(["gh", "issue", "list", "-R", BED_REPO, "--state", "all", "--limit", "100",
-                                 "--json", "number,title,state"]).stdout)
-    open_first = sorted(everything, key=lambda i: (i["state"] != "OPEN", i["number"]))
-    by_title = {}
-    for issue in open_first:
-        by_title.setdefault(issue["title"], issue["number"])
-    numbers = {item["title"]: by_title[item["title"]] for item in seed["issues"]}
-    checklist = "\n".join(f"- [ ] #{number} {title}" for title, number in numbers.items())
-    items = [(item, item["body"]) for item in seed["issues"]]
-    items.append((seed["epic"], seed["epic"]["body"].replace("{{checklist}}", checklist)))
-    for item, body in items:
-        number = by_title[item["title"]]
-        payload = json.dumps({"body": body, "labels": item["labels"], "state": "open"})
-        subprocess.run(["gh", "api", "-X", "PATCH", f"repos/{BED_REPO}/issues/{number}", "--input", "-"],
-                       input=payload, text=True, capture_output=True, check=True)
-    for issue in everything:
-        if issue["state"] == "OPEN" and issue["number"] not in by_title.values():
-            run(["gh", "issue", "close", str(issue["number"]), "-R", BED_REPO])
-    return by_title[seed["epic"]["title"]]
-
-
 def setup_bed(bed, plugin):
     run(["git", "clone", f"https://github.com/{BED_REPO}.git", str(bed)])
     # The thread count that setup writes comes from `concurrency`, so write the config first.
@@ -182,7 +153,6 @@ def cmd_setup(args):
     work, home, bed, out = paths(args.work)
     out.mkdir(parents=True, exist_ok=True)
     state = reset_bed()
-    restore_seed_issues()
     plugin = build_plugin_copy(work)
     build_home(home, bed, plugin)
     files = setup_bed(bed, plugin)

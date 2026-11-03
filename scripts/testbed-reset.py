@@ -224,8 +224,14 @@ def seed_issues(forge, bed, label_ids):
             issue = api(forge, "POST", f"/repos/{bed.repo}/issues",
                         {"title": item["title"], "body": body, "labels": labels})
             return issue["number"]
-        if issue["state"] != "open":
-            api(forge, "PATCH", f"/repos/{bed.repo}/issues/{issue['number']}", {"state": "open"})
+        fields = {"title": item["title"], "body": body, "state": "open"}
+        if forge == "github":
+            fields["labels"] = item["labels"]
+        api(forge, "PATCH", f"/repos/{bed.repo}/issues/{issue['number']}", fields)
+        if forge == "gitea":
+            labels = [label_ids[name] for name in item["labels"]]
+            api(forge, "PUT", f"/repos/{bed.repo}/issues/{issue['number']}/labels",
+                {"labels": labels})
         return issue["number"]
 
     for item in seed["issues"]:

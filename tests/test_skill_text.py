@@ -199,6 +199,12 @@ class ReworkAndTeardownTest(unittest.TestCase):
     def test_sub_merge_teardown_uses_worktree_remove(self):
         self.assertIn("worktree.py remove", section("SKILL.md", "  6. **Then the bookkeeping.**", "  **Standalone/hotfix"))
 
+    def test_sub_merge_deletes_and_verifies_the_remote_branch(self):
+        text = section("SKILL.md", "### C1 — Sub-merge gate", "### C2 — Batch gate")
+        self.assertIn("--delete-branch", text)
+        self.assertIn("forge.branch.delete", text)
+        self.assertIn("git ls-remote --heads <remote> issue/<n>-<slug>", text)
+
     def test_worktrees_reference_does_not_mention_peers_py(self):
         self.assertNotIn("peers.py", (SKILL_DIR / "references/worktrees.md").read_text())
 

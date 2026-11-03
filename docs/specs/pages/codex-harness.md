@@ -74,6 +74,8 @@ extends = ":workspace"
 enabled = true
 ```
 
+- **A worker cannot run nested `codex exec` probes.** In the first dogfood run (2026-11-03), a `gpt-6-luna` worker inside the `issue_flow` permission profile ran a nested `codex exec` probe. The PostToolUse payload capture worked, but macOS denied the nested sandbox's shell commands. Live Codex proofs therefore run from the gate harness (`tests/e2e/run_loop.py`) outside the worker sandbox.
+
 ## Facts from source, not yet measured
 
 - **No wake on idle.** When the PM's turn has ended, a subagent's result is only queued. A new PM turn starts only when `features.wake_on_agent_messages` is on, and that feature is under development. Source: `core/src/session/handlers.rs:89-99`, `features/src/lib.rs:1671-1675`. Port rule: the PM ends its turn only when the loop stops.

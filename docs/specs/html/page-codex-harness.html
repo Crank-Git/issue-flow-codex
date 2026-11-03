@@ -232,6 +232,10 @@ extends = ":workspace"
 
 [permissions.gitw.network]
 enabled = true</code></pre>
+<ul>
+<li><strong>A worker cannot run nested <code>codex exec</code> probes.</strong> In the first dogfood run (2026-11-03), a <code>gpt-6-luna</code> worker inside the <code>issue_flow</code> permission profile ran a nested <code>codex exec</code> probe. The PostToolUse payload capture worked, but macOS denied the nested sandbox's shell commands. Live Codex proofs therefore run from the gate harness (<code>tests/e2e/run_loop.py</code>) outside the worker sandbox.
+</li>
+</ul>
 <h2 id="codex-harness-facts-from-source-not-yet-measured">Facts from source, not yet measured</h2>
 <ul>
 <li><strong>No wake on idle.</strong> When the PM's turn has ended, a subagent's result is only queued. A new PM turn starts only when <code>features.wake_on_agent_messages</code> is on, and that feature is under development. Source: <code>core/src/session/handlers.rs:89-99</code>, <code>features/src/lib.rs:1671-1675</code>. Port rule: the PM ends its turn only when the loop stops.

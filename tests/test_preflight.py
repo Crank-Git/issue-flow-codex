@@ -15,6 +15,7 @@ import re
 import subprocess
 import sys
 import tempfile
+import types
 import unittest
 from pathlib import Path
 
@@ -198,6 +199,50 @@ class PreflightTest(unittest.TestCase):
         with open(os.path.join(self.project, ".issue-flow.json"), "w", encoding="utf-8") as handle:
             handle.write("{broken json")
         self.assertIn("issue-flow preflight", self.digest())
+
+
+class TimeBudgetTest(unittest.TestCase):
+    """Drives preflight.digest in-process with a fake subprocess runner and a fake clock."""
+
+    def setUp(self):
+        spec = importlib.util.spec_from_file_location("preflight_under_test", HOOK)
+        self.preflight = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(self.preflight)
+        base = tempfile.TemporaryDirectory()
+        self.addCleanup(base.cleanup)
+        self.root = base.name
+        write_config(self.root, {"version": 1, "forge": {"type": "github"}})
+        self.now = 0.0
+        self.calls = []
+        # The module object is private to this test, so patching its imports is safe.
+        self.preflight.time = types.SimpleNamespace(monotonic=lambda: self.now)
+        self.preflight.subprocess = types.SimpleNamespace(run=self.fake_run)
+
+    def fake_run(self, cmd, **kwargs):
+        self.calls.append(cmd)
+        out = ""
+        if cmd[:2] == ["git", "rev-parse"]:
+            out = self.root + "\n"
+        elif cmd[:2] == ["git", "remote"]:
+            out = "origin\n"
+        elif cmd[:2] == ["git", "fetch"]:
+            self.now += 41  # the fetch spends the whole budget
+        elif cmd[0] == "gh":
+            out = "[]"
+        return subprocess.CompletedProcess(cmd, 0, stdout=out, stderr="")
+
+    def digest(self):
+        return self.preflight.digest(self.root, "startup")
+
+    def test_emits_the_ran_line_when_the_time_budget_is_spent(self):
+        lines = self.digest().splitlines()
+        self.assertTrue(lines[0].startswith("issue-flow preflight: ran "))
+        self.assertEqual(lines[1], "issue-flow preflight: source=startup")
+        self.assertIn("issue-flow preflight: digest truncated (time budget)", lines)
+
+    def test_skips_forge_calls_after_the_time_budget_is_spent(self):
+        self.digest()
+        self.assertEqual([c for c in self.calls if c[0] == "gh"], [])
 
 
 class HooksFileTest(unittest.TestCase):

@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """SessionStart hook: hand the issue-flow PM its mechanical preflight for free.
 
-Wired by `issue-flow/hooks/hooks.json`. Phase 0 of the issue-flow skill opens with a
+Wired by `hooks/hooks.json`. Phase 0 of the issue-flow skill opens with a
 dozen steps, and several are pure bookkeeping — detect the remote, fetch it, list the
 live integration branches, list worktrees from an earlier session, compare the labels against the
 standard set, list what is parked. Re-deriving those with tool calls costs inference
@@ -23,6 +23,10 @@ Scope, deliberately narrow:
   are skipped — with a note saying so — when the CLI is absent, unauthenticated, or
   slow. Gitea sessions get the git-side digest and run their own `tea` queries in
   Phase 0.
+* **A 40 s time budget.** `hooks/hooks.json` kills the hook at 55 s, and the slowest
+  path takes about 75 s. Each subprocess timeout is the lesser of its own limit and the
+  time left. After the budget is spent, the hook skips the remaining fetch, forge, and
+  git steps and adds a truncation line. The `ran` and `source` lines still appear.
 * **Fail open.** Any error, timeout, or unexpected payload exits 0, silently or with
   whatever partial digest was gathered. A convenience hook must never be the reason a
   session cannot start.
@@ -36,6 +40,7 @@ import json
 import os
 import subprocess
 import sys
+import time
 
 # Keep in sync with the bootstrap block in
 # skills/issue-flow/references/labels.md — tests/test_preflight.py asserts this.
@@ -64,6 +69,16 @@ PARKED_LABELS = ("status:awaiting-review", "status:deploy-failed", "flow:status"
 FETCH_TIMEOUT = 20
 FORGE_TIMEOUT = 10
 LIST_CAP = 10
+TIME_BUDGET = 40
+TRUNCATED_LINE = "issue-flow preflight: digest truncated (time budget)"
+
+# Monotonic deadline of the current digest, and whether a step was skipped for lack of time.
+_deadline = None
+_truncated = False
+
+
+def budget_spent():
+    return _deadline is not None and time.monotonic() >= _deadline
 
 
 def off():
@@ -73,6 +88,13 @@ def off():
 
 def run(cmd, cwd, timeout=5):
     """Command stdout, or None on any failure — the hook never raises over a tool."""
+    global _truncated
+    if _deadline is not None:
+        left = _deadline - time.monotonic()
+        if left <= 0:
+            _truncated = True
+            return None
+        timeout = min(timeout, left)
     try:
         result = subprocess.run(
             cmd, cwd=cwd, capture_output=True, text=True, timeout=timeout
@@ -192,6 +214,8 @@ def gh_json(root, args):
 
 def forge_lines(root, config):
     """Best-effort tracker facts via gh. Returns display lines; says when skipped."""
+    if budget_spent():
+        return []
     forge_type = (config.get("forge") or {}).get("type", "github")
     if forge_type != "github":
         return [f"- forge queries: skipped (forge is {forge_type} — run them in Phase 0)"]
@@ -254,12 +278,14 @@ def ran_lines(source):
 
 
 def digest(cwd, source):
+    global _deadline, _truncated
+    _deadline, _truncated = time.monotonic() + TIME_BUDGET, False
     root = repo_root(cwd)
     config_path = os.path.join(root, ".issue-flow.json") if root else None
     if not config_path or not os.path.isfile(config_path):
         # A first run has no config yet. The `ran` line must still appear, or the PM
         # reads the silence as "hooks not trusted". No fetch and no forge call here.
-        return "\n".join(ran_lines(source))
+        return "\n".join(ran_lines(source) + ([TRUNCATED_LINE] if _truncated else []))
     try:
         with open(config_path, encoding="utf-8") as handle:
             config = json.load(handle)
@@ -309,6 +335,8 @@ def digest(cwd, source):
         )
     )
     lines.extend(forge_lines(root, config))
+    if _truncated or budget_spent():
+        lines.append(TRUNCATED_LINE)
     lines.append(
         "(read-only snapshot — verify anything surprising; the judgment steps of "
         "Phase 0 are still yours)"

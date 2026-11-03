@@ -378,7 +378,7 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li><strong>Writing standard.</strong> Every prose file follows the STE rules in <code>references/ste.md</code>, the same as upstream.
 </li>
-<li><strong>Errors.</strong> A script exits nonzero and writes one line to stderr on failure. A hook fails open, as upstream hooks do, except the spawn guard deny path.
+<li><strong>Errors.</strong> A script exits nonzero and writes one line to stderr on failure. A hook fails open, as upstream hooks do, except the deny paths of the spawn guard and the role guard.
 </li>
 <li><strong>Performance.</strong> The PM context stays flat: the PM delegates token-heavy reads to subagents, as upstream does. Auto-compaction is expected. Phase 0 recovery rebuilds state from the tracker.
 </li>

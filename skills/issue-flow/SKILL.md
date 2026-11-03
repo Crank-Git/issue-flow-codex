@@ -669,6 +669,25 @@ this order:
    If the next answer still has none, treat the outcome as `blocked` with what the
    worker did say. Never hold the slot for an answer that nothing will send.
 
+### After a compaction
+
+Codex compacts the PM context during a long turn. Codex issues openai/codex #45343 and
+#47592 report delegated tasks lost or repeated after compaction, so the PM must
+reconcile before it builds anything twice. The preflight hook marks a compaction with the line
+`issue-flow: context compacted — reconcile before the next step`. When that line appears:
+
+1. Call `list_agents`, and read every open `worker launched:` comment, before the next
+   tracker write.
+2. Match each live subagent to an issue by its `task_name`: `worker_<n>`,
+   `worker_<n>_c<k>`, `ci_<pr>`, `deploy_<sha7>`, `locate_<n>_<k>`, or `crosscheck_<n>`.
+3. An issue that is `status:in-progress` with no live worker → follow the respawn path
+   in [references/collaboration.md](references/collaboration.md). Do not respawn by any
+   other route.
+4. A live worker with no matching issue state → send one `followup_task` that asks for
+   its verdict JSON.
+
+Then continue the loop.
+
 ### C1 — Sub-merge gate (on each worker verdict)
 
 Triggered by a worker's `FINAL_ANSWER` with its verdict — read it as above. Act on its `outcome`:

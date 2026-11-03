@@ -841,3 +841,9 @@ path = "tests/test_worktree.py"
 mode = "new"
 upstream_sha256 = ""
 notes = "port-only: tests for scripts/worktree.py (#19)"
+
+[[file]]
+path = "tests/test_skill_text.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: section-scoped checks on the ported skill text (#21)"

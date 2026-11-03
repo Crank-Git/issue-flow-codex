@@ -181,17 +181,22 @@ def plugin_version():
         return None
 
 
-def version_line(config):
-    """Report plugin-version drift: the project's config remembers which plugin
-    version last ran it (`pluginVersion`, stamped by Phase 0 step 11)."""
+def version_line(root):
+    """Report drift from the version that the Codex config records."""
     current = plugin_version()
     if not current:
         return None
-    last = config.get("pluginVersion")
+    path = os.path.join(root, ".issue-flow.codex.json")
+    try:
+        with open(path, encoding="utf-8") as handle:
+            codex_config = json.load(handle)
+        last = codex_config.get("pluginVersion") if isinstance(codex_config, dict) else None
+    except (OSError, json.JSONDecodeError):
+        last = None
     if not isinstance(last, str) or not last:
         return (
             f"- plugin version: {current} (no pluginVersion recorded in "
-            ".issue-flow.json — first run, or a pre-tracking config; step 11 stamps it)"
+            ".issue-flow.codex.json — first run or a pre-tracking config)"
         )
     if last == current:
         return f"- plugin version: {current} (matches the last run)"
@@ -301,7 +306,7 @@ def digest(cwd, source):
     lines = ran_lines(source)
     lines.append("issue-flow preflight (mechanical facts, gathered by the SessionStart hook):")
 
-    drift = version_line(config)
+    drift = version_line(root)
     if drift:
         lines.append(drift)
 

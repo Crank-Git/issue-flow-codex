@@ -125,8 +125,37 @@ def merge_config(existing, block):
 def plan_files(project, plugin_root, with_default_permissions):
     """Return {relative path: new text} for each file that setup changes."""
     wanted = {}
+    codex_path = project / ".issue-flow.codex.json"
+    try:
+        codex = json.loads(codex_path.read_text(encoding="utf-8")) if codex_path.is_file() else {}
+    except json.JSONDecodeError as exc:
+        raise SetupError(f".issue-flow.codex.json is not valid JSON: {exc}") from exc
+    if not isinstance(codex, dict):
+        raise SetupError(".issue-flow.codex.json must contain an object")
+    for key in ("workerModel", "workerEffort", "helperModel"):
+        if key in codex and not isinstance(codex[key], str):
+            raise SetupError(f".issue-flow.codex.json: {key} must be a string")
     for role in sorted((plugin_root / "roles").glob("*.toml")):
-        wanted[f".codex/agents/{role.name}"] = role.read_text(encoding="utf-8")
+        text = role.read_text(encoding="utf-8")
+        updates = ({"model": codex.get("workerModel"),
+                    "model_reasoning_effort": codex.get("workerEffort")}
+                   if role.stem == "issue-worker" else
+                   {"model": codex["helperModel"]}
+                   if role.stem in ("code-auditor", "deploy-verifier", "review-scribe", "ux-explorer")
+                   and "helperModel" in codex else {})
+        lines = text.splitlines()
+        for key, value in updates.items():
+            if value is None:
+                continue
+            line = f"{key} = {json.dumps(value)}"
+            match = next((i for i, item in enumerate(lines) if item.startswith(f"{key} =")), None)
+            if match is None:
+                lines.append(line)
+            else:
+                lines[match] = line
+        if updates:
+            text = "\n".join(lines) + ("\n" if text.endswith("\n") or lines else "")
+        wanted[f".codex/agents/{role.name}"] = text
 
     config = project / ".codex" / "config.toml"
     existing = config.read_text(encoding="utf-8") if config.is_file() else ""
@@ -185,7 +214,16 @@ def check_report(project, plugin_root):
 
     wanted = sorted((plugin_root / "roles").glob("*.toml"))
     copies = [project / ".codex" / "agents" / r.name for r in wanted]
-    matching = sum(c.is_file() and c.read_bytes() == r.read_bytes() for r, c in zip(wanted, copies))
+    matching = 0
+    for source, copy in zip(wanted, copies):
+        if not copy.is_file():
+            continue
+        source_text = source.read_text(encoding="utf-8")
+        copy_text = copy.read_text(encoding="utf-8")
+        tomllib.loads(source_text)
+        tomllib.loads(copy_text)
+        key_line = re.compile(r"^(?:model|model_reasoning_effort)\s*=.*(?:\n|$)", re.M)
+        matching += key_line.sub("", source_text) == key_line.sub("", copy_text)
     absent = not all(c.is_file() for c in copies)
     rows.append(("roles", "missing" if absent else "ok" if matching == len(wanted) else "stale",
                  f"{matching} of {len(wanted)} match plugin {version}"))

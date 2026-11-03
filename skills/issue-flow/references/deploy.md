@@ -67,7 +67,7 @@ answer a prompt. If the sandbox refuses it, the watcher returns `state: "error"`
 
 Spawned by the PM at Stage D, after each merge to the deploy branch. Codex has no
 background shell that wakes the PM, and it ends any command at 300 seconds. So the wait is
-a subagent, the `ci_watcher` role (`agents/ci-watcher.md`), and the PM reads its verdict
+a subagent, the CI watcher role, and the PM reads its verdict
 with `wait_agent` (the same reasoning as the CI watch in
 [../../../references/forge.md](../../../references/forge.md)). Anchor it to **the head SHA
 of the deploy branch after the merge** — normally the merge commit, or the recovery commit
@@ -144,7 +144,7 @@ removes it when the fix deploys and verifies.
 | `timed-out` | A deployment was observed but never reached a terminal state in the budget. Re-query once (run the status command directly). Still not terminal → surface to the user with the job id/link — never assume success. Leave `status:deploying` in place. |
 | `superseded` | The branch's newest deployment is a different commit — ours was replaced before it was observed (typically a hotfix landing right behind the batch). Confirm the newer SHA contains ours (`git merge-base --is-ancestor $SHA <newestSha>`), then watch the **newest** SHA instead — its verdict covers both commits. If the newer SHA does *not* contain ours, the branch was force-moved: surface that to the user. Never push a recovery commit on this verdict. |
 | `no-deployment-observed` | Nothing deployed at all during the watch. First run the status command **once, directly**: a newer deployment now in flight means this is really `superseded` — follow that row, push nothing. Then re-run the merged-head token check (SKILL.md Stage C2 step 5): a suppressed head starts no deploy — push the clean recovery commit and watch the new SHA, **once**; a second `no-deployment-observed` on the recovery SHA is a wiring problem (webhook, platform config) — surface it, do not push again. Never a pass. |
-| `watch-error` | The status command itself failed — usually a permission refusal or an auth problem. Fix the cause (allow-list the exact command, re-authenticate) and relaunch the watch. Never a pass. |
+| `watch-error` | The status command itself failed — usually a permission refusal or an auth problem. Fix the cause (update the `issue_flow` permission profile, re-authenticate) and relaunch the watch. Never a pass. |
 
 **Classify the cause before routing a failure.** After a free-slot check with `list_agents`,
 delegate the log read to one `spawn_agent` call (`agent_type: "explorer"`, `fork_turns: "none"`);

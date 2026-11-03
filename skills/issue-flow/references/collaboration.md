@@ -23,10 +23,12 @@ Two sessions can run on the same forge login. Both then own the same status issu
 rule "a status issue that is not mine is a co-operator" does not separate them.
 
 If your own status issue holds a digest from the last 30 minutes that this session did not
-write, Phase 0 stops. Another session of the same login is probably live. Tell the operator
-the digest time and its `harness:` line. Ask the operator to confirm that the other session
-is gone. Do not write to the status issue, claim an issue, or spawn a worker before the
-operator confirms. After the confirmation, continue Phase 0 and adopt the block.
+write, another session of the same login is probably live. Add its confirmation as item 0
+of the run-configuration question. Include the digest time and its `harness:` line. Do not
+ask a separate question. Do not write to the status issue, claim an issue, or spawn a worker
+until the operator explicitly confirms that the other session is gone. An unanswered or
+deferred item 0 does not count as confirmation. After confirmation, continue Phase 0 and
+adopt the block.
 
 A digest older than 30 minutes does not stop Phase 0. Treat it as the record of an ended
 session and recover from it.

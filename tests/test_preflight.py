@@ -220,7 +220,7 @@ class HooksFileTest(unittest.TestCase):
         self.assertEqual(self.registrations()[("PreToolUse", "*")],
                          ['python3 "$PLUGIN_ROOT/hooks/guard-role.py"'])
 
-    def test_role_guard_stub_allows_a_call_with_no_output(self):
+    def test_role_guard_allows_a_call_with_no_agent_type(self):
         result = subprocess.run([sys.executable, str(GUARD_ROLE)], capture_output=True,
                                 text=True, input='{"tool_name": "Bash"}', timeout=30)
         self.assertEqual((result.returncode, result.stdout), (0, ""))

@@ -381,10 +381,22 @@ upstream_sha256 = ""
 notes = "Port-only file."
 
 [[file]]
+path = "scripts/ci_wait.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
 path = "scripts/conformance.py"
 mode = "new"
 upstream_sha256 = ""
 notes = "port-only: conformance suite (#10)"
+
+[[file]]
+path = "scripts/deploy_wait.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
 
 [[file]]
 path = "scripts/gitea-ci-watch.sh"
@@ -729,10 +741,22 @@ upstream_sha256 = ""
 notes = "Port-only file."
 
 [[file]]
+path = "tests/test_ci_wait.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
 path = "tests/test_conformance.py"
 mode = "new"
 upstream_sha256 = ""
 notes = "port-only: conformance suite (#10)"
+
+[[file]]
+path = "tests/test_deploy_wait.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
 
 [[file]]
 path = "tests/test_gitea_ci_watch.py"

@@ -967,3 +967,15 @@ path = "tests/test_post_tool_use_wait.py"
 mode = "new"
 upstream_sha256 = ""
 notes = "port-only: tests for PostToolUse wait state (#75)"
+
+[[file]]
+path = "tests/fixtures/hooks/gate75_pm_sequence.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: sanitized PM hook payloads from the #75 gate run (#75)"
+
+[[file]]
+path = "tests/test_wait_replay.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: replay the recorded PM hook sequence (#75)"

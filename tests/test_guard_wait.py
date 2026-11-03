@@ -112,6 +112,34 @@ class GuardWaitTest(unittest.TestCase):
         self.assertIn("tea issues", reason)
         self.assertIn("tea pulls", reason)
 
+    def pending_payload(self):
+        payload = self.payload(self.project('{"version": 1, "waitMs": 10000}'), 10000)
+        state = Path(self.data.name) / f"wait-timeout-{payload['session_id']}.json"
+        state.write_text('{"timed_out": true}')
+        return payload, state
+
+    def test_allows_the_third_wait_after_two_denials_and_names_the_missed_sweep(self):
+        payload, state = self.pending_payload()
+        for _ in range(2):
+            output = self.run_hook(payload)
+            self.assertEqual(output["hookSpecificOutput"]["permissionDecision"], "deny")
+        output = self.run_hook(payload)
+        self.assertNotIn("deny", json.dumps(output))
+        self.assertIn("forge.issue.list.since", output["systemMessage"])
+        self.assertFalse(state.exists())
+        self.assertIsNone(self.run_hook(payload))
+
+    def test_never_denies_a_subagent_wait(self):
+        payload, state = self.pending_payload()
+        payload["agent_id"] = "00000000-0000-7000-8000-0000000000a1"
+        self.assertIsNone(self.run_hook(payload))
+        self.assertTrue(state.exists())
+
+    def test_creates_no_state_when_the_plugin_data_directory_is_missing(self):
+        payload, _ = self.pending_payload()
+        self.data.cleanup()
+        self.assertIsNone(self.run_hook(payload))
+
 
 if __name__ == "__main__":
     unittest.main()

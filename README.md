@@ -1,3 +1,25 @@
+# issue-flow for Codex
+
+This repository is the Codex port of `issue-flow`. Upstream is the Claude Code plugin
+`issue-flow` by sniper7kills (Sniper7Kills LLC). It is released under the MIT license.
+The upstream source is at <https://github.com/Sniper7Kills-LLC/claude-plugins>.
+
+The port runs the same autonomous issue loop as a native Codex CLI plugin. It tracks
+upstream tag `issue-flow--v0.17.0`. `upstream.lock` records the port mode of each file.
+
+Current state: the spec is approved. Epic 0 (foundation) is in progress. The port does
+not run on Codex yet.
+
+The license is in `LICENSE`. It keeps the upstream copyright line and adds a line for
+the port.
+
+---
+
+The text below is the upstream documentation. It describes the Claude Code plugin.
+Where it differs from this port, `docs/specs/` is correct.
+
+---
+
 # issue-flow
 
 A Claude Code plugin. It drives an autonomous development loop from tracker issues:

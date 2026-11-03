@@ -913,3 +913,9 @@ path = "roles/ci-watcher.toml"
 mode = "new"
 upstream_sha256 = ""
 notes = "Port-only file. Built from `agents/ci-watcher.md` by `scripts/build_roles.py`."
+
+[[file]]
+path = "docs/e2e/2026-11-03-epic-3.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: Epic 3 batch-gate end-to-end report (#4)"

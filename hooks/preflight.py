@@ -25,8 +25,7 @@ Scope, deliberately narrow:
   whatever partial digest was gathered. A convenience hook must never be the reason a
   session cannot start.
 
-`ISSUE_FLOW_PREFLIGHT=off` disables it (set in `.claude/settings.json` `env`, like the
-spawn guard's switch — the environment is read at session start).
+`ISSUE_FLOW_PREFLIGHT=off` disables it. Codex reads the environment at session start.
 """
 
 import json
@@ -35,7 +34,7 @@ import subprocess
 import sys
 
 # Keep in sync with the bootstrap block in
-# skills/issue-flow/references/labels.md — scripts/test-preflight.py asserts this.
+# skills/issue-flow/references/labels.md — tests/test_preflight.py asserts this.
 STANDARD_LABELS = (
     "status:ready",
     "status:in-progress",
@@ -242,7 +241,7 @@ def forge_lines(root, config):
     return lines
 
 
-def digest(cwd):
+def digest(cwd, source):
     root = repo_root(cwd)
     if not root:
         return None
@@ -257,7 +256,11 @@ def digest(cwd):
     except Exception:
         config = {}
 
-    lines = ["issue-flow preflight (mechanical facts, gathered by the SessionStart hook):"]
+    # The PM looks for the `ran` line to learn that the hook ran (FR-plugin-packaging-26).
+    lines = [f"issue-flow preflight: ran {plugin_version() or 'unknown'}"]
+    if source:
+        lines.append(f"issue-flow preflight: source={source}")
+    lines.append("issue-flow preflight (mechanical facts, gathered by the SessionStart hook):")
 
     drift = version_line(config)
     if drift:
@@ -312,8 +315,12 @@ def main():
             payload = json.load(sys.stdin)
         except Exception:
             payload = {}
-        cwd = payload.get("cwd") if isinstance(payload, dict) else None
-        context = digest(cwd or os.getcwd())
+        if not isinstance(payload, dict):
+            payload = {}
+        source = payload.get("source")
+        context = digest(
+            payload.get("cwd") or os.getcwd(), source if isinstance(source, str) else None
+        )
     except Exception:  # fail open — see the module docstring
         return
     if not context:

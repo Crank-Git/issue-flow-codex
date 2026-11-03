@@ -23,6 +23,9 @@ LABELS_MD = ROOT / "skills" / "issue-flow" / "references" / "labels.md"
 # The Codex manifest path.
 MANIFEST = ROOT / ".codex-plugin" / "plugin.json"
 PAYLOAD = {"hook_event_name": "SessionStart", "source": "startup"}
+FIXTURE = ROOT / "tests" / "fixtures" / "hooks" / "session_start.json"
+HOOKS_JSON = ROOT / "hooks" / "hooks.json"
+GUARD_ROLE = ROOT / "hooks" / "guard-role.py"
 
 
 def git(repo, *args):
@@ -140,8 +143,28 @@ class PreflightTest(unittest.TestCase):
         # "leftover" tells the PM to remove a tree that Phase 0 may keep.
         self.assertNotIn("leftover worktrees", digest)
 
-    def test_still_produces_a_digest_for_malformed_stdin(self):
-        self.assertIsNotNone(self.run_hook("{not json", self.project))
+    def test_output_starts_with_the_ran_line_and_the_plugin_version(self):
+        installed = json.loads(MANIFEST.read_text(encoding="utf-8"))["version"]
+        first = self.digest().splitlines()[0]
+        self.assertEqual(first, f"issue-flow preflight: ran {installed}")
+
+    def test_adds_the_source_line_for_compact(self):
+        out = self.run_hook(dict(PAYLOAD, source="compact", cwd=self.project), self.project)
+        self.assertIn("issue-flow preflight: source=compact", out.splitlines())
+
+    def test_adds_the_source_line_for_the_recorded_live_payload(self):
+        recorded = json.loads(FIXTURE.read_text(encoding="utf-8"))
+        self.assertEqual(recorded["hook_event_name"], "SessionStart")
+        out = self.run_hook(dict(recorded, cwd=self.project), self.project)
+        self.assertIn(f"issue-flow preflight: source={recorded['source']}", out.splitlines())
+
+    def test_omits_the_source_line_when_the_payload_has_no_source(self):
+        out = self.run_hook({"cwd": self.project}, self.project)
+        self.assertNotIn("source=", out)
+
+    def test_allows_and_exits_0_on_a_payload_of_not_json(self):
+        out = self.run_hook("{not json", self.project)
+        self.assertTrue(out.startswith("issue-flow preflight: ran "))
 
     def test_stays_silent_for_malformed_stdin_outside_a_project(self):
         self.assertIsNone(self.run_hook("", self.not_a_repo()))
@@ -150,6 +173,32 @@ class PreflightTest(unittest.TestCase):
         with open(os.path.join(self.project, ".issue-flow.json"), "w", encoding="utf-8") as handle:
             handle.write("{broken json")
         self.assertIn("issue-flow preflight", self.digest())
+
+
+class HooksFileTest(unittest.TestCase):
+    def registrations(self):
+        hooks = json.loads(HOOKS_JSON.read_text(encoding="utf-8"))["hooks"]
+        return {
+            (event, entry.get("matcher")): [h["command"] for h in entry["hooks"]]
+            for event, entries in hooks.items() for entry in entries
+        }
+
+    def test_registers_the_preflight_hook_on_session_start(self):
+        self.assertEqual(self.registrations()[("SessionStart", None)],
+                         ['python3 "$PLUGIN_ROOT/hooks/preflight.py"'])
+
+    def test_registers_the_spawn_guard_on_spawn_agent(self):
+        self.assertEqual(self.registrations()[("PreToolUse", "spawn_agent$")],
+                         ['python3 "$PLUGIN_ROOT/hooks/guard-spawn.py"'])
+
+    def test_registers_the_role_guard_on_every_tool(self):
+        self.assertEqual(self.registrations()[("PreToolUse", "*")],
+                         ['python3 "$PLUGIN_ROOT/hooks/guard-role.py"'])
+
+    def test_role_guard_stub_allows_a_call_with_no_output(self):
+        result = subprocess.run([sys.executable, str(GUARD_ROLE)], capture_output=True,
+                                text=True, input='{"tool_name": "Bash"}', timeout=30)
+        self.assertEqual((result.returncode, result.stdout), (0, ""))
 
 
 class LabelSyncTest(unittest.TestCase):

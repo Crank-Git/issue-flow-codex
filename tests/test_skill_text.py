@@ -89,7 +89,13 @@ class VerdictLoopTest(unittest.TestCase):
         text = verdict_section()
         self.assertIn("wait_agent", text)
         self.assertIn("FINAL_ANSWER", text)
-        self.assertIn("codex.waitMs", text)
+        self.assertIn("`waitMs` from `.issue-flow.codex.json`", text)
+        self.assertNotIn("codex.waitMs", text)
+
+    def test_the_sweep_after_a_timeout_is_its_own_first_action_step(self):
+        text = " ".join(verdict_section().split())
+        self.assertIn("2. **Sweep after every timeout, as your first action.** Run the Stage A0 sweep", text)
+        self.assertIn("`hooks/guard-wait.py`", text)
 
     def test_the_verdict_section_has_no_interim_notification_rule(self):
         text = verdict_section().lower()
@@ -383,3 +389,8 @@ class DigestAndCompatibilityTextTests(unittest.TestCase):
         text = collaboration()
         self.assertIn("\n## Same-login sessions\n", text)
         self.assertIn("30 minutes", text)
+
+
+class NoAskUserQuestionTest(unittest.TestCase):
+    def test_the_pm_skill_names_no_ask_user_question_tool(self):
+        self.assertNotIn("AskUserQuestion", (SKILL_DIR / "SKILL.md").read_text())

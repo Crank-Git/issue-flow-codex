@@ -56,6 +56,7 @@ Evidence tags:
 11. **`codex exec` has no `-a` flag**, and it waits for stdin unless stdin is closed. Use `-c approval_policy="never"` and `</dev/null`.
 12. **A root TOML key after a table header fails.** `default_permissions` placed after `[permissions.gitw]` gave: "config defines `[permissions]` profiles but does not set `default_permissions`".
 13. **The spawn message is encrypted in the hook payload.** PreToolUse for a V2 spawn had `tool_input` keys `task_name`, `fork_turns`, and `message`, plus `agent_type` only when the model set a role. `message` was a token that starts `gAAAAA`, also when the model sent a plain multi-line text. The session rollout file holds the same token. Evidence: two `gpt-6-luna` runs, codex-cli 0.166.0, 2026-11-03; payload in `tests/fixtures/hooks/pre_tool_use_spawn.json`.
+14. **`updatedInput` from a PreToolUse hook changes a `wait_agent` call.** PreToolUse got `tool_name: "collaborationwait_agent"` and `tool_input: {"timeout_ms": 10000}`. The hook answered `permissionDecision: "allow"` with `updatedInput: {"timeout_ms": 40000}`. A subagent that ran `sleep 20` finished inside that one wait: the call returned `timed_out: false` about 22 s after it started, and the model's recorded arguments still read 10000. Evidence: one `gpt-6-luna` run, codex-cli 0.166.0, 2026-11-03, isolated `CODEX_HOME`; payload in `tests/fixtures/hooks/pre_tool_use_wait.json`.
 
 The profile used in facts 8 and 9:
 

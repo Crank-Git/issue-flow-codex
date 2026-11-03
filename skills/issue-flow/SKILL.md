@@ -643,22 +643,28 @@ back in `notesForPM`.
 
 Codex sends no notification to an idle PM, so the PM fetches each verdict itself.
 Whenever the PM has no other step and a subagent is live, it calls `wait_agent` with
-`timeout_ms` set to `codex.waitMs` from `.issue-flow.json` (default 600000). The call
+`timeout_ms` set to `waitMs` from `.issue-flow.codex.json` (default 600000). The
+wait guard (`hooks/guard-wait.py`) sets that value when the call omits it or gives another
+value. The call
 returns `{message, timed_out}` and no content (codex-harness page). Read the result in
 this order:
 
-1. **`timed_out` is true** → run the Stage A0 sweep, then call `wait_agent` again.
-2. **The operator typed input** → handle the input, then call `wait_agent` again.
-3. **A subagent sent an update** → for each updated `task_name`, read its `FINAL_ANSWER`
+1. **`timed_out` is true** → go to step 2.
+2. **Sweep after every timeout, as your first action.** Run the Stage A0 sweep before you
+   do anything else, then call `wait_agent` again. A timeout is the only point at which an
+   idle PM can see a comment, a label change, or a merge that happened outside the run.
+   A PM that skips the sweep keeps waiting on a state that has already changed.
+3. **The operator typed input** → handle the input, then call `wait_agent` again.
+4. **A subagent sent an update** → for each updated `task_name`, read its `FINAL_ANSWER`
    message. Call `list_agents` to see the state of every worker.
    - **Two `FINAL_ANSWER` messages for one worker** → act on the latest.
    - **`list_agents` shows the worker as `errored`** → treat the outcome as `blocked`,
      with the error text as the `blocker`.
-4. **For an issue you have already gated or freed** → ignore the answer, whatever it
+5. **For an issue you have already gated or freed** → ignore the answer, whatever it
    carries. A late answer is not new work.
-5. **A `FINAL_ANSWER` with verdict JSON** → act on its `outcome` (C1 below, or the C2
+6. **A `FINAL_ANSWER` with verdict JSON** → act on its `outcome` (C1 below, or the C2
    step that spawned it).
-6. **A `FINAL_ANSWER` with no verdict JSON** (an error, a status line) → send one
+7. **A `FINAL_ANSWER` with no verdict JSON** (an error, a status line) → send one
    `followup_task` to the worker that asks for its verdict JSON, then call `wait_agent`.
    If the next answer still has none, treat the outcome as `blocked` with what the
    worker did say. Never hold the slot for an answer that nothing will send.

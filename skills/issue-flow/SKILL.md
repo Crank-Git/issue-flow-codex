@@ -278,10 +278,11 @@ dependency.
    before its first launch — Stage B step 4b), **`reviewWipLimit`** (soft cap on batches
    parked `status:awaiting-review` before the PM stops forming new ones — Stage B step
    1), `review.when` (when to offer a `/project-review`), `practices`
-   (TDD, DDD, E2E expectations, coverage, commit style, docs), the **`deploy`** block
-   step 6 detected, and the Codex-only **`codex`** block (`pmModel`, `workerModel`,
-   `workerEffort`, `helperModel`, `waitMs`). The message shows the models and the
-   concurrency. A file that has no `codex` block gets only the Codex questions. Write the
+   (TDD, DDD, E2E expectations, coverage, commit style, docs), and the **`deploy`** block
+   step 6 detected. The Codex-only settings (`pmModel`, `workerModel`, `workerEffort`,
+   `helperModel`, `waitMs`) live in `.issue-flow.codex.json`; read and write that file
+   for those five keys. The message shows the models and the concurrency. A project with
+   no `.issue-flow.codex.json` gets only the Codex questions. Write the
    answers back to `.issue-flow.json` (a gitignored `.issue-flow.local.json` overrides it
    per operator, so concurrent sessions don't fight over the committed file — write the
    local file when step 10 found a co-operator, the committed file otherwise, and say

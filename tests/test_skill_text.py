@@ -246,15 +246,21 @@ class RunConfigurationTextTest(unittest.TestCase):
             with self.subTest(key=key):
                 self.assertRegex(text, rf"`{key}`[^\n]*`{re.escape(default)}`")
 
+    def test_session_config_names_the_codex_settings_file(self):
+        text = (SKILL_DIR / "references" / "session-config.md").read_text()
+        self.assertIn("`.issue-flow.codex.json`", text)
+        self.assertNotIn("nested `codex` block", text)
+        self.assertNotIn("codex.waitMs", text)
+
     def test_run_configuration_step_uses_one_plain_text_message(self):
         text = " ".join(section("SKILL.md", "11. **Run configuration", "   **You create worker").split())
         self.assertIn("numbered options", text)
         self.assertIn("end your turn", text)
-        self.assertIn("codex", text)
+        self.assertIn(".issue-flow.codex.json", text)
 
     def test_upstream_file_without_codex_block_gets_only_codex_questions(self):
         text = " ".join((SKILL_DIR / "references" / "session-config.md").read_text().split())
-        self.assertIn("no `codex` block", text)
+        self.assertIn("no `.issue-flow.codex.json`", text)
         self.assertIn("only the Codex questions", text)
 
 

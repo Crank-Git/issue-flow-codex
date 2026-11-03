@@ -115,7 +115,7 @@ the first digest, and asks only when detection is ambiguous. The mechanics are i
 
 Ask in **one plain-text message**, then end your turn. The operator's reply continues
 Phase 0. Number every item. Mark each saved value with `*`. List the options of an item
-on its line. Show the models (`codex.pmModel`, `codex.workerModel`, `codex.helperModel`)
+on its line. Show the models (`pmModel`, `workerModel`, `helperModel`)
 and the `concurrency` in the message. The reply format is "ok" to accept all, or
 "<number>: <value>" for each change.
 
@@ -126,8 +126,8 @@ issue-flow run configuration (saved answers marked *)
 2. batchSize           * 4
 3. runLength           * 25 issues
 ...
-11. codex.workerModel  * gpt-6.1-sol, effort medium
-12. codex.helperModel  * gpt-6-luna
+11. workerModel        * gpt-6.1-sol, effort medium
+12. helperModel        * gpt-6-luna
 
 Reply "ok" to accept all, or "<number>: <value>" for each change.
 ```
@@ -135,9 +135,9 @@ Reply "ok" to accept all, or "<number>: <value>" for each change.
 If a reply holds an invalid value, repeat the question for that item only. An item the
 operator leaves unanswered keeps its saved or default value. State it in the digest.
 
-The items fall in three groups, shown in order below. A file that an upstream PM wrote has
-no `codex` block. For that file, ask the upstream items as usual and ask only the Codex
-questions for the `codex` block.
+The items fall in three groups, shown in order below. A project that an upstream PM
+configured has no `.issue-flow.codex.json`. For that project, ask the upstream items as
+usual and ask only the Codex questions for the Codex file.
 
 ### Group 1 — how this run should behave
 
@@ -160,19 +160,21 @@ questions for the `codex` block.
 Group 2 is skippable when a saved config exists **and** the operator accepts the saved
 defaults of group 1. Offer "keep saved build practices" as item 1 of group 2.
 
-### Group 3 — Codex settings (the `codex` block)
+### Group 3 — Codex settings (`.issue-flow.codex.json`)
 
 | Question | Field | Options |
 |---|---|---|
-| Which model runs the PM? | `codex.pmModel` | `gpt-6.1-sol` (default) or another model name |
-| Which model and effort run workers? | `codex.workerModel`, `codex.workerEffort` | `gpt-6.1-sol` with `medium` (default) |
-| Which model runs helpers? | `codex.helperModel` | `gpt-6-luna` (default) |
-| How long does one wait call last? | `codex.waitMs` | `600000` (default) |
+| Which model runs the PM? | `pmModel` | `gpt-6.1-sol` (default) or another model name |
+| Which model and effort run workers? | `workerModel`, `workerEffort` | `gpt-6.1-sol` with `medium` (default) |
+| Which model runs helpers? | `helperModel` | `gpt-6-luna` (default) |
+| How long does one wait call last? | `waitMs` | `600000` (default) |
 
-## codex — Codex-only settings
+## Codex-only settings — `.issue-flow.codex.json`
 
-The `codex` block sits in `.issue-flow.json` beside the upstream keys. An upstream PM
-does not read it. Keep every key you do not know when you rewrite the file.
+The Codex-only settings live in `.issue-flow.codex.json` at the repo root. The file is
+committed and team-shared, like `.issue-flow.json`. It is separate because an upstream PM
+rewrites `.issue-flow.json` and has no rule to keep an unknown key. `.issue-flow.json`
+keeps only upstream keys, in the upstream format.
 
 | Key | Default | Meaning |
 |---|---|---|
@@ -183,11 +185,13 @@ does not read it. Keep every key you do not know when you rewrite the file.
 | `waitMs` | `600000` | The longest time in milliseconds that one `wait_agent` call blocks. |
 
 ```json
-"codex": { "pmModel": "gpt-6.1-sol", "workerModel": "gpt-6.1-sol", "workerEffort": "medium",
-           "helperModel": "gpt-6-luna", "waitMs": 600000 }
+{ "version": 1, "pmModel": "gpt-6.1-sol", "workerModel": "gpt-6.1-sol", "workerEffort": "medium",
+  "helperModel": "gpt-6-luna", "waitMs": 600000 }
 ```
 
-A missing key takes its default. A missing block takes all five defaults.
+The keys are flat. There is no nested `codex` object.
+
+A missing key takes its default. A missing file takes all five defaults.
 
 ## prAuthority — the merge gate
 

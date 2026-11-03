@@ -1,0 +1,24 @@
+{
+  "code_auditor": {
+    "tools": ["^apply_patch$", "^mcp__playwright__.*"],
+    "bash_prefixes": ["git commit", "git push", "gh issue", "gh pr", "tea"]
+  },
+  "review_scribe": {
+    "tools": ["^mcp__playwright__.*"],
+    "bash_prefixes": ["git push --force", "gh pr merge", "tea pr merge"]
+  },
+  "deploy_verifier": {
+    "tools": ["^apply_patch$"],
+    "bash_prefixes": ["git commit", "git push"]
+  },
+  "ux_explorer": {
+    "patch_only_under": ".worktrees/review/",
+    "bash_prefixes": ["git"]
+  },
+  "ci_watcher": {
+    "tools": ["^apply_patch$", "spawn_agent$"]
+  },
+  "issue_worker": {
+    "spawn_roles": ["issue_worker"]
+  }
+}

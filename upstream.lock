@@ -324,7 +324,7 @@ notes = "Port-only file."
 path = "hooks/guard-role.py"
 mode = "new"
 upstream_sha256 = ""
-notes = "port-only: role guard (stub until #18)"
+notes = "port-only: role guard (#18)"
 
 [[file]]
 path = "hooks/guard-spawn.py"
@@ -787,3 +787,27 @@ path = "tests/test_verify_claim.py"
 mode = "new"
 upstream_sha256 = ""
 notes = "from upstream scripts/test-verify-claim.py"
+
+[[file]]
+path = "hooks/role-policy.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: role policy (#18)"
+
+[[file]]
+path = "tests/test_guard_role.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: role guard tests (#18)"
+
+[[file]]
+path = "tests/fixtures/hooks/pre_tool_use_bash.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: live subagent PreToolUse Bash payload (#18)"
+
+[[file]]
+path = "tests/fixtures/hooks/pre_tool_use_apply_patch.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: live subagent PreToolUse apply_patch payload (#18)"

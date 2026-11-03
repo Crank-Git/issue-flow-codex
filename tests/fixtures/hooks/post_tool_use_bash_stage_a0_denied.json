@@ -1,0 +1,10 @@
+{
+  "session_id": "01a1a37d-ddd6-7e11-897e-81197733200e",
+  "cwd": "/tmp/probe-project",
+  "hook_event_name": "PostToolUse",
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "gh issue list --state all --search \"updated:>=2026-11-03T22:18:17Z\" && gh pr list --state open --search \"updated:>=2026-11-03T22:18:17Z\""
+  },
+  "tool_response": "sandbox-exec: sandbox_apply: Operation not permitted\n"
+}

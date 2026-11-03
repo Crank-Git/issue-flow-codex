@@ -19,6 +19,8 @@ import json
 import sys
 from pathlib import Path
 
+from wait_state import is_pending
+
 DEFAULT_WAIT_MS = 600000
 
 
@@ -49,6 +51,26 @@ def decide(payload):
 def main():
     try:
         payload = json.load(sys.stdin)
+        if (
+            isinstance(payload, dict)
+            and str(payload.get("tool_name", "")).endswith("wait_agent")
+            and is_pending(payload.get("session_id"))
+        ):
+            json.dump(
+                {
+                    "hookSpecificOutput": {
+                        "hookEventName": "PreToolUse",
+                        "permissionDecision": "deny",
+                        "permissionDecisionReason": (
+                            "Run forge.issue.list.since and forge.pr.list.since before the next "
+                            "wait_agent call. Use gh issue list and gh pr list, or tea issues "
+                            "and tea pulls."
+                        ),
+                    }
+                },
+                sys.stdout,
+            )
+            return
         corrected = decide(payload) if isinstance(payload, dict) else None
     except Exception:  # fail open, see the module docstring
         return

@@ -1,9 +1,10 @@
 """Tests for hooks/preflight.py. Ported from upstream scripts/test-preflight.py.
 
 Runs the hook as a subprocess fed a SessionStart payload on stdin, against throwaway git
-repositories. Three properties matter: the hook is silent everywhere except a repository
-that carries `.issue-flow.json`, its digest reports the facts Phase 0 would otherwise
-re-derive, and it fails open on anything it does not understand. Forge queries run only
+repositories. Three properties matter: the hook prints the `ran` line in every session and
+the digest only in a repository that carries `.issue-flow.json`, the digest reports the
+facts Phase 0 would otherwise re-derive, and the hook fails open on anything it does not
+understand. Forge queries run only
 through their skip path, so the suite passes offline and unauthenticated.
 """
 
@@ -23,6 +24,9 @@ LABELS_MD = ROOT / "skills" / "issue-flow" / "references" / "labels.md"
 # The Codex manifest path.
 MANIFEST = ROOT / ".codex-plugin" / "plugin.json"
 PAYLOAD = {"hook_event_name": "SessionStart", "source": "startup"}
+FIXTURE = ROOT / "tests" / "fixtures" / "hooks" / "session_start.json"
+HOOKS_JSON = ROOT / "hooks" / "hooks.json"
+GUARD_ROLE = ROOT / "hooks" / "guard-role.py"
 
 
 def git(repo, *args):
@@ -88,14 +92,37 @@ class PreflightTest(unittest.TestCase):
         os.makedirs(path)
         return path
 
-    def test_stays_silent_in_a_repository_without_an_issue_flow_config(self):
+    def installed(self):
+        return json.loads(MANIFEST.read_text(encoding="utf-8"))["version"]
+
+    def test_prints_the_ran_line_in_a_project_without_an_issue_flow_config(self):
         plain = os.path.join(self.base, "plain")
         subprocess.run(["git", "init", "-q", "-b", "main", plain], check=True)
-        self.assertIsNone(self.run_hook(dict(PAYLOAD, cwd=plain), plain))
+        out = self.run_hook(dict(PAYLOAD, cwd=plain), plain)
+        self.assertEqual(out.splitlines(), [
+            f"issue-flow preflight: ran {self.installed()}",
+            "issue-flow preflight: source=startup"])
 
-    def test_stays_silent_in_a_directory_that_is_not_a_repository(self):
+    def test_prints_the_ran_line_in_a_directory_that_is_not_a_repository(self):
         not_repo = self.not_a_repo()
-        self.assertIsNone(self.run_hook(dict(PAYLOAD, cwd=not_repo), not_repo))
+        out = self.run_hook(dict(PAYLOAD, cwd=not_repo), not_repo)
+        self.assertEqual(out.splitlines()[0], f"issue-flow preflight: ran {self.installed()}")
+
+    def test_makes_no_fetch_or_forge_call_without_an_issue_flow_config(self):
+        plain = os.path.join(self.base, "plain")
+        subprocess.run(["git", "init", "-q", "-b", "main", plain], check=True)
+        log = os.path.join(self.base, "calls.log")
+        fakes = os.path.join(self.base, "fakes")
+        os.makedirs(fakes)
+        for tool in ("git", "gh", "tea"):
+            fake = os.path.join(fakes, tool)
+            with open(fake, "w", encoding="utf-8") as handle:
+                handle.write(f'#!/bin/sh\necho "{tool} $*" >> "{log}"\n')
+            os.chmod(fake, 0o755)
+        path = fakes + os.pathsep + os.environ["PATH"]
+        self.run_hook(dict(PAYLOAD, cwd=plain), plain, env={"PATH": path})
+        calls = Path(log).read_text(encoding="utf-8") if os.path.exists(log) else ""
+        self.assertNotRegex(calls, r"fetch|^gh |^tea ")
 
     def test_stays_silent_when_the_kill_switch_is_off(self):
         out = self.run_hook(dict(PAYLOAD, cwd=self.project), self.project,
@@ -140,16 +167,63 @@ class PreflightTest(unittest.TestCase):
         # "leftover" tells the PM to remove a tree that Phase 0 may keep.
         self.assertNotIn("leftover worktrees", digest)
 
-    def test_still_produces_a_digest_for_malformed_stdin(self):
-        self.assertIsNotNone(self.run_hook("{not json", self.project))
+    def test_output_starts_with_the_ran_line_and_the_plugin_version(self):
+        installed = json.loads(MANIFEST.read_text(encoding="utf-8"))["version"]
+        first = self.digest().splitlines()[0]
+        self.assertEqual(first, f"issue-flow preflight: ran {installed}")
 
-    def test_stays_silent_for_malformed_stdin_outside_a_project(self):
-        self.assertIsNone(self.run_hook("", self.not_a_repo()))
+    def test_adds_the_source_line_for_compact(self):
+        out = self.run_hook(dict(PAYLOAD, source="compact", cwd=self.project), self.project)
+        self.assertIn("issue-flow preflight: source=compact", out.splitlines())
+
+    def test_adds_the_source_line_for_the_recorded_live_payload(self):
+        recorded = json.loads(FIXTURE.read_text(encoding="utf-8"))
+        self.assertEqual(recorded["hook_event_name"], "SessionStart")
+        out = self.run_hook(dict(recorded, cwd=self.project), self.project)
+        self.assertIn(f"issue-flow preflight: source={recorded['source']}", out.splitlines())
+
+    def test_omits_the_source_line_when_the_payload_has_no_source(self):
+        out = self.run_hook({"cwd": self.project}, self.project)
+        self.assertNotIn("source=", out)
+
+    def test_allows_and_exits_0_on_a_payload_of_not_json(self):
+        out = self.run_hook("{not json", self.project)
+        self.assertTrue(out.startswith("issue-flow preflight: ran "))
+
+    def test_prints_only_the_ran_line_for_malformed_stdin_outside_a_project(self):
+        out = self.run_hook("", self.not_a_repo())
+        self.assertEqual(out, f"issue-flow preflight: ran {self.installed()}")
 
     def test_keeps_the_git_side_digest_when_the_config_is_unreadable(self):
         with open(os.path.join(self.project, ".issue-flow.json"), "w", encoding="utf-8") as handle:
             handle.write("{broken json")
         self.assertIn("issue-flow preflight", self.digest())
+
+
+class HooksFileTest(unittest.TestCase):
+    def registrations(self):
+        hooks = json.loads(HOOKS_JSON.read_text(encoding="utf-8"))["hooks"]
+        return {
+            (event, entry.get("matcher")): [h["command"] for h in entry["hooks"]]
+            for event, entries in hooks.items() for entry in entries
+        }
+
+    def test_registers_the_preflight_hook_on_session_start(self):
+        self.assertEqual(self.registrations()[("SessionStart", None)],
+                         ['python3 "$PLUGIN_ROOT/hooks/preflight.py"'])
+
+    def test_registers_the_spawn_guard_on_spawn_agent(self):
+        self.assertEqual(self.registrations()[("PreToolUse", "spawn_agent$")],
+                         ['python3 "$PLUGIN_ROOT/hooks/guard-spawn.py"'])
+
+    def test_registers_the_role_guard_on_every_tool(self):
+        self.assertEqual(self.registrations()[("PreToolUse", "*")],
+                         ['python3 "$PLUGIN_ROOT/hooks/guard-role.py"'])
+
+    def test_role_guard_stub_allows_a_call_with_no_output(self):
+        result = subprocess.run([sys.executable, str(GUARD_ROLE)], capture_output=True,
+                                text=True, input='{"tool_name": "Bash"}', timeout=30)
+        self.assertEqual((result.returncode, result.stdout), (0, ""))
 
 
 class LabelSyncTest(unittest.TestCase):

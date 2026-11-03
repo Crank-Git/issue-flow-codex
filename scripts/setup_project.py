@@ -139,9 +139,10 @@ def plan_files(project, plugin_root, with_default_permissions):
         text = role.read_text(encoding="utf-8")
         updates = ({"model": codex.get("workerModel"),
                     "model_reasoning_effort": codex.get("workerEffort")}
-                   if role.stem == "issue_worker" else
+                   if role.stem == "issue-worker" else
                    {"model": codex["helperModel"]}
-                   if role.stem not in ("ci_watcher",) and "helperModel" in codex else {})
+                   if role.stem in ("code-auditor", "deploy-verifier", "review-scribe", "ux-explorer")
+                   and "helperModel" in codex else {})
         lines = text.splitlines()
         for key, value in updates.items():
             if value is None:

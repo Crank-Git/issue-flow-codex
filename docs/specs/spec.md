@@ -225,7 +225,7 @@ erDiagram
 | SKILL | `name`, `description`, path | `description` is required by Codex. | Ported per Feature 01-06. |
 | HOOK | event, matcher, command | Matcher syntax per Codex. | Needs hook trust after each plugin update. |
 | ROLE_FILE | `name`, `description`, `model`, `model_reasoning_effort`, `developer_instructions` | Codex ignores `sandbox_mode`, `approval_policy` and `mcp_servers` in a role file. | Copied by the setup skill. |
-| RUN_CONFIG | `.issue-flow.json`, upstream schema plus the `codex` block (Feature 03) | Upstream keys keep upstream meaning. | Written at the run configuration step. |
+| RUN_CONFIG | `.issue-flow.json`, upstream schema only. The Codex-only settings sit in `.issue-flow.codex.json` (Feature 03) | Upstream keys keep upstream meaning. | Written at the run configuration step. |
 | CODEX_CONFIG | the block between `# issue-flow:begin` and `# issue-flow:end` in `.codex/config.toml` | The setup skill changes only this block. | Written by the setup skill. |
 | PM_SESSION | thread id, operator login | One PM per operator login per tracker. | Ends when the loop stops. |
 | SUBAGENT | `task_name`, role, `agent_status` | `task_name` uses lowercase letters, digits, and underscores. | `pending_init` → `running` → `completed` or `errored`. |

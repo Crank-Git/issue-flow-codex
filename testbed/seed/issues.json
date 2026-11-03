@@ -1,0 +1,34 @@
+{
+  "epic": {
+    "title": "Extend the greeting service",
+    "labels": ["type:epic"],
+    "body": "## Summary\n\nGrow the greeting service from one route to a small, tested API.\n\n## Sub-issues\n\n{{checklist}}\n\n## Acceptance criteria\n\n- [ ] Every sub-issue is closed.\n- [ ] `python3 -m unittest discover -s tests` passes on `main`.\n"
+  },
+  "issues": [
+    {
+      "title": "Add a /version endpoint",
+      "labels": ["status:ready"],
+      "body": "## Summary\n\nAdd `GET /version` to `app.py`. It returns the service version.\n\n## Acceptance criteria\n\n- [ ] `GET /version` answers 200 with `{\"version\": \"0.1.0\"}`.\n- [ ] A test covers the route.\n"
+    },
+    {
+      "title": "Reject an empty name at /hello/",
+      "labels": ["status:ready"],
+      "body": "## Summary\n\n`GET /hello/` greets an empty name today. It must answer an error instead.\n\n## Acceptance criteria\n\n- [ ] `GET /hello/` answers 400 with `{\"error\": \"name required\"}`.\n- [ ] A test covers the case.\n"
+    },
+    {
+      "title": "Read the port from a --port option",
+      "labels": ["status:ready"],
+      "body": "## Summary\n\nThe service always listens on port 8000. Let the operator choose the port.\n\n## Acceptance criteria\n\n- [ ] `python3 app.py --port 9000` listens on port 9000.\n- [ ] Without the option, the service listens on port 8000.\n- [ ] A test covers the option parser.\n"
+    },
+    {
+      "title": "Log each request on one line",
+      "labels": ["status:ready"],
+      "body": "## Summary\n\nWrite one line to stderr for each request: the method, the path, and the status.\n\n## Acceptance criteria\n\n- [ ] A request to `/health` writes `GET /health 200` to stderr.\n- [ ] A test covers the log line.\n"
+    },
+    {
+      "title": "Document the routes in the README",
+      "labels": ["status:ready"],
+      "body": "## Summary\n\nThe README names no route. List each route with an example reply.\n\n## Acceptance criteria\n\n- [ ] `README.md` has a `Routes` section.\n- [ ] The section lists every route that `app.py` serves.\n"
+    }
+  ]
+}

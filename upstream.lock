@@ -105,6 +105,12 @@ upstream_sha256 = "00b9347c1176636844cfe3eccd1c1348dc1b7cce41d819e51682f7741445d
 notes = "Docstring paths."
 
 [[file]]
+path = "scripts/testbed-reset.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only. Returns a test bed to seed state."
+
+[[file]]
 path = "scripts/verify_ci_ran.py"
 mode = "patched"
 upstream_sha256 = "aa09bf566281ce025c5fd8e4613f7917159be3885240591ff917d30a8b6adaae"
@@ -241,3 +247,51 @@ path = "skills/spec-update/SKILL.md"
 mode = "patched"
 upstream_sha256 = "2e1259e8059fe0c7de32ca9c75be97a48e62e45f263af55fed5cacaca0ac986c"
 notes = "Plain-text questions; paths."
+
+[[file]]
+path = "testbed/seed/.gitea/workflows/ci.yml"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only. Seed content of the test beds."
+
+[[file]]
+path = "testbed/seed/.github/workflows/ci.yml"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only. Seed content of the test beds."
+
+[[file]]
+path = "testbed/seed/.gitignore"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only. Seed content of the test beds."
+
+[[file]]
+path = "testbed/seed/README.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only. Seed content of the test beds."
+
+[[file]]
+path = "testbed/seed/app.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only. Seed content of the test beds."
+
+[[file]]
+path = "testbed/seed/issues.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only. Seed content of the test beds."
+
+[[file]]
+path = "testbed/seed/tests/test_app.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only. Seed content of the test beds."
+
+[[file]]
+path = "tests/test_testbed_reset.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only. Tests the reset script with faked forge calls."

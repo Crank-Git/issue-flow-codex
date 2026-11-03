@@ -25,7 +25,7 @@ sub-merges. When the PM has no other step, it calls `wait_agent` (`SKILL.md`, th
 verdict section, owns the rules).
 
 The worker is an **independent engineer** on `gpt-6.1-sol`: it may research (web), use the
-MCP servers that the session configures (there is no `ToolSearch`), and spawn its own subagents when a thread slot is free — all
+MCP servers that the session configures, and spawn its own subagents when a thread slot is free — all
 **confined to that issue's worktree** and its own scratch directory,
 and all finished before it returns its verdict. The PM sets none of this;
 it lives in the worker's agent definition. A worker may also **file new untriaged issues**
@@ -82,7 +82,7 @@ pluginRoot:   <absolute path of the plugin directory: two levels above this skil
 
 `pluginRoot` is not optional either. A worker is not told where its own definition lives,
 and Codex gives a role no plugin root, so every `../references/…` link in its runbook — forge operations, the writing standard,
-the finding policy — and the Gitea CI-watch script (`scripts/gitea-ci-watch.sh`) are
+the finding policy — and the CI watcher script are
 reachable only through it. The PM knows the path: Codex shows the absolute path of
 `SKILL.md` when the skill loads.
 

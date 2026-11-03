@@ -507,7 +507,7 @@ changes from run to run.
 | `practices` | TDD · DDD · E2E expectations · coverage · commit style · docs | from the spec, else off |
 | `deploy` | how Stage D watches deployments (`actions` · `command` · `none`) and the URLs | detected in preflight |
 | `docsMcp` | which documentation MCP servers and marketplaces the PM offered, you installed, or you declined, and whether a restart is still pending | set in preflight |
-| `pluginVersion` | which plugin release last ran this project — the preflight hook flags drift after an upgrade, and the PM re-asks any config question the older file never saw | stamped in preflight |
+| `pluginVersion` | the upstream release that last ran this project; Codex stores its own release in `.issue-flow.codex.json` | upstream PM writes it |
 
 `prAuthority` is the most important setting:
 

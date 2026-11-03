@@ -264,6 +264,19 @@ class RunConfigurationTextTest(unittest.TestCase):
         self.assertIn("end your turn", text)
         self.assertIn(".issue-flow.codex.json", text)
 
+    def test_same_login_confirmation_is_item_zero_in_the_run_configuration_question(self):
+        text = " ".join(section("SKILL.md", "11. **Run configuration", "   **You create worker").split())
+        self.assertIn("same-login", text)
+        self.assertIn("item 0", text)
+        self.assertIn("One reply", text)
+        self.assertIn("unanswered or deferred", text)
+        self.assertIn("does not count as confirmation", text)
+
+    def test_run_configuration_keeps_the_upstream_version_stamp_unchanged(self):
+        text = " ".join(section("SKILL.md", "11. **Run configuration", "   **You create worker").split())
+        self.assertIn("Record the installed Codex version as `pluginVersion` in `.issue-flow.codex.json` whenever you write that file", text)
+        self.assertIn("Leave `.issue-flow.json`'s `pluginVersion` unchanged", text)
+
     def test_upstream_file_without_codex_block_gets_only_codex_questions(self):
         text = " ".join((SKILL_DIR / "references" / "session-config.md").read_text().split())
         self.assertIn("no `.issue-flow.codex.json`", text)
@@ -320,6 +333,15 @@ class PhaseZeroTest(unittest.TestCase):
 
     def test_links_the_same_login_rule(self):
         self.assertIn("references/collaboration.md#same-login-sessions", phase_0())
+
+    def test_same_login_rule_holds_all_writes_until_explicit_confirmation(self):
+        text = " ".join((SKILL_DIR / "references" / "collaboration.md").read_text().split())
+        same_login = text.split("## Same-login sessions", 1)[1].split("## 2 —", 1)[0]
+        self.assertIn("last 30 minutes", same_login)
+        self.assertIn("run-configuration question", same_login)
+        self.assertIn("explicitly confirm", same_login)
+        self.assertIn("unanswered or deferred", same_login)
+        self.assertIn("Do not write to the status issue, claim an issue, or spawn a worker", same_login)
 
     def test_has_no_claude_only_tools(self):
         text = phase_0()
@@ -501,3 +523,19 @@ class BatchGateFixTextTest(unittest.TestCase):
         for path in (SKILL_DIR / "references/session-config.md",
                      SKILL_DIR.parent.parent / "references/external-apis.md"):
             self.assertNotIn("claude mcp", path.read_text(), path.name)
+
+class RemainingClaudeMechanicsTest(unittest.TestCase):
+    def test_loop_references_do_not_direct_the_pm_to_claude_tools(self):
+        root = Path(__file__).resolve().parent.parent
+        files = [*root.joinpath("skills/issue-flow").rglob("*.md"),
+                 *root.joinpath("references").rglob("*.md")]
+        forbidden = re.compile(
+            r"WebFetch|ToolSearch|AskUserQuestion|\.claude/settings\.json|"
+            r"claude mcp|isolation\s*:\s*[\"']worktree[\"']|(?<!gitea-)ci-watch",
+            re.IGNORECASE,
+        )
+        matches = [(path.relative_to(root), line.strip())
+                   for path in files
+                   for line in path.read_text().splitlines()
+                   if forbidden.search(line)]
+        self.assertEqual([], matches)

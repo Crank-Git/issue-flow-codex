@@ -78,20 +78,21 @@ defaults below and say so. Never crash the session over config.
 
 ## pluginVersion — upgrade detection
 
-Two versions live in this file and they answer different questions. `version` is the
-**config schema** (a newer one than you know → defaults, as above). `pluginVersion` is
-the **plugin release that last ran this project**, stamped by Phase 0 step 11 every
-time the config is written. The preflight hook compares it against the installed
-plugin's manifest and puts any drift in the session's first digest.
+The shared file has two version fields. `version` is the **config schema** (a newer
+one than you know → defaults, as above). The shared
+`.issue-flow.json` `pluginVersion` records the upstream release that last ran this
+project. The Codex release is stored in `.issue-flow.codex.json` `pluginVersion`.
+The Codex preflight hook reads only the Codex file for version drift.
+Phase 0 records the installed Codex version whenever it writes that file.
 
-On drift, the config was written by an older plugin, so its silence is not consent:
-a field the saved file lacks may be a question that did not exist yet. During the
+On Codex version drift, the Codex config was written by an older plugin. Its silence
+is not consent. A field the saved file lacks may be a question that did not exist yet. During the
 step 11 confirm message, ask about every option the current tables define that the file
-has no value for — never default one silently — then stamp the current version. When
-the field is absent entirely (a pre-tracking config), treat it the same way. The
-committed file carries the stamp; a `.issue-flow.local.json` override session leaves
-the committed `pluginVersion` alone and notes the drift for the config's owner in the
-digest instead.
+has no value for — never default one silently — then stamp the current version in
+`.issue-flow.codex.json`. When the field is absent entirely, treat it the same way.
+Always leave `.issue-flow.json` `pluginVersion` unchanged during a Codex run. A
+`.issue-flow.local.json` override session also leaves the upstream version stamp alone
+and notes the drift for the config's owner in the digest.
 
 Version drift can also mean the **spec package** predates the current format (missing
 diagrams, hand-written `spec.html`, no quality rules). That is not config business:
@@ -178,6 +179,7 @@ keeps only upstream keys, in the upstream format.
 
 | Key | Default | Meaning |
 |---|---|---|
+| `pluginVersion` | installed Codex release | The Codex release that last wrote this file. |
 | `pmModel` | `gpt-6.1-sol` | The model the PM session runs on. |
 | `workerModel` | `gpt-6.1-sol` | The model each issue-worker runs on. |
 | `workerEffort` | `medium` | The reasoning effort of each issue-worker. |
@@ -185,7 +187,7 @@ keeps only upstream keys, in the upstream format.
 | `waitMs` | `600000` | The longest time in milliseconds that one `wait_agent` call blocks. |
 
 ```json
-{ "version": 1, "pmModel": "gpt-6.1-sol", "workerModel": "gpt-6.1-sol", "workerEffort": "medium",
+{ "version": 1, "pluginVersion": "0.1.0", "pmModel": "gpt-6.1-sol", "workerModel": "gpt-6.1-sol", "workerEffort": "medium",
   "helperModel": "gpt-6-luna", "waitMs": 600000 }
 ```
 
@@ -315,8 +317,8 @@ architecture choice, and this block is where the project's wiring is recorded
   runs), `command` (a project-supplied status command), or `none` (Stage D skipped).
 - `statusCmd` — `mode: command` only: a one-shot command printing
   `<state> <jobId> <sha>` with `state` normalized to
-  `pending | running | succeeded | failed | rolled-back`. Must be in the committed
-  allow-list.
+  `pending | running | succeeded | failed | rolled-back`. It must work under the
+  `issue_flow` permission profile.
 - `startCmd` — optional: how to start a deploy by hand when the branch is
   push-protected.
 - `workflow` — `mode: actions` only: the deploy workflow file name.
@@ -333,15 +335,15 @@ servers the PM offered, which the user installed, and whether they declined.
   more only when the project gains a dependency on a service none of the installed
   servers cover.
 - `installed` and `marketplacesAdded` are notes, not guarantees — always confirm with
-  `codex mcp list` at startup rather than trusting the file. Codex has no command that lists
-  marketplaces, so `marketplacesAdded` stays a note.
+  `codex mcp list` and `codex plugin marketplace list` at startup rather than trusting the
+  file. `marketplacesAdded` is a note; the command output shows what is configured now.
 - `restartPending: true` means something was installed in a previous session and had not
   appeared yet. At startup, re-check whether it is live now: it is → clear the flag and
-  say the server is available; it is not → tell the user once and keep the `WebFetch`
+  say the server is available; it is not → tell the user once and keep the direct vendor documentation
   fallback. Never block the loop on it.
 - This setting never changes what workers must do: the interface still comes from the
   vendor's documentation ([external-apis.md](../../../references/external-apis.md)). A
-  doc MCP server makes that lookup fast and reliable; `WebFetch` makes it slow. Neither
+  doc MCP server makes that lookup fast and reliable; direct vendor documentation makes it slow. Neither
   makes assuming acceptable.
 
 ## review.when

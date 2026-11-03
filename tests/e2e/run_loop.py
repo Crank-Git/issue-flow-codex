@@ -51,7 +51,8 @@ CONFIG = {
 }
 
 # The Codex-only settings live in their own file with flat keys (FR-loop-operations-11, 12).
-CODEX_CONFIG = {"version": 1, "pmModel": PM_MODEL, "workerModel": WORKER_MODEL, "workerEffort": "low",
+CODEX_CONFIG = {"version": 1, "pluginVersion": "0.1.0", "pmModel": PM_MODEL,
+                "workerModel": WORKER_MODEL, "workerEffort": "low",
                 "helperModel": WORKER_MODEL, "waitMs": WAIT_MS}
 
 MAIN_PROMPT = """\

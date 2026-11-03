@@ -18,8 +18,8 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 import setup_project  # noqa: E402
 
-ROLE_NAMES = ["code_auditor", "deploy_verifier", "issue_worker",
-              "review_scribe", "ux_explorer", "ci_watcher"]
+ROLE_NAMES = ["code-auditor", "deploy-verifier", "issue-worker",
+              "review-scribe", "ux-explorer", "ci-watcher"]
 
 
 class SetupProjectTest(unittest.TestCase):
@@ -32,7 +32,10 @@ class SetupProjectTest(unittest.TestCase):
         self.plugin = base / "plugin"
         (self.plugin / "roles").mkdir(parents=True)
         for name in ROLE_NAMES:
+            role_name = name.replace("-", "_")
             (self.plugin / "roles" / f"{name}.toml").write_text(
+                f'name = "{role_name}"\nmodel = "plugin-model"\n'
+                f'model_reasoning_effort = "medium"\n'
                 f'developer_instructions = "{name}"\n', encoding="utf-8")
         (self.plugin / ".codex-plugin").mkdir()
         (self.plugin / ".codex-plugin" / "plugin.json").write_text(
@@ -114,7 +117,48 @@ class SetupProjectTest(unittest.TestCase):
         self.apply()
         for name in ROLE_NAMES:
             self.assertEqual((self.project / ".codex" / "agents" / f"{name}.toml").read_text(encoding="utf-8"),
+                             f'name = "{name.replace("-", "_")}"\nmodel = "plugin-model"\n'
+                             f'model_reasoning_effort = "medium"\n'
                              f'developer_instructions = "{name}"\n')
+
+    def test_applies_configured_worker_model_and_effort_to_worker_role(self):
+        (self.project / ".issue-flow.codex.json").write_text(
+            json.dumps({"workerModel": "gpt-6-luna", "workerEffort": "low",
+                        "helperModel": "gpt-6.1-sol"}), encoding="utf-8")
+        self.apply()
+        role = tomllib.loads((self.project / ".codex" / "agents" / "issue-worker.toml").read_text())
+        self.assertEqual(role["model"], "gpt-6-luna")
+        self.assertEqual(role["model_reasoning_effort"], "low")
+        watcher = tomllib.loads((self.project / ".codex" / "agents" / "ci-watcher.toml").read_text())
+        self.assertEqual(watcher["model"], "plugin-model")
+        self.assertEqual(watcher["model_reasoning_effort"], "medium")
+        helper = tomllib.loads((self.project / ".codex" / "agents" / "code-auditor.toml").read_text())
+        self.assertEqual(helper["model"], "gpt-6.1-sol")
+        self.apply("--with-default-permissions")
+        code, text = self.run_check()
+        self.assertEqual(code, 0)
+        self.assertIn("roles        ok", text)
+
+    def test_applies_helper_model_only_to_helper_roles(self):
+        (self.project / ".issue-flow.codex.json").write_text(
+            json.dumps({"helperModel": "gpt-6.1-sol"}), encoding="utf-8")
+        self.apply()
+        for name in ("code-auditor", "deploy-verifier", "review-scribe", "ux-explorer"):
+            role = tomllib.loads((self.project / ".codex" / "agents" / f"{name}.toml").read_text())
+            self.assertEqual(role["model"], "gpt-6.1-sol")
+        for name in ("issue-worker", "ci-watcher"):
+            role = tomllib.loads((self.project / ".codex" / "agents" / f"{name}.toml").read_text())
+            self.assertEqual(role["model"], "plugin-model")
+
+    def test_applies_only_the_config_file_after_concurrency_changes(self):
+        self.apply("--with-default-permissions")
+        (self.project / ".issue-flow.json").write_text(json.dumps({"concurrency": 5}), encoding="utf-8")
+        files = setup_project.plan_files(self.project, self.plugin, None)
+        written = setup_project.apply_files(self.project, files, [".codex/config.toml"])
+        self.assertEqual(written, [".codex/config.toml"])
+        code, text = self.run_check()
+        self.assertEqual(code, 0)
+        self.assertIn("threads      ok       max_concurrent_threads_per_session = 9", text)
 
     def test_adds_worktrees_to_gitignore_once(self):
         (self.project / ".gitignore").write_text("node_modules", encoding="utf-8")
@@ -209,7 +253,7 @@ class SetupProjectTest(unittest.TestCase):
 
     def test_check_reports_stale_after_one_byte_changes_in_a_role_file(self):
         self.apply("--with-default-permissions")
-        role = self.project / ".codex" / "agents" / "issue_worker.toml"
+        role = self.project / ".codex" / "agents" / "issue-worker.toml"
         role.write_bytes(role.read_bytes() + b" ")
         code, text = self.run_check()
         self.assertEqual(code, 1)

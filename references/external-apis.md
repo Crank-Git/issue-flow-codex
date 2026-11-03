@@ -56,7 +56,8 @@ or user gives a known source. Follow these constraints:
 
 - **Only offer what you actually found**, or what `codex mcp list` shows is already
   connected. Offer a marketplace only from a **concrete source** — one the user supplied, or one
-  named in the repository (README, `AGENTS.md`, the spec, `.codex/config.toml`). For MCP,
+  named in the repository (README, `AGENTS.md`, the spec, `.codex/config.toml`, or
+  `CLAUDE.md` in a dual-harness project). For MCP,
   verify its URL or launch command in that source. Never invent a source, plugin name,
   server name, or install command.
 - **The user runs the command, or explicitly approves it.** Adding a marketplace or

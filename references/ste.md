@@ -25,6 +25,7 @@ reads two ways gets built two ways.
 | `docs/specs/spec.md` and every `docs/specs/features/*.md` | project-planner |
 | `docs/specs/spec.html` prose | project-planner |
 | `AGENTS.md`, `docs/rules/*.md`, `skills/*/SKILL.md` | project-planner |
+| `CLAUDE.md`, `.claude/rules/*.md`, `.claude/skills/*/SKILL.md` in a dual-harness project | project-planner |
 | Every tracker issue title and body (epic, sub-issue, hotfix, spec-update, review finding) | spec-to-issues, issue-flow PM, project-review PM |
 | Issue comments that state a decision, a plan, or a question | issue-flow PM |
 | Spec `## Changelog` lines | issue-flow PM |

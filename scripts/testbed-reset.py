@@ -1,14 +1,18 @@
 #!/usr/bin/env python3
-"""Return a test bed repository to its seed state.
+"""Return a test bed repository to its seed state. A second run changes nothing.
 
-`--forge github|gitea` picks one of the two test beds. The script creates the
-repository when it is missing, force-pushes the seed commit to `main` and `dev`,
-deletes every other branch, closes every open pull request, closes every issue
-outside the seed set, creates the missing labels, and opens the seed issues.
-A second run changes nothing. The last stdout line is one JSON object that
-describes the resulting state.
+`--forge github|gitea` picks one of the two test beds. The script does these steps:
 
-The script touches only the two repositories named in `BEDS`.
+1. Create the repository when it is missing.
+2. Force-push the seed commit to `main` and `dev`.
+3. Delete every other branch.
+4. Close every open pull request.
+5. Close every issue outside the seed set.
+6. Create the missing labels.
+7. Open the seed issues.
+
+The last stdout line is one JSON object that describes the resulting state.
+The script exits 1 before any remote call when a repository name does not end in `-testbed`.
 """
 
 import argparse
@@ -32,11 +36,17 @@ KEPT_BRANCHES = ("main", "dev")
 PAGE_SIZE = 50
 
 Bed = namedtuple("Bed", "repo url")
-BEDS = {
-    "github": Bed("Crank-Git/issue-flow-codex-testbed",
-                  "https://github.com/Crank-Git/issue-flow-codex-testbed.git"),
-    "gitea": Bed(GITEA_REPO, f"{GITEA_SERVER}/{GITEA_REPO}.git"),
-}
+
+
+def build_beds():
+    github = os.environ.get("ISSUE_FLOW_TESTBED_GITHUB", "Crank-Git/issue-flow-codex-testbed")
+    return {
+        "github": Bed(github, f"https://github.com/{github}.git"),
+        "gitea": Bed(GITEA_REPO, f"{GITEA_SERVER}/{GITEA_REPO}.git"),
+    }
+
+
+BEDS = build_beds()
 
 # One bootstrap line of labels.md: `gh label create "<name>" --color <hex> --description "<text>"`.
 LABEL_LINE = re.compile(r'gh label create "([^"]+)"\s+--color ([0-9A-Fa-f]{6}) --description "([^"]*)"')
@@ -156,7 +166,8 @@ def ensure_labels(forge, bed):
     """Create the labels of labels.md that the repository lacks. Return {name: id}."""
     wanted = LABEL_LINE.findall(LABELS.read_text(encoding="utf-8"))
     present = {label["name"] for label in get_all(forge, f"/repos/{bed.repo}/labels")}
-    # Gitea wants a leading # on the color; GitHub rejects it.
+    # Gitea requires a leading # on the color.
+    # GitHub rejects a leading #.
     prefix = "#" if forge == "gitea" else ""
     for name, color, description in wanted:
         if name not in present:
@@ -197,7 +208,8 @@ def seed_issues(forge, bed, label_ids):
             api(forge, "PATCH", f"/repos/{bed.repo}/issues/{issue['number']}", {"state": "closed"})
         elif issue["state"] == "open":
             kept.add(issue["title"])
-    # The last write wins: an open issue beats a closed one, and the oldest open issue beats a newer one.
+    # Sort so that an open issue wins over a closed one.
+    # Among open issues, the oldest wins.
     known = {}
     for issue in sorted(issues, key=lambda i: (i["state"] == "open", -i["number"])):
         known[issue["title"]] = issue
@@ -237,6 +249,10 @@ def main(argv=None):
     parser.add_argument("--forge", choices=sorted(BEDS), required=True, help="the test bed to reset")
     args = parser.parse_args(argv)
     forge, bed = args.forge, BEDS[args.forge]
+    if not bed.repo.split("/")[-1].endswith("-testbed"):
+        print(f"testbed-reset: {bed.repo} does not end in -testbed; the script refuses to rewrite it",
+              file=sys.stderr)
+        return 1
     try:
         check_server(forge)
         ensure_repository(forge, bed)

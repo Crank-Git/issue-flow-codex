@@ -138,6 +138,29 @@ class ResetTest(unittest.TestCase):
         forge.reset("github")
         self.assertEqual(forge.pulls, {7: "closed", 8: "closed", 9: "closed"})
 
+    def test_reads_the_github_test_bed_name_from_ISSUE_FLOW_TESTBED_GITHUB(self):
+        with mock.patch.dict("os.environ", {"ISSUE_FLOW_TESTBED_GITHUB": "someone/other-testbed"}):
+            beds = testbed_reset.build_beds()
+        self.assertEqual(beds["github"].repo, "someone/other-testbed")
+        self.assertEqual(beds["github"].url, "https://github.com/someone/other-testbed.git")
+
+    def test_refuses_a_GitHub_repository_whose_name_does_not_end_in_testbed(self):
+        self.assert_refused("github")
+
+    def test_refuses_a_Gitea_repository_whose_name_does_not_end_in_testbed(self):
+        self.assert_refused("gitea")
+
+    def assert_refused(self, forge):
+        forge_fake = FakeForge(forge)
+        bad = testbed_reset.Bed("someone/real-project", "https://example.invalid/x.git")
+        with mock.patch.dict(testbed_reset.BEDS, {forge: bad}):
+            code, out, err = forge_fake.reset(forge)
+        self.assertEqual(code, 1)
+        self.assertEqual(out, "")
+        self.assertEqual(len(err.strip().splitlines()), 1)
+        self.assertIn("-testbed", err)
+        self.assertEqual((forge_fake.calls, forge_fake.git_commands), ([], []))
+
     def test_exits_1_and_names_the_url_when_the_gitea_server_is_down(self):
         forge = FakeForge("gitea", server_up=False)
         code, out, err = forge.reset("gitea")

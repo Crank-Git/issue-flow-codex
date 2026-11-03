@@ -7,7 +7,7 @@ The upstream source is at <https://github.com/Sniper7Kills-LLC/claude-plugins>.
 The port runs the same autonomous issue loop as a native Codex CLI plugin. It tracks
 upstream tag `issue-flow--v0.17.0`. `upstream.lock` records the port mode of each file.
 
-Current state: the spec is approved. Epic 0 (foundation) is in progress. The port does
+Current state: the spec is approved. Epic 0 (foundation) is merged. Epic 1 (plugin packaging) is next. The port does
 not run on Codex yet.
 
 The license is in `LICENSE`. It keeps the upstream copyright line and adds a line for

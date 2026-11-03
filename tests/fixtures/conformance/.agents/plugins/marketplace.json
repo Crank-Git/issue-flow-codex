@@ -1,0 +1,12 @@
+{
+  "name": "issue-flow-probe-market",
+  "interface": { "displayName": "issue-flow conformance probe" },
+  "plugins": [
+    {
+      "name": "issue-flow-probe",
+      "source": { "source": "local", "path": "./plugin" },
+      "policy": { "installation": "AVAILABLE", "authentication": "ON_INSTALL" },
+      "category": "Developer Tools"
+    }
+  ]
+}

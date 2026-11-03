@@ -12,11 +12,6 @@ ISSUE_LIST = re.compile(r"(?:^|(?:&&|[;|])\s*)(?:gh\s+issue\s+list|tea\s+issues)
 PR_LIST = re.compile(r"(?:^|(?:&&|[;|])\s*)(?:gh\s+pr\s+list|tea\s+pulls)(?:\s|$)")
 
 
-def successful_bash(payload):
-    response = payload.get("tool_response")
-    return isinstance(response, str) and response.startswith("Exit code: 0\n")
-
-
 def record(payload):
     if not isinstance(payload, dict) or payload.get("hook_event_name") != "PostToolUse":
         return
@@ -36,7 +31,12 @@ def record(payload):
         else:
             clear_pending(session_id)
         return
-    if tool_name != "Bash" or not successful_bash(payload):
+    response = payload.get("tool_response")
+    if (
+        tool_name != "Bash"
+        or not isinstance(response, str)
+        or not response.startswith("Exit code: 0\n")
+    ):
         return
     tool_input = payload.get("tool_input")
     command = tool_input.get("command") if isinstance(tool_input, dict) else None

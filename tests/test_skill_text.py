@@ -162,5 +162,59 @@ class PortedSectionsTest(unittest.TestCase):
         self.assertRegex(parallelism_rules(), re.compile(r"\]\([^)]*SKILL\.md"))
 
 
+def stage_c():
+    return section("SKILL.md", "## Stage C", "## Stage D")
+
+
+def c1_bullet(name):
+    return section("SKILL.md", f"- **`{name}`**", "- **")
+
+
+class ReworkAndTeardownTest(unittest.TestCase):
+    def test_rework_uses_followup_task(self):
+        for name, text in (("stage C1", stage_c()),
+                           ("issue-worker reference", section("references/issue-worker.md", "## Rework", "## Return contract")),
+                           ("worktrees reference", (SKILL_DIR / "references/worktrees.md").read_text())):
+            with self.subTest(text=name):
+                self.assertIn("followup_task", text)
+                self.assertIn("send_message", text)  # named only to forbid it
+
+    def test_checkpoint_names_worktree_remove_and_create(self):
+        text = " ".join(c1_bullet("checkpoint").split())
+        self.assertIn("worktree.py remove", text)
+        self.assertIn("worktree.py create", text)
+        self.assertIn("--task worker_<n>_c<k>", text)
+        self.assertIn("--base <remote>/issue/<n>-<slug>", text)
+        self.assertLess(text.index("worktree.py remove"), text.index("worktree.py create"))
+
+    def test_checkpoint_keeps_the_cap_of_three(self):
+        self.assertIn("after 3 consecutive checkpoints", c1_bullet("checkpoint"))
+
+    def test_sub_merge_teardown_uses_worktree_remove(self):
+        self.assertIn("worktree.py remove", section("SKILL.md", "  6. **Then the bookkeeping.**", "  **Standalone/hotfix"))
+
+    def test_worktrees_reference_does_not_mention_peers_py(self):
+        self.assertNotIn("peers.py", (SKILL_DIR / "references/worktrees.md").read_text())
+
+    def test_worktrees_reference_names_the_script_and_the_guard(self):
+        text = (SKILL_DIR / "references/worktrees.md").read_text()
+        self.assertIn("worktree.py", text)
+        self.assertIn("hooks/guard-spawn.py", text)
+
+    def test_no_claude_code_worktree_steps_in_the_ported_files(self):
+        for path in ("SKILL.md", "references/issue-worker.md", "references/worktrees.md",
+                     "references/parallelism.md", "references/batching.md"):
+            text = (SKILL_DIR / path).read_text()
+            for token in ("EnterWorktree", "worktree-agent", "worktreeBranch", "remove -f -f"):
+                with self.subTest(path=path, token=token):
+                    self.assertNotIn(token, text)
+
+    def test_no_sendmessage_or_agentid_in_stage_c(self):
+        text = stage_c()
+        self.assertNotIn("SendMessage", text)
+        self.assertNotIn("agentId", text)
+        self.assertNotIn("completion notification", text)
+
+
 if __name__ == "__main__":
     unittest.main()

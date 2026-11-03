@@ -54,41 +54,35 @@ simultaneously, **each in its own worktree**. Members of a dependency chain are 
 exception to "launch whenever a slot frees": they run **sequentially** within their
 batch — each launches after its predecessor sub-merges into the integration branch.
 
-Setup per issue: the PM creates no worktree. It launches the worker with
-`isolation: "worktree"` and the harness makes one under `.claude/worktrees/`, pinned to
-that worker alone (see [worktrees.md](worktrees.md)). The worker then points its worktree
-at its base (the batch's integration branch; `<remote>/<dev>` only for standalone/hotfix
-work — see [batching.md](batching.md)):
+Setup per issue: the PM creates the worktree with `scripts/worktree.py create` before it
+spawns the worker (see [worktrees.md](worktrees.md)). The worktree lives under
+`.worktrees/<task_name>`, and the worker's branch starts from its base: the batch's
+integration branch, or `<remote>/<dev>` for standalone/hotfix work (see
+[batching.md](batching.md)).
 
 ```bash
-# inside the worker's own worktree
-git fetch <remote>
-git checkout -B issue/<number>-<slug> <remote>/epic/<n>-<slug>
+python3 <pluginRoot>/scripts/worktree.py create --project <dir> --task worker_<n> \
+  --branch issue/<number>-<slug> --base <remote>/epic/<n>-<slug> --remote <remote>
 ```
 
-On a re-spawn for rework the base is the issue's **own published branch** instead
-(`<remote>/issue/<number>-<slug>`) — the worker checks for it before falling back, so a
-second attempt cannot reset away the first attempt's commits.
+On a re-spawn for rework or after a checkpoint, the base is the issue's **own published
+branch** instead (`<remote>/issue/<number>-<slug>`), so a second attempt cannot reset away
+the first attempt's commits.
 
 - `<remote>` is detected in preflight (`git remote` — usually `origin` but never
   hardcode it).
 - Each worktree is a fully independent checkout: build, test, commit, push there.
-- The main thread owns the loop and the gates; it may launch a background implement
-  Workflow per issue and react to each `<task-notification>` as issues complete.
+- The main thread owns the loop and the gates. It reads each worker verdict with
+  `wait_agent` (SKILL.md, *Reading a worker verdict*).
 
-Cleanup on merge (or abandonment) — the harness auto-removes an isolated worktree only if
-it is *unchanged*, and a worker's is never unchanged, so the PM removes it. Use the path
-from the worker's completion notification (`worktreePath`) or its verdict, and sweep for
-leftovers from earlier sessions:
+Cleanup on merge (or abandonment): the PM removes the worktree with `worktree.py remove`,
+because a worker's worktree is never unchanged. It then sweeps for leftovers from earlier
+sessions:
 
 ```bash
-git worktree remove -f -f <path from the completion notification>   # after the branch is merged/deleted
-git branch -D <worktreeBranch from the notification>                # the harness branch the removal leaves
-git worktree list --porcelain                                       # leftovers on issue/* branches
-git worktree remove -f -f <leftover>                                # -f -f: a killed session leaves the lock
+python3 <pluginRoot>/scripts/worktree.py remove --project <dir> --task <task_name>   # after the sub-merge
+git worktree list --porcelain                                                         # leftovers on issue/* branches
 git worktree prune
-git for-each-ref --format='%(refname:lstrip=2) %(worktreepath)' 'refs/heads/worktree-agent-*' \
-  | awk '$2 == "" {print $1}' | xargs -r git branch -D              # dead harness branches (worktrees.md)
 ```
 
 **Two different issues touching the same files is allowed and expected.** Their edits

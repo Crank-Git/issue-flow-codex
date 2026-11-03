@@ -24,8 +24,8 @@ Sequenced batch members (dependency chains) launch only after their predecessor
 sub-merges. When the PM has no other step, it calls `wait_agent` (`SKILL.md`, the
 verdict section, owns the rules).
 
-The worker is an **independent Opus engineer**: it may research (web), use available MCP
-servers (via `ToolSearch`), and spawn its own subagents when a thread slot is free — all
+The worker is an **independent engineer** on `gpt-6.1-sol`: it may research (web), use the
+MCP servers that the session configures (there is no `ToolSearch`), and spawn its own subagents when a thread slot is free — all
 **confined to that issue's worktree** and its own scratch directory,
 and all finished before it returns its verdict. The PM sets none of this;
 it lives in the worker's agent definition. A worker may also **file new untriaged issues**
@@ -71,8 +71,10 @@ practices:    tdd: true|false            (tests land with or before the implemen
               coverage: <n>|null         (threshold to report in localChecks)
               commitStyle: <e.g. conventional>
               docs: none|public-api|all
-steRule:      <path to the writing standard: .claude/rules/ste.md when the project has one
-               (the planner writes it), else <pluginRoot>/references/ste.md — absolute>
+steRule:      <path to the writing standard, absolute: docs/rules/ste.md when the project
+               has it, else .claude/rules/ste.md when that exists, else
+               <pluginRoot>/references/ste.md>
+qualityRule:  <path to the quality rules, set the same way as steRule>
 pluginRoot:   <absolute path of the plugin directory: two levels above this skill's
                `SKILL.md`, e.g. …/issue-flow when the skill is at
                …/issue-flow/skills/issue-flow>

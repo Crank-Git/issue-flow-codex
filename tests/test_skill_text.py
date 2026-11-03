@@ -216,5 +216,18 @@ class ReworkAndTeardownTest(unittest.TestCase):
         self.assertNotIn("completion notification", text)
 
 
+class BatchGateFixTextTest(unittest.TestCase):
+    def test_parallelism_page_names_no_workflow_and_no_claude_plugin_root(self):
+        text = (SKILL_DIR / "references" / "parallelism.md").read_text()
+        self.assertNotRegex(text, r"\bWorkflow\b")
+        self.assertNotIn("CLAUDE_PLUGIN_ROOT", text)
+
+    def test_two_roles_spawn_by_agent_type_not_subagent_type(self):
+        text = section("SKILL.md", "## Two roles", "## The batch model")
+        self.assertNotIn("subagent_type", text)
+        self.assertNotIn("issue-flow:", text)
+        self.assertIn("agent_type", text)
+
+
 if __name__ == "__main__":
     unittest.main()

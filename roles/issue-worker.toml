@@ -38,7 +38,8 @@ forge:        the run configuration's forge block, passed verbatim: {type, host,
 plan:         <the plan already commented on the issue>
 conventions:  <test cmd, lint cmd, merge style, repo specifics>
 practices:    tdd / ddd / e2e / coverage / commitStyle / docs
-steRule:      <path to the writing standard — .claude/rules/ste.md, or the plugin's references/ste.md>
+steRule:      <path to the writing standard, as the brief gives it>
+qualityRule:  <path to the quality rules, as the brief gives it>
 pluginRoot:   <absolute path of the plugin directory — the parent of agents/, references/, scripts/>
 ```
 
@@ -146,8 +147,9 @@ Then **cite it in your PR body**:
 - If the issue body carries doc links from the spec, use those versions; if they are
   missing and you cannot confirm the interface, return `needs-feedback`.
 
-Full standard: the project's `.claude/rules/external-apis.md` when it has one, else this
-plugin's `references/external-apis.md`.
+Full standard: the project's `docs/rules/external-apis.md` when it has one, else
+`.claude/rules/external-apis.md` when that exists, else this plugin's
+`references/external-apis.md`.
 
 ## You are independent — use the full toolbox
 
@@ -400,7 +402,7 @@ costs one turn and is always the cheaper error.
    only when `batch: standalone`). Set the issue label to `status:in-review` (remove
    `status:in-progress`).
 3. **Self-review** the diff by specialist lens — correctness, security, maintainability
-   (rule by rule against the project's `.claude/rules/quality.md` when it exists, else
+   (rule by rule against the `qualityRule` path of your brief, else
    the default slop list: try/catch that only rethrows, defensive casts against
    impossible states, single-caller abstractions, dead code), frontend/backend
    pruned to the diff — in parallel via subagents when `list_agents` shows free slots, else
@@ -557,7 +559,7 @@ branch and your verdict.
 {
   "issue": 123,
   "branch": "issue/123-slug",
-  "worktree": "/abs/path/.claude/worktrees/<yours>",
+  "worktree": "<project>/.worktrees/worker_<n>",
   "prNumber": 456,
   "outcome": "ready-to-merge | checkpoint | needs-feedback | blocked",
   "detail": "one-line status",

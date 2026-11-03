@@ -3,7 +3,7 @@
 
     python3 scripts/worktree.py create --project . --task worker_19 \
         --branch issue/19-slug --base origin/epic/3-worker-dispatch [--remote origin]
-    python3 scripts/worktree.py remove --project . --task worker_19
+    python3 scripts/worktree.py remove --project . --task worker_19 [--merged]
 
 `create` prints one JSON line: {"path", "branch", "base_sha"}. It reuses the
 branch when the branch exists, and else creates it from --base. It copies each
@@ -12,7 +12,9 @@ overwritten.
 
 `remove` exits 1 and changes nothing when the worktree has an uncommitted
 change or a commit that no remote-tracking ref holds. Otherwise it removes the
-worktree and deletes its branch.
+worktree and deletes its branch. `remove` also exits 1 when the worktree is not
+on a branch. With `--merged`, `remove` skips the commit check: the PM passes it
+only after it has verified the sub-merge. It still refuses uncommitted changes.
 
 Every failure exits nonzero with one line on stderr.
 """
@@ -75,10 +77,14 @@ def cmd_remove(args):
     tree = project / ".worktrees" / args.task
     if git(tree, "status", "--porcelain"):
         raise WorktreeError(f"{tree} has uncommitted changes")
-    # A commit that no remote-tracking ref holds is lost when the branch goes.
-    if git(tree, "rev-list", "--count", "HEAD", "--not", "--remotes") != "0":
-        raise WorktreeError(f"{tree} has commits that no remote holds")
     branch = git(tree, "rev-parse", "--abbrev-ref", "HEAD")
+    if branch == "HEAD":
+        raise WorktreeError(f"{tree} is not on a branch")
+    # A commit that no remote-tracking ref holds is lost when the branch goes.
+    # After a verified squash sub-merge the branch commits are on no remote ref,
+    # so the PM passes --merged to skip this check.
+    if not args.merged and git(tree, "rev-list", "--count", "HEAD", "--not", "--remotes") != "0":
+        raise WorktreeError(f"{tree} has commits that no remote holds")
     # `-f -f` overrides the lock that the harness leaves on a worker's tree.
     git(project, "worktree", "remove", "-f", "-f", str(tree))
     git(project, "branch", "-D", branch)
@@ -96,6 +102,7 @@ def main():
     remove = sub.add_parser("remove")
     remove.add_argument("--project", required=True)
     remove.add_argument("--task", required=True)
+    remove.add_argument("--merged", action="store_true")
     args = parser.parse_args()
     try:
         {"create": cmd_create, "remove": cmd_remove}[args.command](args)

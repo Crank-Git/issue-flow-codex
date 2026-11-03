@@ -105,6 +105,44 @@ class WorktreeTest(unittest.TestCase):
         self.assertFalse(self.tree.exists())
         self.assertEqual(git(self.project, "branch", "--list", BRANCH), "")
 
+    def commit_work(self):
+        git(self.tree, "config", "user.email", "test@example.invalid")
+        git(self.tree, "config", "user.name", "Test")
+        (self.tree / "new.txt").write_text("x\n")
+        git(self.tree, "add", "new.txt")
+        git(self.tree, "commit", "-q", "-m", "work")
+
+    def test_removes_a_squash_merged_worktree_with_merged_after_the_remote_branch_is_gone(self):
+        self.create()
+        self.commit_work()
+        git(self.tree, "push", "-q", "origin", BRANCH)
+        git(self.project, "fetch", "-q", "origin")
+        git(self.project, "push", "-q", "origin", "--delete", BRANCH)
+        git(self.project, "fetch", "-q", "--prune", "origin")
+        self.assertEqual(self.remove().returncode, 1)
+        result = run_script("remove", "--project", str(self.project), "--task", "worker_19",
+                            "--merged")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse(self.tree.exists())
+        self.assertEqual(git(self.project, "branch", "--list", BRANCH), "")
+
+    def test_still_refuses_uncommitted_changes_with_merged(self):
+        self.create()
+        (self.tree / "new.txt").write_text("x\n")
+        result = run_script("remove", "--project", str(self.project), "--task", "worker_19",
+                            "--merged")
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(len(result.stderr.splitlines()), 1)
+        self.assertTrue(self.tree.exists())
+
+    def test_refuses_a_worktree_with_a_detached_head(self):
+        self.create()
+        git(self.tree, "checkout", "-q", "--detach")
+        result = self.remove()
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(len(result.stderr.splitlines()), 1)
+        self.assertTrue(self.tree.exists())
+
     def test_reuses_an_existing_branch_that_has_no_worktree(self):
         git(self.project, "branch", BRANCH, "origin/main")
         result = self.create()

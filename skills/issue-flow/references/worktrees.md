@@ -32,8 +32,11 @@ launch rules of Stage B. The guard does not create or move a worktree.
   It copies the files that `.worktreeinclude` names and git ignores (`.env` and local
   secrets), because a worktree is a fresh checkout of *tracked* files only. Keep
   `.worktreeinclude` accurate instead of copying those files by hand.
-- `remove --project <dir> --task <task_name>` removes the worktree and deletes its
-  branch.
+- `remove --project <dir> --task <task_name> [--merged]` removes the worktree and deletes
+  its branch. Pass `--merged` only after the PM has verified the sub-merge. A squash merge
+  leaves the branch commits on no remote ref, so without the flag the script refuses. The
+  flag skips the unpushed-commit check only. The script still refuses uncommitted changes
+  and a worktree that is not on a branch.
 
 `create` reuses a **local** branch when one exists, and else makes the branch from
 `--base`. A branch that exists only on the remote is not reused. For a rework spawn or a
@@ -84,12 +87,12 @@ Nothing removes a worktree behind a worker. A worker's worktree always holds com
 the PM removes it:
 
 ```bash
-python3 <pluginRoot>/scripts/worktree.py remove --project <dir> --task <task_name>
+python3 <pluginRoot>/scripts/worktree.py remove --project <dir> --task <task_name> [--merged]
 git worktree list --porcelain    # sweep for earlier sessions' leftovers
 git worktree prune
 ```
 
-Run `remove` at the sub-merge, at a checkpoint, and at the batch-gate and Stop sweeps.
+Add `--merged` at a verified sub-merge. Run `remove` at the sub-merge, at a checkpoint, and at the batch-gate and Stop sweeps.
 Prune last: a tree whose directory is gone still reports its path until `prune` drops it.
 
 ### Parked standalone worktrees

@@ -110,7 +110,7 @@ workers can both read "unclaimed" and both proceed to set the forge labels.
 Gate entry to that write with the git-native CAS helper first — it doesn't
 replace the forge label swap, it decides who is allowed to attempt it:
 
-    python3 "${CLAUDE_PLUGIN_ROOT}/scripts/state_cas.py" set --repo . --remote origin \
+    python3 "<pluginRoot>/scripts/state_cas.py" set --repo . --remote origin \
       --key issue-<n> --expect absent --value '{"owner":"<worker-id>"}'
 
 Only the worker whose call exits 0 proceeds to set `status:in-progress` and
@@ -133,7 +133,7 @@ prior `get` — that's what Takeover below relies on). When a worker finishes
 an issue, or abandons a claim it made (crash, reassignment, the issue
 getting reopened), release the key with the CAS-guarded `delete`:
 
-    python3 "${CLAUDE_PLUGIN_ROOT}/scripts/state_cas.py" delete --repo . --remote origin \
+    python3 "<pluginRoot>/scripts/state_cas.py" delete --repo . --remote origin \
       --key issue-<n> --expect '{"owner":"<worker-id>"}'
 
 **Takeover**, for when the forge says unclaimed but the ref still says
@@ -142,9 +142,9 @@ never got to run it): `get` the current value and `set` with that exact
 value as `--expect`, so the takeover only succeeds against the state you
 actually observed, not a guess:
 
-    python3 "${CLAUDE_PLUGIN_ROOT}/scripts/state_cas.py" get --repo . --remote origin --key issue-<n>
+    python3 "<pluginRoot>/scripts/state_cas.py" get --repo . --remote origin --key issue-<n>
     # → {"key": "issue-<n>", "value": {"owner": "worker-a"}}
-    python3 "${CLAUDE_PLUGIN_ROOT}/scripts/state_cas.py" set --repo . --remote origin \
+    python3 "<pluginRoot>/scripts/state_cas.py" set --repo . --remote origin \
       --key issue-<n> --expect '{"owner":"worker-a"}' --value '{"owner":"<worker-id>"}'
 
 **What this actually guards, today.** `issue-flow` documents one PM per repo per
@@ -169,14 +169,16 @@ this, but is not implemented.
 
 ## Specialist reviewers (worker self-review)
 
-Run reviewers as a Workflow fan-out over the PR diff. Default lenses, pruned to what
-the diff actually touches:
+Run reviewers as parallel `spawn_agent` calls over the PR diff. Call `list_agents` first
+and spawn only when a thread slot is free. Give each reviewer `fork_turns: "none"`, model
+`gpt-6-luna`, a unique `task_name`, and the diff, and read its result from its
+`FINAL_ANSWER`. Default lenses, pruned to what the diff actually touches:
 
 - **correctness** — logic, edge cases, regressions
 - **security** — injection, authz, secrets, unsafe deserialization
 - **maintainability** — always on: the slop a green suite never catches. Check the diff
-  **rule by rule** against the project's `.claude/rules/quality.md` when it exists (the
-  planner scaffolds it), reporting a pass/fail verdict per rule; else use this default
+  **rule by rule** against the `qualityRule` path of the brief (`docs/rules/quality.md`
+  when the project has it), reporting a pass/fail verdict per rule; else use this default
   list: try/catch that only rethrows or logs-and-continues; defensive casts or null
   checks against states the types already exclude; abstractions with a single caller;
   configuration for a value nothing varies; dead or commented-out code; comments that
@@ -186,7 +188,7 @@ the diff actually touches:
 - **frontend** — only if the diff touches UI/client code: a11y, state, render cost
 - **backend** — only if the diff touches server/data code: API contracts, queries, migrations
 
-Each reviewer returns structured findings; the main thread dedupes, posts them as PR
+Each reviewer returns structured findings as JSON (severity, file, line, problem, fix); the main thread dedupes, posts them as PR
 comments, and fixes the real ones. A reviewer that wants a product decision returns
 `needsFeedback` rather than inventing intent.
 
@@ -214,51 +216,6 @@ line-count delta looks implausibly small next to their blob-size delta, or check
 file against the host's diff-size cap directly.) Route flagged paths to a direct-read
 step before the review agent ever sees the PR diff, rather than trusting it to catch
 the gap.
-
-### Example Workflow script (self-review fan-out)
-
-The main thread can lift this and pass it to the `Workflow` tool. It is decision-free:
-it only *finds and reports*, it never edits or merges.
-
-```js
-export const meta = {
-  name: 'issue-flow-review',
-  description: 'Parallel specialist review of a PR diff for issue-flow',
-  phases: [{ title: 'Review' }],
-}
-const FINDINGS = {
-  type: 'object',
-  required: ['lens', 'findings'],
-  properties: {
-    lens: { type: 'string' },
-    findings: {
-      type: 'array',
-      items: {
-        type: 'object',
-        required: ['severity', 'file', 'line', 'problem', 'fix'],
-        properties: {
-          severity: { type: 'string', enum: ['blocker', 'major', 'minor'] },
-          file: { type: 'string' }, line: { type: 'number' },
-          problem: { type: 'string' }, fix: { type: 'string' },
-          needsFeedback: { type: 'boolean' },
-        },
-      },
-    },
-  },
-}
-// args = { diff: "<unified diff, from `forge.pr.diff`>", lenses: ["correctness","security","maintainability","frontend","backend"] }
-// For the maintainability lens, append the project's .claude/rules/quality.md to the
-// prompt when it exists, and ask for a pass/fail verdict per rule.
-phase('Review')
-const reviews = await parallel(args.lenses.map(lens => () =>
-  agent(
-    `Review this PR diff through the ${lens} lens ONLY. Report real, actionable issues.\n` +
-    `Do NOT invent product intent — if a finding needs a human decision, set needsFeedback:true.\n\n` +
-    args.diff,
-    { label: `review:${lens}`, phase: 'Review', schema: FINDINGS })
-))
-return reviews.filter(Boolean)
-```
 
 ## How many issues per session?
 

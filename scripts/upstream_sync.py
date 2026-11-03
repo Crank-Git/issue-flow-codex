@@ -3,7 +3,9 @@
 
 `--import <tag>` copies every file under `issue-flow/` of the upstream tag to the
 same path at the repository root, and writes `upstream.lock`.
-`--check` needs no network. It compares each `verbatim` file with the lock.
+`--check` needs no network. It compares each `verbatim` file with the lock. It also
+fails and names each tracked file (`git ls-files`) that has no lock entry. The lock
+file needs no entry of its own.
 
 The lock records one `[[file]]` table per path. `mode` is one of `verbatim`,
 `patched`, `rewritten`, `dropped`, or `new`. A `new` entry has an empty
@@ -110,6 +112,12 @@ def cmd_check(root):
            and (not (root / e["path"]).is_file() or sha256(root / e["path"]) != e["upstream_sha256"])]
     if bad:
         raise SyncError("verbatim file differs from the lock: " + ", ".join(bad))
+    tracked = subprocess.run(["git", "-C", str(root), "ls-files"],
+                             capture_output=True, text=True, check=True).stdout.splitlines()
+    locked = {e["path"] for e in lock["file"]} | {LOCK}
+    unlocked = [path for path in tracked if path not in locked]
+    if unlocked:
+        raise SyncError("tracked file has no lock entry: " + ", ".join(unlocked))
 
 
 def main(argv=None):

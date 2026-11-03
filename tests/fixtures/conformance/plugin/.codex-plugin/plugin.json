@@ -1,0 +1,7 @@
+{
+  "name": "issue-flow-probe",
+  "version": "0.0.1",
+  "description": "Probe plugin for the issue-flow-codex conformance suite.",
+  "skills": "./skills/",
+  "hooks": "./hooks/hooks.json"
+}

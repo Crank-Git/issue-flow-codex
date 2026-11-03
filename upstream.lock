@@ -3,16 +3,100 @@ tag = "issue-flow--v0.17.0"
 commit = "03faf580b53e8187758eb18cf9944c2bf0c273fe"
 
 [[file]]
+path = ".agents/skills/conformance/SKILL.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = ".agents/skills/test/SKILL.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = ".agents/skills/try-plugin/SKILL.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
 path = ".claude-plugin/plugin.json"
 mode = "rewritten"
 upstream_sha256 = "b1a7778a57bb6640532545de9959e4935ace24861f8f91a7d114b88a5970ea10"
 notes = "Becomes `.codex-plugin/plugin.json`."
 
 [[file]]
+path = ".claude/rules/external-apis.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = ".claude/rules/quality.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = ".claude/rules/ste.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = ".claude/settings.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = ".claude/skills"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = ".github/workflows/ci.yml"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = ".gitignore"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = ".issue-flow.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "AGENTS.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "CLAUDE.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "LICENSE"
+mode = "new"
+upstream_sha256 = ""
+notes = "MIT text with the upstream and port copyright lines."
+
+[[file]]
 path = "README.md"
 mode = "patched"
 upstream_sha256 = "6f5cf3ddd736fba8e560324c4bf141d28ce77dfd655b7a1e361ad9b678bfd384"
-notes = "Port credit and Codex install steps."
+notes = "Port header credits upstream and the license; Codex install steps follow in a later issue."
 
 [[file]]
 path = "agents/code-auditor.md"
@@ -43,6 +127,186 @@ path = "agents/ux-explorer.md"
 mode = "patched"
 upstream_sha256 = "ff8061fccbd2f2929b6838b99b0b51620326f354f615fc0be4dec2f9f89156da"
 notes = "Becomes a role file; Playwright tool names."
+
+[[file]]
+path = "docs/adr/0000-template.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/adr/0001-native-plugin.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/adr/0002-separate-repo-tracks-upstream.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/adr/0003-permission-profile.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/external.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/rules/external-apis.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/rules/quality.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/rules/ste.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/assets/mermaid.min.js"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/features/00-foundation.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/features/01-plugin-packaging.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/features/02-worker-dispatch.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/features/03-loop-operations.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/features/04-spec-skills.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/features/05-project-review.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/features/06-mirror-and-sync.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/html/feature-foundation.html"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/html/feature-loop-operations.html"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/html/feature-mirror-and-sync.html"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/html/feature-plugin-packaging.html"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/html/feature-project-review.html"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/html/feature-spec-skills.html"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/html/feature-worker-dispatch.html"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/html/page-codex-harness.html"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/html/page-porting-inventory.html"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/pages/codex-harness.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/pages/porting-inventory.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/render-spec.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/spec.html"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/spec.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
 
 [[file]]
 path = "hooks/guard-spawn.py"
@@ -87,6 +351,12 @@ upstream_sha256 = "77628f46bd90f3e0376268b8ecec3253fdf33650662a0b027366f08c33c06
 notes = "The artifact table names `AGENTS.md` and `docs/rules/`."
 
 [[file]]
+path = "scripts/conformance.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: conformance suite (#10)"
+
+[[file]]
 path = "scripts/gitea-ci-watch.sh"
 mode = "patched"
 upstream_sha256 = "cde6952af3430a7dbb91c39ecc35194329f7cad2f026ca47a96baefdede6ecbc"
@@ -109,6 +379,12 @@ path = "scripts/testbed-reset.py"
 mode = "new"
 upstream_sha256 = ""
 notes = "Port-only. Returns a test bed to seed state."
+
+[[file]]
+path = "scripts/upstream_sync.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
 
 [[file]]
 path = "scripts/verify_ci_ran.py"
@@ -291,7 +567,169 @@ upstream_sha256 = ""
 notes = "Port-only. Seed content of the test beds."
 
 [[file]]
+path = "tests/fixtures/conformance/.agents/plugins/marketplace.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: conformance suite (#10)"
+
+[[file]]
+path = "tests/fixtures/conformance/plugin/.codex-plugin/plugin.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: conformance suite (#10)"
+
+[[file]]
+path = "tests/fixtures/conformance/plugin/hooks/hooks.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: conformance suite (#10)"
+
+[[file]]
+path = "tests/fixtures/conformance/plugin/hooks/log_hook.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: conformance suite (#10)"
+
+[[file]]
+path = "tests/fixtures/conformance/plugin/skills/ping/SKILL.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: conformance suite (#10)"
+
+[[file]]
+path = "tests/fixtures/conformance/roles/echo_worker.toml"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: conformance suite (#10)"
+
+[[file]]
+path = "tests/fixtures/conformance/roles/git_worker.toml"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: conformance suite (#10)"
+
+[[file]]
+path = "tests/fixtures/upstream_sync/inventory.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "tests/fixtures/upstream_sync/inventory_partial.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "tests/fixtures/upstream_sync/tree/new.txt"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "tests/fixtures/upstream_sync/tree/patched.txt"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "tests/fixtures/upstream_sync/tree/rewritten.txt"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "tests/fixtures/upstream_sync/tree/upstream.lock"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "tests/fixtures/upstream_sync/tree/verbatim.txt"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "tests/fixtures/upstream_sync/upstream/issue-flow/a.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "tests/fixtures/upstream_sync/upstream/issue-flow/sub/b.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "tests/test_conformance.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: conformance suite (#10)"
+
+[[file]]
+path = "tests/test_gitea_ci_watch.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "from upstream scripts/test-gitea-ci-watch.py"
+
+[[file]]
+path = "tests/test_guard_spawn.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "from upstream scripts/test-guard-spawn.py"
+
+[[file]]
+path = "tests/test_mirror_filter.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "from upstream scripts/test-mirror-filter.py"
+
+[[file]]
+path = "tests/test_peers.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "from upstream scripts/test-peers.py"
+
+[[file]]
+path = "tests/test_preflight.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "from upstream scripts/test-preflight.py"
+
+[[file]]
+path = "tests/test_render_spec.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "from upstream scripts/test-render-spec.py"
+
+[[file]]
+path = "tests/test_state_cas.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "from upstream scripts/test-state-cas.py"
+
+[[file]]
 path = "tests/test_testbed_reset.py"
 mode = "new"
 upstream_sha256 = ""
 notes = "Port-only. Tests the reset script with faked forge calls."
+
+[[file]]
+path = "tests/test_upstream_sync.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "tests/test_verify_ci_ran.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "from upstream scripts/test-verify-ci-ran.py"
+
+[[file]]
+path = "tests/test_verify_claim.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "from upstream scripts/test-verify-claim.py"

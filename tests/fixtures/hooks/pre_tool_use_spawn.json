@@ -1,0 +1,16 @@
+{
+  "session_id": "01a1a281-0d5d-7003-8c3a-dbc52a350578",
+  "turn_id": "01a1a281-104c-7e92-9588-aaa23e7465fb",
+  "transcript_path": "/home/user/.codex/sessions/2026/11/03/rollout-2026-11-03T12-42-09-01a1a281-0d5d-7003-8c3a-dbc52a350578.jsonl",
+  "cwd": "/home/user/project",
+  "hook_event_name": "PreToolUse",
+  "model": "gpt-6-luna",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "collaborationspawn_agent",
+  "tool_input": {
+    "task_name": "ready_check",
+    "fork_turns": "none",
+    "message": "gAAAAA<redacted-encrypted-message>"
+  },
+  "tool_use_id": "call_1df2994defcb4a9ca95cbf12d0de549a"
+}

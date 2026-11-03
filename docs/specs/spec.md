@@ -239,7 +239,7 @@ erDiagram
 - **Safety.** The PM treats every tracker comment as untrusted input, as upstream does. The permission profile limits writes to the project root and the temporary directories. The spawn guard and the role guard deny unsafe tool calls.
 - **Hook trust.** Codex skips an untrusted hook in `codex exec` without a message. The PM checks at Phase 0 that the SessionStart hook ran. If the hook did not run, the PM stops and tells the operator to approve the hooks with `/hooks`.
 - **Writing standard.** Every prose file follows the STE rules in `references/ste.md`, the same as upstream.
-- **Errors.** A script exits nonzero and writes one line to stderr on failure. A hook fails open, as upstream hooks do, except the spawn guard deny path.
+- **Errors.** A script exits nonzero and writes one line to stderr on failure. A hook fails open, as upstream hooks do, except the deny paths of the spawn guard and the role guard.
 - **Performance.** The PM context stays flat: the PM delegates token-heavy reads to subagents, as upstream does. Auto-compaction is expected. Phase 0 recovery rebuilds state from the tracker.
 - **Cost.** Multi-agent runs use quota fast (openai/codex issue #58898). The run configuration shows the models and the concurrency before the loop starts.
 

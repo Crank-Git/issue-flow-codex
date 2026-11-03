@@ -29,7 +29,7 @@ change. The table below names the sections.
 | `.claude-plugin/plugin.json` | 25 | rewritten | Becomes `.codex-plugin/plugin.json`. | 01 |
 | `hooks/hooks.json` | 26 | rewritten | Codex events, `$PLUGIN_ROOT`, matcher `spawn_agent$`, role guard entry. | 01 |
 | `hooks/preflight.py` | 333 | patched | Output wrapper, `source` line, `ran` line. The digest logic stays. | 01, 03 |
-| `hooks/guard-spawn.py` | 262 | rewritten | V2 spawn shapes: `fork_turns`, `agent_type`. The brief detection stays. | 01 |
+| `hooks/guard-spawn.py` | 262 | rewritten | V2 spawn rules on `fork_turns`, `task_name`, `agent_type`. The brief detection is dropped: `message` is encrypted. | 01 |
 | `scripts/peers.py` | 264 | dropped | Reads Claude Code agent-team files that Codex does not have. | 01 |
 | `scripts/state_cas.py` | 225 | patched | Docstring paths. | 00 |
 | `scripts/verify_ci_ran.py` | 155 | patched | Docstring paths. | 00 |

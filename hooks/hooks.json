@@ -5,7 +5,7 @@
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/preflight.py\"",
+            "command": "python3 \"$PLUGIN_ROOT/hooks/preflight.py\"",
             "timeout": 55
           }
         ]
@@ -13,11 +13,20 @@
     ],
     "PreToolUse": [
       {
-        "matcher": "Agent|Task",
+        "matcher": "spawn_agent$",
         "hooks": [
           {
             "type": "command",
-            "command": "python3 \"${CLAUDE_PLUGIN_ROOT}/hooks/guard-spawn.py\""
+            "command": "python3 \"$PLUGIN_ROOT/hooks/guard-spawn.py\""
+          }
+        ]
+      },
+      {
+        "matcher": "*",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$PLUGIN_ROOT/hooks/guard-role.py\""
           }
         ]
       }

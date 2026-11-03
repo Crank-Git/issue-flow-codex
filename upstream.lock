@@ -3,6 +3,12 @@ tag = "issue-flow--v0.17.0"
 commit = "03faf580b53e8187758eb18cf9944c2bf0c273fe"
 
 [[file]]
+path = ".agents/plugins/marketplace.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
 path = ".agents/skills/conformance/SKILL.md"
 mode = "new"
 upstream_sha256 = ""
@@ -22,9 +28,9 @@ notes = "Port-only file."
 
 [[file]]
 path = ".claude-plugin/plugin.json"
-mode = "rewritten"
+mode = "dropped"
 upstream_sha256 = "b1a7778a57bb6640532545de9959e4935ace24861f8f91a7d114b88a5970ea10"
-notes = "Becomes `.codex-plugin/plugin.json`."
+notes = "replaced by .codex-plugin/plugin.json"
 
 [[file]]
 path = ".claude/rules/external-apis.md"
@@ -52,6 +58,12 @@ notes = "Port-only file."
 
 [[file]]
 path = ".claude/skills"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = ".codex-plugin/plugin.json"
 mode = "new"
 upstream_sha256 = ""
 notes = "Port-only file."
@@ -309,10 +321,16 @@ upstream_sha256 = ""
 notes = "Port-only file."
 
 [[file]]
+path = "hooks/guard-role.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: role guard (#18)"
+
+[[file]]
 path = "hooks/guard-spawn.py"
 mode = "rewritten"
 upstream_sha256 = "4f505785d867897653f7ad3bbc261fe9489e9d9a7d331e9005910064a4b80b84"
-notes = "V2 spawn shapes: `fork_turns`, `agent_type`. The brief detection stays."
+notes = "V2 spawn rules on `fork_turns`, `task_name`, `agent_type`. The brief detection is dropped: `message` is encrypted."
 
 [[file]]
 path = "hooks/hooks.json"
@@ -369,6 +387,12 @@ upstream_sha256 = "218f9fab3c1d4307492bc1088f9b3b1eff8f07aeadcb7dffe3905b7dbcbfc
 notes = "Reads Claude Code agent-team files that Codex does not have."
 
 [[file]]
+path = "scripts/setup_project.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
 path = "scripts/state_cas.py"
 mode = "patched"
 upstream_sha256 = "00b9347c1176636844cfe3eccd1c1348dc1b7cce41d819e51682f7741445dc4a"
@@ -385,6 +409,12 @@ path = "scripts/upstream_sync.py"
 mode = "new"
 upstream_sha256 = ""
 notes = "Port-only file."
+
+[[file]]
+path = "scripts/validate_manifests.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "Ported from upstream scripts/validate-manifests.py (repository level)."
 
 [[file]]
 path = "scripts/verify_ci_ran.py"
@@ -513,6 +543,12 @@ upstream_sha256 = "fb6e50375d850e95f71c4d70186197f2275b6590d9aeb0835ff81a62afa90
 notes = ""
 
 [[file]]
+path = "skills/setup/SKILL.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
 path = "skills/spec-to-issues/SKILL.md"
 mode = "patched"
 upstream_sha256 = "777429a3f1c4e7f1b4abf456bbada3582a72e72db8139b8755deb3ea736864ed"
@@ -577,6 +613,18 @@ path = "tests/fixtures/conformance/plugin/.codex-plugin/plugin.json"
 mode = "new"
 upstream_sha256 = ""
 notes = "port-only: conformance suite (#10)"
+
+[[file]]
+path = "tests/fixtures/hooks/session_start.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: live SessionStart payload (#16)"
+
+[[file]]
+path = "tests/fixtures/hooks/pre_tool_use_spawn.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: live V2 spawn PreToolUse payload (#17)"
 
 [[file]]
 path = "tests/fixtures/conformance/plugin/hooks/hooks.json"
@@ -687,12 +735,6 @@ upstream_sha256 = ""
 notes = "from upstream scripts/test-mirror-filter.py"
 
 [[file]]
-path = "tests/test_peers.py"
-mode = "new"
-upstream_sha256 = ""
-notes = "from upstream scripts/test-peers.py"
-
-[[file]]
 path = "tests/test_preflight.py"
 mode = "new"
 upstream_sha256 = ""
@@ -703,6 +745,12 @@ path = "tests/test_render_spec.py"
 mode = "new"
 upstream_sha256 = ""
 notes = "from upstream scripts/test-render-spec.py"
+
+[[file]]
+path = "tests/test_setup_project.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
 
 [[file]]
 path = "tests/test_state_cas.py"
@@ -723,6 +771,12 @@ upstream_sha256 = ""
 notes = "Port-only file."
 
 [[file]]
+path = "tests/test_validate_manifests.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "from upstream scripts/test-validate.py"
+
+[[file]]
 path = "tests/test_verify_ci_ran.py"
 mode = "new"
 upstream_sha256 = ""
@@ -733,3 +787,27 @@ path = "tests/test_verify_claim.py"
 mode = "new"
 upstream_sha256 = ""
 notes = "from upstream scripts/test-verify-claim.py"
+
+[[file]]
+path = "hooks/role-policy.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: role policy (#18)"
+
+[[file]]
+path = "tests/test_guard_role.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: role guard tests (#18)"
+
+[[file]]
+path = "tests/fixtures/hooks/pre_tool_use_bash.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: live subagent PreToolUse Bash payload (#18)"
+
+[[file]]
+path = "tests/fixtures/hooks/pre_tool_use_apply_patch.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: live subagent PreToolUse apply_patch payload (#18)"

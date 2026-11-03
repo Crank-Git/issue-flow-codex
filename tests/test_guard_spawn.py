@@ -1,11 +1,11 @@
-"""Tests for hooks/guard-spawn.py. Ported from upstream scripts/test-guard-spawn.py.
+"""Tests for hooks/guard-spawn.py.
 
-Runs the hook as a subprocess fed a PreToolUse payload on stdin, then checks the
-decision. Two properties matter as much as the blocking itself: the guard never
-blocks a spawn that would have worked, and it fails open on anything it does not
-understand.
+Each case changes `fork_turns`, `task_name`, or `agent_type` in a payload recorded from a
+live Codex run (tests/fixtures/hooks/pre_tool_use_spawn.json). The recorded `message` is
+an encrypted token, so the guard cannot read it and no test sets it.
 """
 
+import copy
 import json
 import os
 import subprocess
@@ -15,34 +15,24 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 HOOK = ROOT / "hooks" / "guard-spawn.py"
-TEMPLATE = ROOT / "skills" / "issue-flow" / "references" / "issue-worker.md"
+RECORDED = json.loads((ROOT / "tests" / "fixtures" / "hooks" / "pre_tool_use_spawn.json").read_text())
 
 
-def handoff_brief():
-    """Return the real handoff-brief template, so a template change cannot blind the guard."""
-    text = TEMPLATE.read_text(encoding="utf-8")
-    start = text.index("## Handoff brief")
-    block = text[text.index("```", start) + 3:]
-    return block[block.index("\n") + 1:block.index("```")]
+def spawn(**changes):
+    """Return the recorded spawn payload with `tool_input` keys changed. A None value removes the key."""
+    payload = copy.deepcopy(RECORDED)
+    for key, value in changes.items():
+        if value is None:
+            payload["tool_input"].pop(key, None)
+        else:
+            payload["tool_input"][key] = value
+    return payload
 
 
-BRIEF = handoff_brief()
-
-
-def spawn(**tool_input):
-    return {"tool_name": "Agent", "tool_input": tool_input}
-
-
-def fork(prompt, **extra):
-    return spawn(subagent_type="fork", description="build #42", prompt=prompt, **extra)
-
-
-class GuardTestCase(unittest.TestCase):
+class GuardSpawnTest(unittest.TestCase):
     def run_hook(self, payload, env=None):
-        """Return the parsed hook output, or None when the hook allowed the call."""
-        environment = dict(os.environ)
-        environment.pop("ISSUE_FLOW_SPAWN_GUARD", None)
-        environment.pop("ISSUE_FLOW_FORK_GUARD", None)
+        """Return the parsed hook output, or None when the hook printed nothing."""
+        environment = {k: v for k, v in os.environ.items() if k != "ISSUE_FLOW_SPAWN_GUARD"}
         environment.update(env or {})
         result = subprocess.run(
             [sys.executable, str(HOOK)],
@@ -51,198 +41,70 @@ class GuardTestCase(unittest.TestCase):
         self.assertEqual(result.returncode, 0, result.stderr)
         return json.loads(result.stdout) if result.stdout.strip() else None
 
-    def decision(self, payload, env=None):
-        output = self.run_hook(payload, env)
-        return output["hookSpecificOutput"].get("permissionDecision") if output else None
-
     def assertDenied(self, payload, env=None):
-        self.assertEqual(self.decision(payload, env), "deny")
+        output = self.run_hook(payload, env)
+        self.assertIsNotNone(output)
+        decision = output["hookSpecificOutput"]
+        self.assertEqual(decision["hookEventName"], "PreToolUse")
+        self.assertEqual(decision["permissionDecision"], "deny")
+        return decision["permissionDecisionReason"]
 
     def assertAllowed(self, payload, env=None):
-        self.assertIsNone(self.decision(payload, env))
+        self.assertIsNone(self.run_hook(payload, env))
 
-    def reason(self, payload, env=None):
-        return self.run_hook(payload, env)["hookSpecificOutput"]["permissionDecisionReason"]
+    def test_allows_the_recorded_payload(self):
+        self.assertAllowed(RECORDED)
 
+    def test_denies_a_spawn_with_fork_turns_all(self):
+        reason = self.assertDenied(spawn(fork_turns="all"))
+        self.assertIn('fork_turns "none"', reason)
 
-class BriefTemplateTest(unittest.TestCase):
-    def test_extracts_the_handoff_brief_from_the_template(self):
-        self.assertIn("crossCheck:", BRIEF)
-        self.assertIn("base:", BRIEF)
+    def test_denies_a_spawn_with_fork_turns_omitted(self):
+        reason = self.assertDenied(spawn(fork_turns=None))
+        self.assertIn('fork_turns "none"', reason)
 
+    def test_denies_a_worker_task_name_without_agent_type_issue_worker(self):
+        for name in ("worker_17", "worker_17_c2"):
+            with self.subTest(task_name=name):
+                reason = self.assertDenied(spawn(task_name=name))
+                self.assertIn('agent_type "issue_worker"', reason)
 
-class NameCheckTest(GuardTestCase):
-    def test_denies_a_named_spawn_without_isolation(self):
-        self.assertDenied(spawn(name="reviewer", subagent_type="general-purpose",
-                                prompt="review the diff"))
+    def test_denies_a_worker_task_name_with_another_agent_type(self):
+        self.assertDenied(spawn(task_name="worker_17", agent_type="default"))
 
-    def test_deny_reason_offers_the_remedies_and_names_the_hook_event(self):
-        output = self.run_hook(spawn(name="reviewer", subagent_type="general-purpose", prompt="x"))
-        reason = output["hookSpecificOutput"]["permissionDecisionReason"]
-        for expected in ("Drop `name`", 'isolation: "worktree"', "ISSUE_FLOW_SPAWN_GUARD"):
-            self.assertIn(expected, reason)
-        self.assertEqual(output["hookSpecificOutput"].get("hookEventName"), "PreToolUse")
+    def test_allows_a_worker_task_name_with_issue_worker_and_none(self):
+        self.assertAllowed(spawn(task_name="worker_17_c1", agent_type="issue_worker"))
 
-    def test_deny_reason_puts_dropping_the_name_first(self):
-        self.assertIn("Drop `name`", self.reason(spawn(name="reviewer", prompt="x")))
+    def test_allows_a_non_worker_spawn_with_fork_turns_none(self):
+        for name in ("reviewer", "worker_x", "worker_17_c", "xworker_17"):
+            with self.subTest(task_name=name):
+                self.assertAllowed(spawn(task_name=name))
 
-    def test_deny_reason_warns_that_isolation_strands_a_workers_child(self):
-        self.assertIn("commits never reach your branch",
-                      self.reason(spawn(name="reviewer", prompt="x")))
+    def test_allows_a_payload_whose_tool_input_is_a_string(self):
+        self.assertAllowed({**RECORDED, "tool_input": "x"})
 
-    def test_deny_reason_says_the_escape_is_read_at_session_start(self):
-        reason = self.reason(spawn(name="reviewer", prompt="x"))
-        self.assertIn("settings.json", reason)
-        self.assertIn("start a new session", reason)
+    def test_allows_a_payload_whose_tool_input_is_missing(self):
+        self.assertAllowed({k: v for k, v in RECORDED.items() if k != "tool_input"})
 
-    def test_allows_a_named_spawn_with_isolation(self):
-        self.assertAllowed(spawn(name="worker-42", isolation="worktree",
-                                 subagent_type="issue-flow:issue-worker"))
-
-    def test_allows_an_unnamed_spawn(self):
-        self.assertAllowed(spawn(subagent_type="Explore", prompt="locate"))
-
-    def test_allows_an_unnamed_isolated_spawn(self):
-        self.assertAllowed(spawn(isolation="worktree", prompt="x"))
-
-    def test_treats_an_empty_name_as_no_name(self):
-        self.assertAllowed(spawn(name="   ", prompt="x"))
-
-    def test_ignores_a_bash_call(self):
-        self.assertAllowed({"tool_name": "Bash", "tool_input": {
-            "command": "gh pr checks 21", "run_in_background": True}})
-
-    def test_allows_run_in_background_alone(self):
-        self.assertAllowed(spawn(subagent_type="general-purpose", run_in_background=True,
-                                 prompt="x"))
-
-    def test_guards_the_legacy_task_tool_name(self):
-        self.assertDenied({"tool_name": "Task", "tool_input": {"name": "reviewer", "prompt": "x"}})
-
-
-class ModeTest(GuardTestCase):
-    def test_asks_in_ask_mode(self):
-        self.assertEqual(self.decision(spawn(name="reviewer", prompt="x"),
-                                       {"ISSUE_FLOW_SPAWN_GUARD": "ask"}), "ask")
-
-    def test_denies_by_default(self):
-        self.assertDenied(spawn(name="reviewer", prompt="x"))
-
-    def test_denies_for_an_unrecognized_setting(self):
-        for value in ("DENY", "  deny  ", "anything-else"):
-            with self.subTest(value=value):
-                self.assertDenied(spawn(name="r", prompt="x"), {"ISSUE_FLOW_SPAWN_GUARD": value})
-
-    def test_disables_the_guard_for_each_off_spelling(self):
-        for value in ("off", "OFF", "0", "false", "no"):
-            with self.subTest(value=value):
-                self.assertAllowed(spawn(name="r", prompt="x"), {"ISSUE_FLOW_SPAWN_GUARD": value})
-
-
-class FailOpenTest(GuardTestCase):
     def test_allows_malformed_json(self):
         self.assertAllowed("{not json")
 
-    def test_allows_an_empty_payload(self):
-        self.assertAllowed({})
-
-    def test_allows_a_null_tool_input(self):
-        self.assertAllowed({"tool_name": "Agent", "tool_input": None})
-
-    def test_allows_a_string_tool_input(self):
-        self.assertAllowed({"tool_name": "Agent", "tool_input": "x"})
-
-    def test_allows_empty_stdin(self):
+    def test_allows_empty_input(self):
         self.assertAllowed("")
 
-    def test_allows_a_fork_with_no_prompt(self):
-        self.assertAllowed(spawn(subagent_type="fork"))
+    def test_ignores_a_tool_that_is_not_a_spawn(self):
+        self.assertAllowed({**RECORDED, "tool_name": "Bash", "tool_input": {"command": "ls"}})
 
-    def test_allows_a_fork_with_a_non_string_prompt(self):
-        self.assertAllowed(spawn(subagent_type="fork", prompt=42))
+    def test_matches_the_plain_tool_name_spawn_agent(self):
+        self.assertDenied({**spawn(fork_turns="all"), "tool_name": "spawn_agent"})
 
-    def test_allows_a_non_string_subagent_type(self):
-        self.assertAllowed(spawn(subagent_type=["fork"], prompt=BRIEF))
+    def test_off_allows_a_denied_spawn(self):
+        for value in ("off", "OFF", "0", "false", "no"):
+            with self.subTest(value=value):
+                self.assertAllowed(spawn(fork_turns="all"), {"ISSUE_FLOW_SPAWN_GUARD": value})
 
-
-class ForkCheckTest(GuardTestCase):
-    def test_denies_a_fork_that_carries_the_handoff_brief(self):
-        self.assertDenied(fork(BRIEF))
-
-    def test_fork_deny_reason_names_the_worker_and_the_switch(self):
-        reason = self.reason(fork(BRIEF))
-        for expected in ("issue-flow:issue-worker", "ISSUE_FLOW_FORK_GUARD", "`crossCheck:`"):
-            self.assertIn(expected, reason)
-
-    def test_denies_a_hand_written_brief_with_list_and_bold_markup(self):
-        self.assertDenied(fork(
-            "Build issue #42.\n- **base:** origin/epic/7-x\n- **ci:** skip\n- **members:** 3\n"))
-
-    def test_matches_the_fork_type_case_insensitively(self):
-        self.assertDenied(spawn(subagent_type=" Fork ", prompt=BRIEF))
-
-    def test_allows_a_plain_fork(self):
-        self.assertAllowed(fork("Summarize the diff and stop."))
-
-    def test_allows_a_fork_that_describes_a_failing_build(self):
-        self.assertAllowed(fork(
-            "Issue: #12 keeps failing.\nBranch: fix/x\nCI: red on lint\nFind out why."))
-
-    def test_allows_a_fork_with_two_issue_flow_labels_only(self):
-        self.assertAllowed(fork("crossCheck: see above\nmembers: 2\nNow explain the batch model."))
-
-    def test_allows_the_brief_sent_to_the_issue_worker(self):
-        self.assertAllowed(spawn(subagent_type="issue-flow:issue-worker", name="worker-42",
-                                 isolation="worktree", prompt=BRIEF))
-
-    def test_allows_the_general_purpose_fallback_carrying_the_brief(self):
-        self.assertAllowed(spawn(subagent_type="general-purpose", prompt=BRIEF))
-
-    def test_allows_labels_mid_line(self):
-        self.assertAllowed(fork("Note the issue: base: ci: members: are all mentioned inline here."))
-
-    def test_denies_a_brief_laid_out_in_each_way_a_model_re_lays_the_template(self):
-        layouts = {
-            "a numbered list": "1. issue: #42\n2. base: origin/dev\n3. crossCheck: n/a\n",
-            "markdown headings": "## Issue: #42\n## Base: origin/dev\n## Members: 1\n",
-            "a table": "| field | value |\n|---|---|\n| issue | #42 |\n| base | dev |\n| members | 1 |\n",
-            "pretty-printed JSON": '{\n  "issue": 42,\n  "base": "origin/dev",\n  "crossCheck": "n/a"\n}',
-            "= separators": "issue = #42\nbase = origin/dev\nsteRule = x\n",
-            "a spelled-out cross-check": "Issue: #42\nBase: origin/dev\nCross-check: n/a\n",
-            "a space before the colon": "issue : #42\nbase : dev\nforge : {type: gitea}\n",
-            "capitalized labels only": "Issue: #42\nBase: dev\nCrossCheck: n/a\n",
-        }
-        for label, prompt in layouts.items():
-            with self.subTest(layout=label):
-                self.assertDenied(fork(prompt))
-
-    def test_refuses_a_named_build_fork_for_the_fork_not_the_name(self):
-        self.assertIn("issue-flow:issue-worker", self.reason(fork(BRIEF, name="worker-42")))
-
-    def test_denies_a_fork_that_quotes_the_brief_fields_one_per_line(self):
-        # Documented false positive: the guard cannot tell a quote from a brief.
-        self.assertDenied(fork("Explain these fields:\n- issue:\n- base:\n- members:\n"))
-
-
-class ForkSwitchTest(GuardTestCase):
-    def test_off_allows_a_build_fork(self):
-        self.assertAllowed(fork(BRIEF), {"ISSUE_FLOW_FORK_GUARD": "off"})
-
-    def test_off_allows_a_plain_fork(self):
-        self.assertAllowed(fork("Summarize the diff."), {"ISSUE_FLOW_FORK_GUARD": "off"})
-
-    def test_turning_off_the_name_check_leaves_the_fork_check_on(self):
-        self.assertDenied(fork(BRIEF), {"ISSUE_FLOW_SPAWN_GUARD": "off"})
-
-    def test_turning_off_the_fork_check_leaves_the_name_check_on(self):
-        self.assertDenied(spawn(name="reviewer", prompt="x"), {"ISSUE_FLOW_FORK_GUARD": "off"})
-
-    def test_asks_instead_of_denying_in_fork_ask_mode(self):
-        self.assertEqual(self.decision(fork(BRIEF), {"ISSUE_FLOW_FORK_GUARD": "ask"}), "ask")
-
-    def test_ask_reason_says_to_approve_only_if_deliberate(self):
-        reason = self.reason(fork(BRIEF), {"ISSUE_FLOW_FORK_GUARD": "ask"})
-        self.assertIn("approve only if deliberate", reason)
+    def test_denies_for_an_unrecognized_setting(self):
+        self.assertDenied(spawn(fork_turns="all"), {"ISSUE_FLOW_SPAWN_GUARD": "anything"})
 
 
 if __name__ == "__main__":

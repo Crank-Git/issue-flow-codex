@@ -250,15 +250,15 @@ def p5():
 
 def p6():
     with probe_env() as env:
-        marker = env.workdir / "started.marker"
         message, _ = env.exec(
-            f"Use {SPAWN.format(role='echo_worker')} with the task: run the shell command `touch started.marker`. "
-            "If the spawn is refused, reply with the exact refusal reason and nothing else. Otherwise wait for the subagent.",
+            f"Use {SPAWN.format(role='echo_worker')} with the task: run the shell command `echo started`. "
+            "If the spawn is refused, reply with the exact refusal reason and nothing else. "
+            "Do not do the task yourself. Otherwise wait for the subagent.",
             deny_role="echo_worker",
         )
         reason = f"DENIED-{env.token}"
-        ok = reason in message and not marker.exists()
-        return ok, f"deny reason in reply: {reason in message}; subagent ran: {marker.exists()}"
+        started = [h for h in env.hooks() if h.get("agent_type") == "echo_worker"]
+        return reason in message and not started, f"deny reason in reply: {reason in message}; subagent hook entries: {len(started)}"
 
 
 WORKTREE = "git worktree add .worktrees/t1 -b t1"
@@ -266,11 +266,10 @@ WORKTREE = "git worktree add .worktrees/t1 -b t1"
 
 def p7():
     with probe_env() as env:
-        _, events = env.exec(f"Run `{WORKTREE}` and reply with its exit code and error text.")
-        codes = [c for cmd, c in commands(events) if "worktree add" in cmd]
+        message, _ = env.exec(f"Run `{WORKTREE}` and reply with its exit code and error text.")
         branch = env.git("branch", "--list", "t1").stdout.strip()
-        ok = bool(codes) and all(c != 0 for c in codes) and not branch
-        return ok, f"exit codes {codes}, branch t1 exists: {bool(branch)}"
+        denied = "Operation not permitted" in message
+        return denied and not branch, f"error text holds 'Operation not permitted': {denied}; branch t1 exists: {bool(branch)}"
 
 
 def p8():

@@ -231,3 +231,56 @@ class BatchGateFixTextTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+def phase_0():
+    """Phase 0 without step 11, whose run-configuration text another issue ports."""
+    text = section("SKILL.md", "# Phase 0", "# The PM loop")
+    start = text.index("\n11. **Run configuration")
+    end = text.index("\n12. **State recovery")
+    return " ".join((text[:start] + text[end:]).split())
+
+
+class PhaseZeroTest(unittest.TestCase):
+    def test_stops_when_the_preflight_ran_line_is_missing(self):
+        text = phase_0()
+        self.assertIn("issue-flow preflight: ran", text)
+        self.assertIn("/hooks", text)
+
+    def test_names_the_setup_project_check(self):
+        text = phase_0()
+        self.assertIn("setup_project.py check --project", text)
+        self.assertIn("$issue-flow:setup", text)
+
+    def test_names_the_sandbox_probe_and_the_issue_flow_profile(self):
+        text = phase_0()
+        self.assertIn("git update-ref refs/issue-flow/probe HEAD", text)
+        self.assertIn("git update-ref -d refs/issue-flow/probe", text)
+        self.assertIn("git ls-remote", text)
+        self.assertIn("issue_flow", text)
+
+    def test_checks_run_in_order(self):
+        text = phase_0()
+        marks = ["preflight: ran", "agent_type", "setup_project.py check", "refs/issue-flow/probe"]
+        positions = [text.index(mark) for mark in marks]
+        self.assertEqual(positions, sorted(positions))
+
+    def test_names_the_truncated_digest_line(self):
+        self.assertIn("digest truncated (time budget)", phase_0())
+
+    def test_runs_the_no_ci_suite_in_a_created_worktree(self):
+        text = phase_0()
+        self.assertIn("worktree.py create", text)
+        self.assertIn('fork_turns: "none"', text)
+        self.assertIn("workdir", text)
+
+    def test_lists_mcp_servers_with_codex_only(self):
+        self.assertIn("codex mcp list", phase_0())
+
+    def test_links_the_same_login_rule(self):
+        self.assertIn("references/collaboration.md#same-login-sessions", phase_0())
+
+    def test_has_no_claude_only_tools(self):
+        text = phase_0()
+        for word in ("claude mcp", "claude plugin", "ToolSearch", "isolation", "AskUserQuestion"):
+            self.assertNotIn(word, text)

@@ -223,6 +223,14 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li><strong>A worker cannot run nested <code>codex exec</code> probes.</strong> In the first dogfood run (2026-11-03), a <code>gpt-6-luna</code> worker inside the <code>issue_flow</code> permission profile ran a nested <code>codex exec</code> probe. The PostToolUse payload capture worked, but macOS denied the nested sandbox's shell commands. Live Codex proofs therefore run from the gate harness (<code>tests/e2e/run_loop.py</code>) outside the worker sandbox.
 </li>
+<li><strong><code>PLUGIN_DATA</code> is not pre-created.</strong> Codex sets the variable for plugin hooks and does not create the directory (<code>codex-rs core-plugins/src/store.rs:27,122</code>). A hook that writes there creates it first.
+</li>
+<li><strong>The Bash PostToolUse <code>tool_response</code> is the raw command output.</strong> It is a string with no exit-code header and no exit-code field. A failed command has no marker. A command that never ran shows <code>sandbox-exec: sandbox_apply: Operation not permitted</code>. Evidence: 98 payloads from the #75 gate run (Codex 0.166.0, <code>gpt-6-luna</code>), sanitized in <code>tests/fixtures/hooks/gate75_pm_sequence.json</code>. Source: <code>codex-rs core/src/tools/context.rs:483-490</code>.
+</li>
+<li><strong>Subagent hook payloads share the PM's <code>session_id</code>.</strong> They differ by <code>agent_id</code> and <code>agent_type</code>. A hook that keeps per-session state must ignore every payload with an <code>agent_id</code>, or a worker's calls change the PM's state. Same evidence as item 18.
+</li>
+<li><strong>Gitea MCP tools appear as <code>mcp__&lt;server&gt;__&lt;tool&gt;</code>.</strong> The PostToolUse matcher <code>^mcp__.+__list_(issues|pull_requests)$</code> selects the list calls. The gate run had no MCP server, so this name shape is not yet recorded from a live run.
+</li>
 </ol>
 <p>The profile used in facts 8 and 9:</p>
 <pre class="code"><code>default_permissions = "gitw"

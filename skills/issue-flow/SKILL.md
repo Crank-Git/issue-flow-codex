@@ -242,7 +242,7 @@ spent — run every step below yourself. The digest is an accelerator, never a d
    - **Does the CI honor `[skip ci]`?** (GitHub Actions does natively; Gitea Actions does natively from Gitea 1.20. Both key on the head commit message.) If the provider doesn't (or workflows use `workflow_dispatch`/schedule triggers that don't care), fall back to the alternatives in [references/batching.md](references/batching.md) (path filters, branch filters excluding `epic/**`+`batch/**` — proposing that workflow edit to the user once).
 8. **Documentation access — offer the MCP servers that provide it.** Workers must
    read real API docs rather than assume ([references/external-apis.md](../../references/external-apis.md)),
-   and a connected documentation MCP server is far better at that with version-correct details. So
+   and a connected documentation MCP server provides version-correct details. So
    before any work starts:
    - **See what is already connected.** Run `codex mcp list` for configured servers and
      `codex plugin marketplace list` for configured marketplaces. Do not offer an item that

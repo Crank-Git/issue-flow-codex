@@ -9,12 +9,12 @@ This page maps each upstream file at `issue-flow--v0.17.0` to its port mode. The
 initial `upstream.lock` takes its modes from this table (FR-foundation-6). Line counts
 are upstream counts. The column "Feature" names the feature file that ports the file.
 
-Upstream total: 39 files, 10,343 lines.
+Upstream total: 40 files, 10,882 lines.
 
 | Mode | Files | Lines |
 |---|---|---|
 | verbatim | 4 | 1,476 |
-| patched | 22 | 4,100 |
+| patched | 23 | 4,639 |
 | rewritten | 12 | 4,503 |
 | dropped | 1 | 264 |
 
@@ -25,6 +25,7 @@ change. The table below names the sections.
 
 | Upstream path | Lines | Mode | What changes | Feature |
 |---|---|---|---|---|
+| `README.md` | 539 | patched | Port credit and Codex install steps. | 00 |
 | `.claude-plugin/plugin.json` | 25 | rewritten | Becomes `.codex-plugin/plugin.json`. | 01 |
 | `hooks/hooks.json` | 26 | rewritten | Codex events, `$PLUGIN_ROOT`, matcher `spawn_agent$`, role guard entry. | 01 |
 | `hooks/preflight.py` | 333 | patched | Output wrapper, `source` line, `ran` line. The digest logic stays. | 01, 03 |

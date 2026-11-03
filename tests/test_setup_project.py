@@ -34,10 +34,14 @@ class SetupProjectTest(unittest.TestCase):
         for name in ROLE_NAMES:
             (self.plugin / "roles" / f"{name}.toml").write_text(
                 f'developer_instructions = "{name}"\n', encoding="utf-8")
+        (self.plugin / ".codex-plugin").mkdir()
+        (self.plugin / ".codex-plugin" / "plugin.json").write_text(
+            json.dumps({"name": "issue-flow", "version": "0.1.0"}), encoding="utf-8")
 
     def apply(self, *extra, accept=None):
-        files = setup_project.plan_files(self.project, self.plugin,
-                                         "--with-default-permissions" in extra)
+        flag = True if "--with-default-permissions" in extra else (
+            False if "--without-default-permissions" in extra else None)
+        files = setup_project.plan_files(self.project, self.plugin, flag)
         chosen = sorted(files) if accept is None else accept
         setup_project.apply_files(self.project, files, chosen)
 
@@ -156,6 +160,82 @@ class SetupProjectTest(unittest.TestCase):
         spec = (ROOT / "docs/specs/features/01-plugin-packaging.md").read_text(encoding="utf-8")
         match = re.search(r"```toml\n(# issue-flow:begin.*?# issue-flow:end)\n```", spec, re.S)
         self.assertEqual(setup_project.render_block(3, True) + "\n", match.group(1) + "\n")
+
+    def test_keeps_default_permissions_on_a_rerun_when_it_is_already_present(self):
+        self.apply("--with-default-permissions")
+        self.apply()
+        self.assertEqual(tomllib.loads(self.config())["default_permissions"], "issue_flow")
+
+    def test_drops_default_permissions_when_the_operator_rejects_it(self):
+        self.apply("--with-default-permissions")
+        self.apply("--without-default-permissions")
+        self.assertNotIn("default_permissions", self.config())
+
+    def test_plan_says_when_it_keeps_default_permissions(self):
+        self.apply("--with-default-permissions")
+        (self.project / ".codex" / "config.toml").write_text(
+            self.config().replace("= 7", "= 99"), encoding="utf-8")
+        out = io.StringIO()
+        with redirect_stdout(out):
+            setup_project.main(["plan", "--project", str(self.project),
+                                "--plugin-root", str(self.plugin)])
+        self.assertIn('note: .codex/config.toml keeps default_permissions = "issue_flow"', out.getvalue())
+
+    def run_check(self):
+        out = io.StringIO()
+        with redirect_stdout(out):
+            code = setup_project.main(["check", "--project", str(self.project),
+                                       "--plugin-root", str(self.plugin)])
+        return code, out.getvalue()
+
+    def test_check_reports_ok_for_a_set_up_project_except_hooks(self):
+        self.apply("--with-default-permissions")
+        code, text = self.run_check()
+        self.assertEqual(code, 0)
+        self.assertEqual(text.splitlines(), [
+            "roles        ok       6 of 6 match plugin 0.1.0",
+            "config block ok",
+            "threads      ok       max_concurrent_threads_per_session = 7",
+            "profile      ok       default_permissions = issue_flow",
+            "gitignore    ok",
+            "hooks        unknown  run /hooks to see the trust state",
+        ])
+
+    def test_check_reports_missing_profile_and_exits_1(self):
+        self.apply()
+        code, text = self.run_check()
+        self.assertEqual(code, 1)
+        self.assertIn("profile      missing  default_permissions is not set to issue_flow", text)
+
+    def test_check_reports_stale_after_one_byte_changes_in_a_role_file(self):
+        self.apply("--with-default-permissions")
+        role = self.project / ".codex" / "agents" / "issue_worker.toml"
+        role.write_bytes(role.read_bytes() + b" ")
+        code, text = self.run_check()
+        self.assertEqual(code, 1)
+        self.assertIn("roles        stale    5 of 6 match plugin 0.1.0", text)
+
+    def test_check_reports_missing_roles_on_an_empty_project(self):
+        code, text = self.run_check()
+        self.assertEqual(code, 1)
+        lines = text.splitlines()
+        self.assertEqual(lines[0], "roles        missing  0 of 6 match plugin 0.1.0")
+        self.assertTrue(lines[1].startswith("config block missing"))
+        self.assertTrue(lines[2].startswith("threads      missing"))
+        self.assertTrue(lines[4].startswith("gitignore    missing"))
+
+    def test_check_reports_stale_threads_when_the_concurrency_changes(self):
+        self.apply("--with-default-permissions")
+        (self.project / ".issue-flow.json").write_text(json.dumps({"concurrency": 5}), encoding="utf-8")
+        code, text = self.run_check()
+        self.assertEqual(code, 1)
+        self.assertIn("threads      stale    max_concurrent_threads_per_session = 7, expected 9", text)
+        self.assertIn("config block stale", text)
+
+    def test_check_writes_no_file(self):
+        before = sorted(self.project.rglob("*"))
+        self.run_check()
+        self.assertEqual(sorted(self.project.rglob("*")), before)
 
 
 if __name__ == "__main__":

@@ -140,16 +140,31 @@ class PreflightTest(unittest.TestCase):
     def test_says_so_when_the_config_records_no_plugin_version(self):
         self.assertIn("no pluginVersion recorded", self.digest())
 
+    def test_reads_the_codex_plugin_version_from_the_codex_config(self):
+        installed = self.installed()
+        with open(os.path.join(self.project, ".issue-flow.codex.json"), "w", encoding="utf-8") as handle:
+            json.dump({"pluginVersion": installed}, handle)
+        self.assertIn(f"plugin version: {installed} (matches the last run)", self.digest())
+
+    def test_leaves_the_shared_plugin_version_unchanged(self):
+        config_path = os.path.join(self.project, ".issue-flow.json")
+        write_config(self.project, {"version": 1, "forge": {"type": "gitea"},
+                                    "pluginVersion": "0.17.0"})
+        before = Path(config_path).read_bytes()
+        digest = self.digest()
+        self.assertEqual(Path(config_path).read_bytes(), before)
+        self.assertNotIn("project last ran 0.17.0", digest)
+
     def test_reports_a_matching_plugin_version(self):
         installed = json.loads(MANIFEST.read_text(encoding="utf-8"))["version"]
-        write_config(self.project, {"version": 1, "forge": {"type": "gitea"},
-                                    "pluginVersion": installed})
+        with open(os.path.join(self.project, ".issue-flow.codex.json"), "w", encoding="utf-8") as handle:
+            json.dump({"pluginVersion": installed}, handle)
         self.assertIn(f"plugin version: {installed} (matches the last run)", self.digest())
 
     def test_flags_a_stale_plugin_version_as_drift(self):
         installed = json.loads(MANIFEST.read_text(encoding="utf-8"))["version"]
-        write_config(self.project, {"version": 1, "forge": {"type": "gitea"},
-                                    "pluginVersion": "0.0.1"})
+        with open(os.path.join(self.project, ".issue-flow.codex.json"), "w", encoding="utf-8") as handle:
+            json.dump({"pluginVersion": "0.0.1"}, handle)
         self.assertIn(f"plugin version: {installed}, project last ran 0.0.1", self.digest())
 
     def test_reads_the_branch_model_from_the_spec_front_matter(self):

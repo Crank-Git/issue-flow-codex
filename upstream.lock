@@ -829,3 +829,15 @@ path = "tests/fixtures/hooks/pre_tool_use_apply_patch.json"
 mode = "new"
 upstream_sha256 = ""
 notes = "port-only: live subagent PreToolUse apply_patch payload (#18)"
+
+[[file]]
+path = "scripts/worktree.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: create and remove worker worktrees (#19)"
+
+[[file]]
+path = "tests/test_worktree.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: tests for scripts/worktree.py (#19)"

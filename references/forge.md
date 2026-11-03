@@ -23,7 +23,7 @@ Work out the forge once, in Phase 0, and record it.
    (`git@host:owner/repo.git`) has no scheme and no port, so you cannot form the `curl`
    probe from it directly — use the `tea logins list` check instead.
 4. **Ambiguous means ask.** A host you cannot confirm, or two plausible answers, is an
-   `AskUserQuestion` — never a guess. Defaulting silently to GitHub against a Gitea
+   one plain-text question — never a guess. Defaulting silently to GitHub against a Gitea
    remote produces a session of failing commands.
 
 ## Interfaces
@@ -320,7 +320,7 @@ re-reads the agent's whole context, so a 30-minute watch at one turn per check c
 full-context round trips instead of one. Codex has no background shell that wakes the
 agent when a command ends, and it ends any command at 300 seconds
 (`docs/specs/pages/codex-harness.md`). So the wait is a subagent, the `ci_watcher` role
-(`agents/ci-watcher.md`).
+(the CI watcher role file).
 
 1. The PM calls `list_agents`. When a thread slot is free, it calls `spawn_agent` with
    `agent_type: "ci_watcher"`, `fork_turns: "none"`, `task_name: "ci_<pr>"`, and a brief
@@ -368,7 +368,7 @@ The Actions endpoint filters by `head_sha` **server-side**, so anchor the watch 
 commit you just pushed rather than to "the latest run on the branch".
 
 The loop ships as a script, `scripts/ci_wait.py` in the plugin. For Gitea it makes the
-same call as `scripts/gitea-ci-watch.sh`. Run it from the checkout, with the full SHA
+same call as Gitea CI watcher script. Run it from the checkout, with the full SHA
 typed in. Get the SHA first with `git rev-parse HEAD` as a call of its own:
 
 ```bash

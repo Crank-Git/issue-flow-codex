@@ -523,3 +523,19 @@ class BatchGateFixTextTest(unittest.TestCase):
         for path in (SKILL_DIR / "references/session-config.md",
                      SKILL_DIR.parent.parent / "references/external-apis.md"):
             self.assertNotIn("claude mcp", path.read_text(), path.name)
+
+class RemainingClaudeMechanicsTest(unittest.TestCase):
+    def test_loop_references_do_not_direct_the_pm_to_claude_tools(self):
+        root = Path(__file__).resolve().parent.parent
+        files = [*root.joinpath("skills/issue-flow").rglob("*.md"),
+                 *root.joinpath("references").rglob("*.md")]
+        forbidden = re.compile(
+            r"WebFetch|ToolSearch|AskUserQuestion|\.claude/settings\.json|"
+            r"claude mcp|isolation\s*:\s*[\"']worktree[\"']|ci-watch",
+            re.IGNORECASE,
+        )
+        matches = [(path.relative_to(root), line.strip())
+                   for path in files
+                   for line in path.read_text().splitlines()
+                   if forbidden.search(line)]
+        self.assertEqual([], matches)

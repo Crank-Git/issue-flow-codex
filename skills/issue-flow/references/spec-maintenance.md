@@ -1,6 +1,6 @@
 # Keeping the spec honest (PM-facing)
 
-`project-planner` writes `docs/specs/`, and the project's `CLAUDE.md` tells every future
+`project-planner` writes `docs/specs/`, and the project's `AGENTS.md` tells every future
 session to read it before building a feature. That instruction is only safe if the spec
 still describes the app. The PM makes decisions during the loop that change the product —
 ship-partial calls, answers to parked questions, hotfixes that alter behaviour — and

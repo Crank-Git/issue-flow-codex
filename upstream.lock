@@ -387,6 +387,12 @@ upstream_sha256 = "218f9fab3c1d4307492bc1088f9b3b1eff8f07aeadcb7dffe3905b7dbcbfc
 notes = "Reads Claude Code agent-team files that Codex does not have."
 
 [[file]]
+path = "scripts/setup_project.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
 path = "scripts/state_cas.py"
 mode = "patched"
 upstream_sha256 = "00b9347c1176636844cfe3eccd1c1348dc1b7cce41d819e51682f7741445dc4a"
@@ -535,6 +541,12 @@ path = "skills/repo-mirror/templates/mirror.yml"
 mode = "verbatim"
 upstream_sha256 = "fb6e50375d850e95f71c4d70186197f2275b6590d9aeb0835ff81a62afa90b02"
 notes = ""
+
+[[file]]
+path = "skills/setup/SKILL.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
 
 [[file]]
 path = "skills/spec-to-issues/SKILL.md"
@@ -727,6 +739,12 @@ path = "tests/test_render_spec.py"
 mode = "new"
 upstream_sha256 = ""
 notes = "from upstream scripts/test-render-spec.py"
+
+[[file]]
+path = "tests/test_setup_project.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
 
 [[file]]
 path = "tests/test_state_cas.py"

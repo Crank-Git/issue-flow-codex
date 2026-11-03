@@ -5,11 +5,18 @@ Port-only script, the mechanics of the `setup` skill (FR-plugin-packaging-11 to 
 
     python3 scripts/setup_project.py plan --project <dir> [--with-default-permissions]
     python3 scripts/setup_project.py apply --project <dir> --accept <file>... [--with-default-permissions]
+    python3 scripts/setup_project.py check --project <dir>
+
+A rerun keeps a `default_permissions = "issue_flow"` line that the block already holds.
+`--without-default-permissions` drops it. Without either flag, `plan` and `apply` decide
+from the file.
 
 `plan` prints a unified diff for each file that setup changes and writes nothing.
 `apply` writes only the files named by `--accept`. A file name is a path relative to
 the project, as the plan shows it. A Codex plugin cannot ship roles, so setup copies
 the role files from `<plugin root>/roles/` into `<project>/.codex/agents/`.
+`check` prints one status line for each item, writes nothing, and exits 1 when an item
+is `missing` or `stale` (docs/specs/features/01-plugin-packaging.md, Screens & states).
 """
 
 import argparse
@@ -45,6 +52,9 @@ enabled = true
 # issue-flow:end"""
 
 
+PERMISSIONS_LINE = 'default_permissions = "issue_flow"'
+
+
 class SetupError(Exception):
     pass
 
@@ -62,9 +72,28 @@ def read_concurrency(project):
     return value
 
 
+def block_lines(existing):
+    """Return the lines from the begin marker to the end marker, or [] when there is no block."""
+    lines = existing.splitlines()
+    begin = next((i for i, l in enumerate(lines) if l.startswith(BEGIN)), None)
+    if begin is None:
+        return []
+    end = next((i for i in range(begin, len(lines)) if lines[i] == END), None)
+    if end is None:
+        raise SetupError(f".codex/config.toml: block has no `{END}` line")
+    return lines[begin:end + 1]
+
+
+def resolve_default_permissions(existing, requested):
+    """Return whether the block carries the profile line: the operator's choice, else the file's."""
+    if requested is not None:
+        return requested
+    return PERMISSIONS_LINE in block_lines(existing)
+
+
 def render_block(concurrency, with_default_permissions):
     """Return the config block text, without a trailing newline."""
-    line = 'default_permissions = "issue_flow"\n\n' if with_default_permissions else ""
+    line = PERMISSIONS_LINE + "\n\n" if with_default_permissions else ""
     return BLOCK_TEMPLATE.format(permissions_line=line, threads=concurrency + THREAD_OVERHEAD)
 
 
@@ -101,7 +130,8 @@ def plan_files(project, plugin_root, with_default_permissions):
 
     config = project / ".codex" / "config.toml"
     existing = config.read_text(encoding="utf-8") if config.is_file() else ""
-    block = render_block(read_concurrency(project), with_default_permissions)
+    block = render_block(read_concurrency(project),
+                         resolve_default_permissions(existing, with_default_permissions))
     merged = merge_config(existing, block)
     try:
         tomllib.loads(merged)
@@ -135,7 +165,11 @@ def apply_files(project, files, accepted):
     return list(accepted)
 
 
-def print_diffs(project, files):
+def print_diffs(project, files, with_default_permissions):
+    config = project / ".codex" / "config.toml"
+    if (".codex/config.toml" in files and with_default_permissions is None and config.is_file()
+            and PERMISSIONS_LINE in block_lines(config.read_text(encoding="utf-8"))):
+        print(f'note: .codex/config.toml keeps {PERMISSIONS_LINE} (already set)')
     for rel, text in files.items():
         path = project / rel
         old = path.read_text(encoding="utf-8").splitlines(keepends=True) if path.is_file() else []
@@ -144,23 +178,77 @@ def print_diffs(project, files):
                                                    fromfile=fromfile, tofile=f"b/{rel}"))
 
 
+def check_report(project, plugin_root):
+    """Return (item, status, detail) rows for the project, reading only."""
+    version = json.loads((plugin_root / ".codex-plugin" / "plugin.json").read_text(encoding="utf-8"))["version"]
+    rows = []
+
+    wanted = sorted((plugin_root / "roles").glob("*.toml"))
+    copies = [project / ".codex" / "agents" / r.name for r in wanted]
+    matching = sum(c.is_file() and c.read_bytes() == r.read_bytes() for r, c in zip(wanted, copies))
+    absent = not all(c.is_file() for c in copies)
+    rows.append(("roles", "missing" if absent else "ok" if matching == len(wanted) else "stale",
+                 f"{matching} of {len(wanted)} match plugin {version}"))
+
+    config = project / ".codex" / "config.toml"
+    text = config.read_text(encoding="utf-8") if config.is_file() else ""
+    block = block_lines(text)
+    expected_threads = read_concurrency(project) + THREAD_OVERHEAD
+    expected_block = render_block(read_concurrency(project), PERMISSIONS_LINE in block).splitlines()
+    rows.append(("config block", "missing" if not block else "ok" if block == expected_block else "stale", ""))
+
+    try:
+        parsed = tomllib.loads(text)
+    except tomllib.TOMLDecodeError as exc:
+        raise SetupError(f".codex/config.toml does not parse as TOML: {exc}") from exc
+    threads = parsed.get("features", {}).get("multi_agent_v2", {}).get("max_concurrent_threads_per_session")
+    key = "max_concurrent_threads_per_session"
+    if threads is None:
+        rows.append(("threads", "missing", f"{key} is not set"))
+    elif threads == expected_threads:
+        rows.append(("threads", "ok", f"{key} = {threads}"))
+    else:
+        rows.append(("threads", "stale", f"{key} = {threads}, expected {expected_threads}"))
+
+    if parsed.get("default_permissions") == "issue_flow":
+        rows.append(("profile", "ok", "default_permissions = issue_flow"))
+    else:
+        rows.append(("profile", "missing", "default_permissions is not set to issue_flow"))
+
+    ignore = project / ".gitignore"
+    listed = ignore.is_file() and ".worktrees/" in ignore.read_text(encoding="utf-8").splitlines()
+    rows.append(("gitignore", "ok" if listed else "missing", ""))
+    rows.append(("hooks", "unknown", "run /hooks to see the trust state"))
+    return rows
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="command", required=True)
-    for name in ("plan", "apply"):
+    for name in ("plan", "apply", "check"):
         p = sub.add_parser(name)
         p.add_argument("--project", required=True, type=Path)
-        p.add_argument("--with-default-permissions", action="store_true",
-                       help='set default_permissions = "issue_flow" (FR-plugin-packaging-16)')
+        if name != "check":
+            group = p.add_mutually_exclusive_group()
+            group.add_argument("--with-default-permissions", action="store_true", default=None,
+                               help='set default_permissions = "issue_flow" (FR-plugin-packaging-16)')
+            group.add_argument("--without-default-permissions", action="store_false",
+                               dest="with_default_permissions",
+                               help="drop the default_permissions line")
         # Tests point this at a fixture; a run leaves the default.
         p.add_argument("--plugin-root", type=Path, default=Path(__file__).resolve().parent.parent)
     sub.choices["apply"].add_argument("--accept", nargs="+", required=True, metavar="FILE")
     args = parser.parse_args(argv)
     try:
+        if args.command == "check":
+            rows = check_report(args.project, args.plugin_root)
+            for item, status, detail in rows:
+                print(f"{item:<12} {status:<8} {detail}".rstrip())
+            return int(any(status in ("missing", "stale") for _, status, _ in rows))
         files = plan_files(args.project, args.plugin_root, args.with_default_permissions)
         if args.command == "plan":
             if files:
-                print_diffs(args.project, files)
+                print_diffs(args.project, files, args.with_default_permissions)
             else:
                 print("no changes")
         else:

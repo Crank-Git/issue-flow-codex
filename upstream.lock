@@ -619,3 +619,57 @@ path = "tests/test_verify_claim.py"
 mode = "new"
 upstream_sha256 = ""
 notes = "from upstream scripts/test-verify-claim.py"
+
+[[file]]
+path = "scripts/conformance.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: conformance suite (#10)"
+
+[[file]]
+path = "tests/fixtures/conformance/.agents/plugins/marketplace.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: conformance suite (#10)"
+
+[[file]]
+path = "tests/fixtures/conformance/plugin/.codex-plugin/plugin.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: conformance suite (#10)"
+
+[[file]]
+path = "tests/fixtures/conformance/plugin/hooks/hooks.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: conformance suite (#10)"
+
+[[file]]
+path = "tests/fixtures/conformance/plugin/hooks/log_hook.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: conformance suite (#10)"
+
+[[file]]
+path = "tests/fixtures/conformance/plugin/skills/ping/SKILL.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: conformance suite (#10)"
+
+[[file]]
+path = "tests/fixtures/conformance/roles/echo_worker.toml"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: conformance suite (#10)"
+
+[[file]]
+path = "tests/fixtures/conformance/roles/git_worker.toml"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: conformance suite (#10)"
+
+[[file]]
+path = "tests/test_conformance.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: conformance suite (#10)"

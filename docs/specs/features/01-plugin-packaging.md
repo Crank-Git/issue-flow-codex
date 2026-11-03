@@ -2,8 +2,8 @@
 id: plugin-packaging
 feature: Plugin packaging and hooks
 epic: "Epic 1: Plugin packaging and hooks"
-status: planned
-issues: []
+status: issued
+issues: [13, 14, 15, 16, 17, 18]
 mockups: []
 ---
 

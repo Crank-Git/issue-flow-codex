@@ -308,6 +308,58 @@ Secrets: the forge tokens live in the `gh` and `tea` credential stores. No file 
 - **Documentation and source disagree.** The plugin docs say plugin hooks work "only for plugins installed manually in Codex desktop". The live test showed plugin hooks running in the CLI. The port relies on the observed behavior and the conformance suite checks it.
 - **Quota.** Concurrency 3 with `gpt-6.1-sol` workers can use a large share of a ChatGPT plan. The operator decides the worker model at each run.
 
+## Issue map
+
+Created by spec-to-issues on 2026-11-03 in `Crank-Git/issue-flow-codex`.
+
+| Epic | Epic issue | Sub-issues |
+|---|---|---|
+| Epic 0: Foundation | #1 | #8, #9, #10, #11, #12 |
+| Epic 1: Plugin packaging and hooks | #2 | #13, #14, #15, #16, #17, #18 |
+| Epic 2: Worker dispatch | #3 | #19, #20, #21, #22, #23 |
+| Epic 3: Loop operations | #4 | #24, #25, #26, #27, #28, #29 |
+| Epic 4: Spec skills | #5 | #30, #31, #32, #33, #34 |
+| Epic 5: Project review | #6 | #35, #36, #37, #38 |
+| Epic 6: Mirror and sync | #7 | #39, #40, #41, #42 |
+
+| Requirements | Issue |
+|---|---|
+| FR-foundation-1, FR-foundation-2, FR-foundation-3, FR-foundation-4, FR-foundation-5, FR-foundation-6, FR-foundation-7, FR-foundation-8 | #8 |
+| FR-foundation-9, FR-foundation-10, FR-foundation-11, FR-foundation-12 | #9 |
+| FR-foundation-13, FR-foundation-14, FR-foundation-15, FR-foundation-16, FR-foundation-17 | #10 |
+| FR-foundation-18, FR-foundation-19, FR-foundation-20 | #11 |
+| FR-foundation-21, FR-foundation-22, FR-foundation-23 | #12 |
+| FR-plugin-packaging-1, FR-plugin-packaging-2, FR-plugin-packaging-3, FR-plugin-packaging-4, FR-plugin-packaging-5, FR-plugin-packaging-6, FR-plugin-packaging-7, FR-plugin-packaging-8, FR-plugin-packaging-9 | #13 |
+| FR-plugin-packaging-10, FR-plugin-packaging-11, FR-plugin-packaging-12, FR-plugin-packaging-13, FR-plugin-packaging-14, FR-plugin-packaging-15, FR-plugin-packaging-16, FR-plugin-packaging-19 | #14 |
+| FR-plugin-packaging-17, FR-plugin-packaging-18, FR-plugin-packaging-20, FR-plugin-packaging-21, FR-plugin-packaging-22 | #15 |
+| FR-plugin-packaging-23, FR-plugin-packaging-26, FR-plugin-packaging-27, FR-plugin-packaging-28, FR-plugin-packaging-39 | #16 |
+| FR-plugin-packaging-24, FR-plugin-packaging-29, FR-plugin-packaging-30, FR-plugin-packaging-31, FR-plugin-packaging-32, FR-plugin-packaging-33 | #17 |
+| FR-plugin-packaging-25, FR-plugin-packaging-34, FR-plugin-packaging-35, FR-plugin-packaging-36, FR-plugin-packaging-37, FR-plugin-packaging-38 | #18 |
+| FR-worker-dispatch-1, FR-worker-dispatch-2, FR-worker-dispatch-3, FR-worker-dispatch-4, FR-worker-dispatch-5, FR-worker-dispatch-6, FR-worker-dispatch-7 | #19 |
+| FR-worker-dispatch-12, FR-worker-dispatch-13, FR-worker-dispatch-14, FR-worker-dispatch-15, FR-worker-dispatch-34, FR-worker-dispatch-35, FR-worker-dispatch-36 | #20 |
+| FR-worker-dispatch-8, FR-worker-dispatch-9, FR-worker-dispatch-10, FR-worker-dispatch-11, FR-worker-dispatch-16, FR-worker-dispatch-17, FR-worker-dispatch-18 | #21 |
+| FR-worker-dispatch-19, FR-worker-dispatch-20, FR-worker-dispatch-21, FR-worker-dispatch-22, FR-worker-dispatch-23, FR-worker-dispatch-24, FR-worker-dispatch-25, FR-worker-dispatch-26, FR-worker-dispatch-27 | #22 |
+| FR-worker-dispatch-28, FR-worker-dispatch-29, FR-worker-dispatch-30, FR-worker-dispatch-31, FR-worker-dispatch-32, FR-worker-dispatch-33 | #23 |
+| FR-loop-operations-1, FR-loop-operations-2, FR-loop-operations-3, FR-loop-operations-4, FR-loop-operations-5, FR-loop-operations-6, FR-loop-operations-7 | #24 |
+| FR-loop-operations-8, FR-loop-operations-9, FR-loop-operations-10, FR-loop-operations-11, FR-loop-operations-12, FR-loop-operations-13, FR-loop-operations-35 | #25 |
+| FR-loop-operations-15, FR-loop-operations-16, FR-loop-operations-17, FR-loop-operations-18 | #26 |
+| FR-loop-operations-14, FR-loop-operations-19, FR-loop-operations-20, FR-loop-operations-21, FR-loop-operations-22, FR-loop-operations-23, FR-loop-operations-24, FR-loop-operations-25 | #27 |
+| FR-loop-operations-26, FR-loop-operations-27, FR-loop-operations-28, FR-loop-operations-34, FR-loop-operations-36 | #28 |
+| FR-loop-operations-29, FR-loop-operations-30, FR-loop-operations-31, FR-loop-operations-32, FR-loop-operations-33 | #29 |
+| FR-spec-skills-1, FR-spec-skills-2, FR-spec-skills-3, FR-spec-skills-4, FR-spec-skills-5, FR-spec-skills-6 | #30 |
+| FR-spec-skills-7, FR-spec-skills-8, FR-spec-skills-9, FR-spec-skills-10, FR-spec-skills-11, FR-spec-skills-14, FR-spec-skills-18 | #31 |
+| FR-spec-skills-12, FR-spec-skills-13, FR-spec-skills-15, FR-spec-skills-16, FR-spec-skills-17 | #32 |
+| FR-spec-skills-19, FR-spec-skills-20, FR-spec-skills-21 | #33 |
+| FR-spec-skills-22, FR-spec-skills-23, FR-spec-skills-24, FR-spec-skills-25 | #34 |
+| FR-project-review-1, FR-project-review-2, FR-project-review-3, FR-project-review-7, FR-project-review-8 | #35 |
+| FR-project-review-4, FR-project-review-5, FR-project-review-6 | #36 |
+| FR-project-review-9, FR-project-review-10, FR-project-review-11, FR-project-review-12, FR-project-review-13, FR-project-review-14 | #37 |
+| FR-project-review-15 | #38 |
+| FR-mirror-and-sync-1, FR-mirror-and-sync-2, FR-mirror-and-sync-3, FR-mirror-and-sync-4, FR-mirror-and-sync-5 | #39 |
+| FR-mirror-and-sync-6, FR-mirror-and-sync-7, FR-mirror-and-sync-8, FR-mirror-and-sync-9 | #40 |
+| FR-mirror-and-sync-10, FR-mirror-and-sync-11, FR-mirror-and-sync-12 | #41 |
+| FR-mirror-and-sync-13, FR-mirror-and-sync-14, FR-mirror-and-sync-15 | #42 |
+
 ## Changelog
 
 - 2026-11-03 — First draft. Interview rounds 1-3 settled: separate repository that tracks upstream; all seven skills in v1; GitHub and Gitea; dev-and-live; public; live test before the sandbox decision; top-tier PM with lower-tier subagents; test beds on both forges; plugin plus setup skill; both harnesses build this repository; plugin name `issue-flow`; tracker compatibility with upstream. Live test on Codex 0.166.0 confirmed the permission profile approach.

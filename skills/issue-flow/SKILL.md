@@ -722,7 +722,7 @@ Triggered by a worker's `FINAL_ANSWER` with its verdict — read it as above. Ac
   6. **Then the bookkeeping.** Tick its checkbox
      on the epic/batch tracking issue (edit only your own marker block — see [collaboration.md](references/collaboration.md)), then remove the worker's worktree: `python3 <pluginRoot>/scripts/worktree.py remove --project <dir> --task <task_name> --merged`, with the `task_name` from Stage B step 5. Pass `--merged` only after step 4b has verified the sub-merge: a squash merge leaves the branch commits on no remote ref, and without the flag the script refuses. The script removes the worktree and deletes its branch. If it exits 1, the worktree has uncommitted changes or is not on a branch ([worktrees.md](references/worktrees.md#teardown-is-still-the-pms-job)). Launch any member that was sequenced behind it. Free the slot → Stage A/B.
 
-  **Standalone/hotfix (`ci: run`) has no sub-merge** — its PR targets dev and runs provider CI. Gate it like a batch PR into dev: the batch-PR column of `prAuthority` (under the default `batch-review`, a human approving review), CI green for the head SHA, threads resolved, criteria evidenced. Merge with `--squash` (C2 step 5's message-and-check rules apply). Then **close the issue**: `Closes #` auto-closes only when dev is the default branch — otherwise close it manually with a comment linking the PR — and clear its lingering status label either way. Remove the worktree, and hand off to Stage D.
+  **Standalone/hotfix (`ci: run`) has no sub-merge** — its PR targets dev and runs provider CI. Gate it like a batch PR into dev: the batch-PR column of `prAuthority` (under the default `batch-review`, a human approving review), CI green for the head SHA, threads resolved, criteria evidenced. Watch the CI with a `ci_watcher` named `ci_<pr>`, spawned as in C2 step 3. On a `failure` verdict for a standalone PR, send the failing check and its log excerpt to `worker_<n>` with `followup_task` (it still holds the branch), call `wait_agent`, and spawn a new watcher for the new head SHA. Merge with `--squash` (C2 step 5's message-and-check rules apply). Then **close the issue**: `Closes #` auto-closes only when dev is the default branch — otherwise close it manually with a comment linking the PR — and clear its lingering status label either way. Remove the worktree, and hand off to Stage D.
 
   **Anything that goes back to the worker** (an unevidenced criterion, a missed practice, a review comment, a mechanical conflict) goes back by **`followup_task` to `worker_<n>`** (the `task_name` from Stage B step 5) — it still holds its worktree and its branch, so nothing is re-pointed. Never use `send_message` for this: it queues text and starts no turn, so the worker would never act on it. Then call `wait_agent` as in *Reading a worker verdict*. Spawn a fresh worker only if the old one is gone (`list_agents` no longer shows it). If its worktree still exists, first run `python3 <pluginRoot>/scripts/worktree.py remove --project <dir> --task worker_<n>`. Then create its worktree with `--base <remote>/issue/<n>-<slug>`, never the integration branch: a new branch from the integration branch would drop the PR's commits. Keep the worktree until the issue is `status:batched` or terminally parked — **except on `checkpoint`**, which removes the worktree immediately (the status label is left untouched and the replacement worker gets a new tree from `worktree.py create`; see Stage C1). See [references/issue-worker.md](references/issue-worker.md).
 
@@ -744,12 +744,12 @@ parked work is entangled. That call is the PM's.
 
    Two details in that line are load-bearing. It covers the **whole token set** — GitHub honors `[skip ci]`, `[ci skip]`, `[no ci]`, `[skip actions]` and `[actions skip]`, so matching `skip` alone misses `[no ci]` and reports a clean `0` for a commit that will not run. (GitHub's `skip-checks: true` trailer is real but out of scope for the greps: it only suppresses when preceded by **two** empty lines, which a line-based `grep` cannot check and neither `-m`-built messages nor a squash fold can produce — see [../../references/forge.md](../../references/forge.md).) And `grep -c` **exits 1 when it counts 0**, so the `|| true` keeps the passing case from aborting a `set -e` script — without it the check fails exactly when the commit is good.
 
-   Non-zero → amend the message down to the bare subject and re-check. This failure is silent by construction: no run is created, so a PM that reads the check list once sees an *absent* check and can mistake it for a pending one. Poll to a terminal verdict (Stage `ci-watch` in [../../references/forge.md](../../references/forge.md)) and never read its `no-run-registered` as green — merging a batch on an absent check merges it with zero CI.
+   Non-zero → amend the message down to the bare subject and re-check. This failure is silent by construction: no run is created, so a PM that reads the check list once sees an *absent* check and can mistake it for a pending one. Wait for a terminal verdict from the `ci_watcher` of step 3 ([../../references/forge.md](../../references/forge.md), *Actions and CI*) and never read its `missing` state (`no-run-registered`) as green — merging a batch on an absent check merges it with zero CI.
 
    **The trigger holds only until the next push.** Anything that lands on the integration branch after this commit becomes the new head, and the usual next thing is a late member's sub-merge, whose squash body carries `[skip ci]` in from the member's own commits (Stage C1) — nobody typed it, and the run silently stops registering again. So the trigger is not a one-time step at the top of C2: **re-run it after every later push to the integration branch**, and gate the merge on a terminal verdict for the SHA that is head *now*, not for the SHA that was head when the PR opened. Anchor the watch to `git rev-parse HEAD` after the final push (the `head_sha` anchor in [../../references/forge.md](../../references/forge.md) does this) so a green run for an earlier commit can never stand in for the one you are merging.
 
    **On `no-run-registered`, read the commit before reacting** — `git fetch <remote> <branch> -q; git cat-file -e <sha>^{commit} 2>/dev/null || echo sha-not-local; git log -1 --format='%s%n%b' <sha> | grep -niE '\[(skip[ -]?ci|ci skip|no ci|skip actions|actions skip)\]' || true` (the `|| true` matters: `grep` exits 1 on zero matches, which is the *no-token* branch — the one that must still be reachable inside a `set -e` script; the fetch and the existence check matter for the same reason in reverse — on a SHA no local ref covers, `git log` exits 128, the empty pipe reads exactly like a clean message, and `|| true` hides both — `sha-not-local` is its own outcome, so resolve it before reading the count at all). A hit is a suppressed commit: push one clean subject-only trigger and re-watch. No hit → **re-poll the run list for that SHA once, after another 60–120 seconds, before concluding anything**: the `pending:none` window is 60 seconds and a slow self-hosted runner registering late is the most common clean-message `no-run-registered`. Still nothing on the second poll → **read the PR before blaming the runner**: `forge.pr.view <pr>` for `mergeable`. On GitHub a `CONFLICTING` PR, a base changed after opening, or a conflict cleared from the base side all register no run and no error — conflicting → resolve it (step 4, now); mergeable → close and reopen the PR once ([forge.md](../../references/forge.md), *Recovering from `no-run-registered`*). Only a PR still without a run after the reopen is a runner or workflow-file problem, which a re-push does not fix — resolve it or substitute the local gate at step 3 and say so on the PR. One clean re-trigger, not a loop (the re-poll is not a re-trigger).
-2. **Batch review — optional, but the choice is recorded.** One reviewer pass over the whole batch diff (cheap — an **unnamed** subagent, no CI; naming it without `isolation:` strands the result) to catch cross-member integration issues the per-issue reviews couldn't see. Run it by default for any batch with more than one member; skipping is reasonable for a single member or a diff that is entirely one member's work. **Either way, say which on the batch PR** — the review's findings, or one line naming the skip and the reason. A skipped optional step and a step that found nothing leave the same trace, which is none, and the step then quietly stops happening: measured across two runs, where it ran and found two members' comments made untrue by a sibling, then did not run at all and nobody could tell. Include **prose one member's change made untrue** — a comment, docstring or test name in *another* member's files that describes behavior this batch just changed. This is the one class the Stage B cross-plan check cannot reach: the plans were genuinely disjoint and the check was right to clear them, and the drift only exists once the code lands. Measured in a live run: a fixture comment asserted a boot-sync behavior that is false for the case it annotates, and a live-test docstring still described a silent-join that a sibling member had just ended. Both are wrong in a way that misleads the next reader while every test passes.
+2. **Batch review — optional, but the choice is recorded.** One reviewer pass over the whole batch diff (cheap — after a free-slot check with `list_agents`, one `spawn_agent` call with `agent_type: "explorer"`, `fork_turns: "none"`, model `gpt-6-luna`, and `task_name` `batchreview_<n>`; no CI; read its `FINAL_ANSWER`) to catch cross-member integration issues the per-issue reviews couldn't see. Run it by default for any batch with more than one member; skipping is reasonable for a single member or a diff that is entirely one member's work. **Either way, say which on the batch PR** — the review's findings, or one line naming the skip and the reason. A skipped optional step and a step that found nothing leave the same trace, which is none, and the step then quietly stops happening: measured across two runs, where it ran and found two members' comments made untrue by a sibling, then did not run at all and nobody could tell. Include **prose one member's change made untrue** — a comment, docstring or test name in *another* member's files that describes behavior this batch just changed. This is the one class the Stage B cross-plan check cannot reach: the plans were genuinely disjoint and the check was right to clear them, and the drift only exists once the code lands. Measured in a live run: a fixture comment asserted a boot-sync behavior that is false for the case it annotates, and a live-test docstring still described a silent-join that a sibling member had just ended. Both are wrong in a way that misleads the next reader while every test passes.
 
    Include a **maintainability pass** against the project's quality rules
    (the brief's `qualityRule` path, `docs/rules/quality.md` when the project has it, else the default slop
@@ -762,18 +762,26 @@ parked work is entangled. That call is the PM's.
    **The review reports every class it was asked to cover, including the ones that came back clean** — name what you compared and state the negative, exactly as the Stage B cross-plan check does. A review that only mentions what it found cannot be told apart from one that never looked for it, and the classes that are usually clean are the ones that quietly stop being checked. This applies to the diff itself too: if a file appears in the PR's file list with a size change but no visible content — git treats it as binary, or it exceeds the host's diff cap — then it was **not reviewed**, whatever the lenses reported. Read both versions directly and say in the review that you did (see [parallelism.md](references/parallelism.md)).
 
    Include a **cross-batch check** when another integration branch is live: compare this batch's schema/migration files, seed data and shared config against the other live branches' — two batches each adding a migration are individually valid and collide on merge. A collision found here is resolved now (renumber/rebase the migration); a semantic one parks both.
-3. **CI runs once** — or, when Phase 0 found **no CI in the repo**, an isolated subagent (`isolation: "worktree"`, `base: <remote>/<integration-branch>`) runs the project's full suite and returns a short pass/fail summary, and that is the gate. Say in the digest which of the two happened.
+3. **CI runs once** — or, when Phase 0 found **no CI in the repo**, a worker in its own worktree runs the project's full suite and returns a short pass/fail summary, and that is the gate. Create the worktree with `python3 <pluginRoot>/scripts/worktree.py create --project <dir> --task suite_<n> --branch suite/<n> --base <remote>/<integration-branch> --remote <remote>`. Then call `spawn_agent` with `fork_turns: "none"` and `workdir` set to the `path` that the script prints. Say in the digest which of the two happened.
+
+   **Watch the CI with a `ci_watcher`.** Call `list_agents`. When a thread slot is free, call `spawn_agent` with `task_name: "ci_<pr>"` (`<pr>` is the batch PR number), `agent_type: "ci_watcher"`, `fork_turns: "none"`, and a brief of `kind: ci`, the head SHA of step 1, `workdir` (the project), `pluginRoot`, `forge`, and `deadline: 60` (minutes). When no slot is free, call `wait_agent` until one frees. Then call `wait_agent` and read the verdict `{"kind": "ci", "sha": ..., "state": ..., "url": ...}` from its `FINAL_ANSWER`. The watcher runs `scripts/ci_wait.py` again while the state is `pending`. Act on the `state` with the rules below:
+
+   - **`success`** → CI is green for that SHA. Continue with step 4.
+   - **`failure`** → follow *On failure either way* below.
+   - **`missing`** → no run exists for the SHA. Read the commit as step 1 says. Then run `verify_ci_ran.py` (below) to learn whether CI ran at all.
+   - **`timeout`** → the watcher's 60 minutes passed with the run still `pending`. Run `ci_wait.py` once yourself. If the state is still not terminal, surface it to the user with the run URL. Never merge on it.
+   - **The watcher errored** (no verdict, or `state: "error"`) → spawn one more watcher with the same brief and `task_name` `ci_<pr>_r2`. If that one also errors, treat the CI state as unknown: use the local gate below, say so on the PR, and do not merge on provider CI.
 
    Two cases sit between those, and both were measured in a live run:
 
    - **CI exists but produced no usable result** — the job never started (billing, a disabled runner, a workflow the provider cannot parse; on Gitea an unparseable workflow registers *no run at all*). The check may read **red without having executed anything**, which is not a code failure and must not be treated as one. Substitute the local gate above, and **say so on the PR**: name the reason CI did not run, and present the result as a local gate, never as "CI green". A human reading the PR must not have to infer that the red check is meaningless. Mechanize the "did it actually run" question rather than inferring it from prose:
-     - GitHub: `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/verify_ci_ran.py" --forge github --repo <owner/name> --sha <head_sha>`
-     - Gitea: `python3 "${CLAUDE_PLUGIN_ROOT}/scripts/verify_ci_ran.py" --forge gitea --repo-path . --sha <head_sha>` (auth/owner/repo resolve from the checkout's remote via `tea api`, same as every other Gitea call in this skill — see [../../references/forge.md](../../references/forge.md))
+     - GitHub: `python3 <pluginRoot>/scripts/verify_ci_ran.py --forge github --repo <owner/name> --sha <head_sha>`
+     - Gitea: `python3 <pluginRoot>/scripts/verify_ci_ran.py --forge gitea --repo-path . --sha <head_sha>` (auth/owner/repo resolve from the checkout's remote via `tea api`, same as every other Gitea call in this skill — see [../../references/forge.md](../../references/forge.md))
 
      Exit 0 only when retrievable log bytes exist for that SHA — a status with zero log bytes is treated the same as no run at all, regardless of what the status field says. Exit 2 means either the run is still in progress (logs aren't retrievable yet — that is not evidence it didn't run; re-check shortly) or the fetch itself hit an infra error (auth, rate limit, `tea`/`gh` unusable in that checkout) — also retry. Exit 5 means the invocation itself is malformed (`--forge github` without `--repo`, or neither `--forge` nor `--fixture` given) — fix the command, don't re-poll it. Only exit 1 means CI genuinely never executed.
    - **CI ran green but did not exercise the code** — a suite whose integration tests self-skip when their service is unreachable exits 0 and reports green (see the false-green trap in [agents/issue-worker.md](../../agents/issue-worker.md)). Some projects point CI at an unreachable database deliberately. Where that is true, a green CI run is **weaker** than a local run against a live service, and the local gate is the real one. Confirm the tests that matter **executed** rather than skipped, wherever the gate ran, and state the counts.
 
-   On failure either way: spawn a fix worker the same way (read its verdict per *Reading a worker verdict* above) — `isolation: "worktree"` with the **integration branch** as its `base`, so its `git checkout -B <integration-branch> <remote>/<integration-branch>` lands it exactly there — fix, push (fix commits may `[skip ci]` until ready to re-run), re-trigger — the re-trigger commit gets the same subject-only message and the same one-line check as step 1.
+   On failure either way: spawn a fix worker the same way (read its verdict per *Reading a worker verdict* above) — create its worktree with `worktree.py create` and `--base <remote>/<integration-branch>`, so that its `git checkout -B <integration-branch> <remote>/<integration-branch>` lands it exactly there — fix, push (fix commits may `[skip ci]` until ready to re-run), re-trigger — the re-trigger commit gets the same subject-only message and the same one-line check as step 1.
 4. **Conflict vs dev** (another batch landed first): resolve once, at this level — mechanical directly, semantic → park per policy.
 4b. **Authority gate.** Under the default `batch-review` (and under `review-all` /
    `propose-only`), the batch PR needs a **human approving review** before it merges:
@@ -797,13 +805,13 @@ parked work is entangled. That call is the PM's.
 
    ```bash
    git fetch <remote> dev -q
-   git worktree add .claude/worktrees/dev <remote>/dev
-   git -C .claude/worktrees/dev commit --allow-empty -m "ci: run suite for batch #<n>"   # one -m, subject only, no body
-   git -C .claude/worktrees/dev push <remote> HEAD:dev
-   git -C .claude/worktrees/dev rev-parse HEAD                                           # the new correlation anchor
+   python3 <pluginRoot>/scripts/worktree.py create --project <dir> --task dev --branch ci/dev-<n> --base <remote>/dev --remote <remote>
+   git -C .worktrees/dev commit --allow-empty -m "ci: run suite for batch #<n>"   # one -m, subject only, no body
+   git -C .worktrees/dev push <remote> HEAD:dev
+   git -C .worktrees/dev rev-parse HEAD                                           # the new correlation anchor
    ```
 
-   A worktree, not a `checkout -B` in the primary checkout — same reason the PM's other sequential git work uses one ([references/batching.md](references/batching.md)): it names the branch and really pushes without moving the user's `HEAD` or force-moving their local `dev`.
+   A worktree, not a `checkout -B` in the primary checkout — same reason the PM's other sequential git work uses one ([references/batching.md](references/batching.md)): it names the branch and really pushes without moving the user's `HEAD` or force-moving their local `dev`. The script puts the tree under `.worktrees/` ([references/worktrees.md](references/worktrees.md)). Name a new branch there, because git does not check out `dev` twice. Remove the tree with `worktree.py remove --project <dir> --task dev --merged` once you have the anchor SHA.
 
    That restarts both the run and any push-triggered deploy. It is not a rewrite: the merge commit stays exactly as it is, and rewriting it is what you must not do. **Re-anchor after it**: the recovery commit is now `dev`'s head, so it — not the merge commit — is the SHA the CI watch polls and the SHA Stage D correlates the deployment's `commitId` against. Record it in place of the merge commit, or the deploy watch will hunt for a SHA no deployment carries and report `no-deployment-observed` for a deploy that ran fine. If `dev` is protected against direct pushes, start the deploy the project's own way (`gh workflow run <file> --ref <branch>` when the deploy workflow declares `workflow_dispatch`; the project's wired start command — `deploy.startCmd` — otherwise; see [references/deploy.md](references/deploy.md)) — and say in the digest which of the two happened, because a deploy that a human started by hand must not be reported as an automatic one.
 6. **Close member issues.** If dev is the default branch, `Closes #` handles it; if not, close each member manually with a comment linking the batch PR. Close the batch tracking issue; the epic closes when its last child does. Clear lingering status labels.
@@ -815,21 +823,34 @@ parked work is entangled. That call is the PM's.
 
 ## Stage D — Monitor deployment (post-merge)
 
-Only if Phase 0 found a deploy target. The watch is **one background shell per merge**,
-not an agent — the same pattern as every other long wait in this loop. When you merge a
+Only if Phase 0 found a deploy target. The watch is **one `ci_watcher` subagent per
+merge**. Codex has no background shell that wakes the PM, so the watcher runs
+`scripts/deploy_wait.py` and the PM reads its verdict with `wait_agent`. When you merge a
 PR into the deploy branch: label the tracking issue `status:deploying`, record **the SHA
 that is head of the deploy branch after the merge** — normally the merge commit, but the
 recovery commit instead whenever C2 step 5's head check made you push one on top (the
-deployment carries the head SHA it built, not the merge commit you meant) — and launch
-the watch loop from [references/deploy.md](references/deploy.md) with
-`run_in_background: true`, anchored to that SHA. The shell exits with one verdict line;
-between launch and exit, keep orchestrating — never poll it a turn at a time.
+deployment carries the head SHA it built, not the merge commit you meant). Then call
+`list_agents`. When a thread slot is free, call `spawn_agent` with
+`task_name: "deploy_<sha7>"` (`<sha7>` is the first 7 characters of that SHA),
+`agent_type: "ci_watcher"`, `fork_turns: "none"`, and a brief of `kind: deploy`, the full `sha`,
+`workdir` (the project), `pluginRoot`, `forge`, the `deploy` block, and `deadline: 30`
+(minutes). When no slot is free, call `wait_agent` until one frees. Between spawn and
+verdict, keep orchestrating. Whenever the PM has no other step, call `wait_agent`.
 
-On the watch's verdict:
+The watcher returns `{"kind": "deploy", "sha": ..., "state": ..., "url": ...}` in its
+`FINAL_ANSWER`. Its states are the `deploy_wait.py` states `pending`, `succeeded`,
+`failed`, `rolled-back`, `superseded`, `missing`, plus `timeout` from the watcher's own
+deadline. The loop, the SHA anchor and the status command contract are in
+[references/deploy.md](references/deploy.md).
+
+On the watcher's verdict:
 
 - **`succeeded`** → the build went green, but **green ≠ working**. Spawn the
-  **deploy-verifier** (`Agent`, `subagent_type: "issue-flow:deploy-verifier"`) against the
-  deployed URL captured in Phase 0. On its verdict:
+  **deploy-verifier** (`spawn_agent` with `agent_type: "deploy_verifier"` and
+  `fork_turns: "none"`) against the deployed URL captured in Phase 0. The role arrives
+  with Epic 5. When `spawn_agent` does not offer `deploy_verifier`, skip the browser
+  check, treat the deploy as built but not browser-verified, and say so in the digest.
+  On its verdict:
   - **`verified`** → remove `status:deploying`, comment the confirmation with the
     screenshot ref on the batch PR / tracking issue. Digest + notify (Stage E). Done.
   - **`broken` / `unreachable`** → this is a failed deploy. Follow **Deploy failed**
@@ -837,17 +858,21 @@ On the watch's verdict:
     config/secret/infra.
 - **`failed`** / **`rolled-back`** → follow **Deploy failed** below. For a rollback,
   also capture what the platform did.
-- **`timed-out`** → a deployment was observed but never went terminal inside the watch
-  budget. Re-query once (run the status command directly). Still not terminal → surface
-  to the user with the job id/link. Never record it as a success; leave
-  `status:deploying` in place.
-- **`no-deployment-observed`** → nothing ever built this SHA. Re-run C2 step 5's
-  merged-head token check first — a suppressed head starts no deploy: push the clean
-  recovery commit and watch the new SHA. A clean head with no deployment is a wiring
-  problem (webhook, platform config) — surface it. Never a pass.
-- **`watch-error`** → the status command itself failed (usually a permission refusal —
-  the command must be in the committed allow-list). Fix the cause and relaunch the
-  watch. Never a pass.
+- **`timeout`** → a deployment was observed but never went terminal inside the watcher's
+  30 minutes. Re-query once (run `deploy_wait.py` or the status command directly). Still
+  not terminal → surface to the user with the job id/link. Never record it as a
+  success; leave `status:deploying` in place.
+- **`superseded`** → ours was replaced before it was observed. Follow the `superseded`
+  row of the reaction table in [references/deploy.md](references/deploy.md), and spawn
+  a new `deploy_<sha7>` watcher for the newest SHA.
+- **`missing`** → nothing ever built this SHA (`no-deployment-observed`). Re-run C2
+  step 5's merged-head token check first — a suppressed head starts no deploy: push the
+  clean recovery commit and watch the new SHA with a new `deploy_<sha7>` watcher. A
+  clean head with no deployment is a wiring problem (webhook, platform config) —
+  surface it. Never a pass.
+- **The watcher errored** (no verdict, or `state: "error"` because the status query
+  failed, usually a sandbox refusal — the command must run without an approval prompt) → fix the cause when you can, and spawn one more watcher with `task_name`
+  `deploy_<sha7>_r2`. A second error → surface it to the user. Never a pass.
 
 ### Deploy failed
 
@@ -857,7 +882,7 @@ Run these steps in order.
    status:deploy-failed` (removes `status:deploying`). Comment the cause, the failing step, and the log excerpt.
    This label is the recovery signal — Phase 0 re-adopts a `status:deploy-failed` issue
    whose hotfix never landed.
-2. **Read the deploy logs.** Delegate the read to a short-lived unnamed subagent; take
+2. **Read the deploy logs.** After a free-slot check with `list_agents`, delegate the read to one `spawn_agent` call with `agent_type: "explorer"`, `fork_turns: "none"`, and model `gpt-6-luna`; take
    back the failing step, a short excerpt, and a suspected cause
    (`code-regression | config | secret | quota | infra | unknown` —
    [references/deploy.md](references/deploy.md)), not the log.

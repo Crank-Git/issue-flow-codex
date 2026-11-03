@@ -369,6 +369,18 @@ upstream_sha256 = "77628f46bd90f3e0376268b8ecec3253fdf33650662a0b027366f08c33c06
 notes = "The artifact table names `AGENTS.md` and `docs/rules/`."
 
 [[file]]
+path = "roles/issue-worker.toml"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file. Built from `agents/issue-worker.md` by `scripts/build_roles.py`."
+
+[[file]]
+path = "scripts/build_roles.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
 path = "scripts/conformance.py"
 mode = "new"
 upstream_sha256 = ""
@@ -706,6 +718,12 @@ notes = "Port-only file."
 
 [[file]]
 path = "tests/fixtures/upstream_sync/upstream/issue-flow/sub/b.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "tests/test_build_roles.py"
 mode = "new"
 upstream_sha256 = ""
 notes = "Port-only file."

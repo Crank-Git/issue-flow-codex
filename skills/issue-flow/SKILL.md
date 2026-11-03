@@ -266,8 +266,9 @@ dependency.
    which file step 11 writes.
 11. **Run configuration — confirm with the user, every session.** Load `.issue-flow.json`
    (repo root, committed) if present, seed missing values from `docs/specs/spec.md` when
-   there is a spec, and **re-confirm interactively** in two batched `AskUserQuestion`
-   rounds with the saved values pre-selected. Never apply a saved config silently. It
+   there is a spec, and **re-confirm** in one plain-text message: numbered options, the
+   saved values marked `*`. Then end your turn. The operator's reply continues the step.
+   Never apply a saved config silently. It
    covers: `concurrency` (workers in flight, default 3), `batchSize` (max members in a
    loose batch, default 4), `runLength` (one batch / N issues / until the backlog is
    empty / until stopped), `prGranularity` (batch vs per-issue PRs), **`prAuthority`**
@@ -277,8 +278,10 @@ dependency.
    before its first launch — Stage B step 4b), **`reviewWipLimit`** (soft cap on batches
    parked `status:awaiting-review` before the PM stops forming new ones — Stage B step
    1), `review.when` (when to offer a `/project-review`), `practices`
-   (TDD, DDD, E2E expectations, coverage, commit style, docs), and the **`deploy`** block
-   step 6 detected. Write the
+   (TDD, DDD, E2E expectations, coverage, commit style, docs), the **`deploy`** block
+   step 6 detected, and the Codex-only **`codex`** block (`pmModel`, `workerModel`,
+   `workerEffort`, `helperModel`, `waitMs`). The message shows the models and the
+   concurrency. A file that has no `codex` block gets only the Codex questions. Write the
    answers back to `.issue-flow.json` (a gitignored `.issue-flow.local.json` overrides it
    per operator, so concurrent sessions don't fight over the committed file — write the
    local file when step 10 found a co-operator, the committed file otherwise, and say
@@ -430,8 +433,8 @@ every single verdict buys nothing and costs a full-context pass each time.
    - **Default — park and notify, keep working.** Ensure each question is a crisp issue
      comment, list them in the status digest (Stage E reporting), and continue
      scheduling everything that doesn't need an answer. Do **not** stop the loop to ask.
-   - **Ask interactively (batched `AskUserQuestion`, one question per item, each with an
-     explicit "Defer (not now)" option) only when:** (a) the pipeline is **starving** —
+   - **Ask in one plain-text message (a numbered list, one question per item, each with an
+     explicit "Defer (not now)" option), then end your turn, only when:** (a) the pipeline is **starving** —
      fewer workable issues remain than open questions would unlock; or (b) the user has
      just interacted (they're at the keyboard anyway); or (c) an answer gates an
      already-built batch (members done, batch PR held on a semantic question).
@@ -576,7 +579,8 @@ back in `notesForPM`.
    ([session-config.md](references/session-config.md)). After the cross-check comment
    exists and before any member launches, surface the batch's plans to the operator: one
    line per member (issue number, plan-comment link, one-sentence approach) plus the
-   cross-check verdict, then `AskUserQuestion` — **approve the batch** / **revise named
+   cross-check verdict, then ask in one plain-text message with numbered options and end your
+   turn — **approve the batch** / **revise named
    plans** (collect what to change, edit the plan comments, post a cross-check addendum
    for any plan that changed) / **proceed without review this batch**. This is the
    cheapest re-steer point in the loop: a correction here costs one comment edit, the

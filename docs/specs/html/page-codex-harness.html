@@ -215,6 +215,10 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li><strong>A root TOML key after a table header fails.</strong> <code>default_permissions</code> placed after <code>[permissions.gitw]</code> gave: "config defines <code>[permissions]</code> profiles but does not set <code>default_permissions</code>".
 </li>
+<li><strong>The spawn message is encrypted in the hook payload.</strong> PreToolUse for a V2 spawn had <code>tool_input</code> keys <code>task_name</code>, <code>fork_turns</code>, and <code>message</code>, plus <code>agent_type</code> only when the model set a role. <code>message</code> was a token that starts <code>gAAAAA</code>, also when the model sent a plain multi-line text. The session rollout file holds the same token. Evidence: two <code>gpt-6-luna</code> runs, codex-cli 0.166.0, 2026-11-03; payload in <code>tests/fixtures/hooks/pre_tool_use_spawn.json</code>.
+</li>
+<li><strong><code>updatedInput</code> from a PreToolUse hook changes a <code>wait_agent</code> call.</strong> PreToolUse got <code>tool_name: "collaborationwait_agent"</code> and <code>tool_input: {"timeout_ms": 10000}</code>. The hook answered <code>permissionDecision: "allow"</code> with <code>updatedInput: {"timeout_ms": 40000}</code>. A subagent that ran <code>sleep 20</code> finished inside that one wait: the call returned <code>timed_out: false</code> about 22 s after it started, and the model's recorded arguments still read 10000. Evidence: one <code>gpt-6-luna</code> run, codex-cli 0.166.0, 2026-11-03, isolated <code>CODEX_HOME</code>; payload in <code>tests/fixtures/hooks/pre_tool_use_wait.json</code>.
+</li>
 </ol>
 <p>The profile used in facts 8 and 9:</p>
 <pre class="code"><code>default_permissions = "gitw"

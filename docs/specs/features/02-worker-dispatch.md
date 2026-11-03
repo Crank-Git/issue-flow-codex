@@ -2,8 +2,8 @@
 id: worker-dispatch
 feature: Worker dispatch
 epic: "Epic 2: Worker dispatch"
-status: planned
-issues: []
+status: built
+issues: [19, 20, 21, 22, 23]
 mockups: []
 ---
 
@@ -50,7 +50,7 @@ and the gate rules stay as upstream wrote them. Only the harness calls change.
 ### Wait and verdicts
 
 - FR-worker-dispatch-19 — The PM calls `wait_agent` when it has no other step to do and any subagent is live.
-- FR-worker-dispatch-20 — The PM calls `wait_agent` with `timeout_ms` equal to the run configuration's `codex.waitMs`, default 600000.
+- FR-worker-dispatch-20 — The PM calls `wait_agent` with `timeout_ms` equal to `waitMs` in `.issue-flow.codex.json`, default 600000.
 - FR-worker-dispatch-21 — After a `wait_agent` timeout, the PM runs the upstream Stage A0 sweep, then waits again.
 - FR-worker-dispatch-22 — The PM reads the verdict from the `FINAL_ANSWER` message that Codex queues for the worker's task name.
 - FR-worker-dispatch-23 — The PM ignores a `FINAL_ANSWER` for an issue that it already gated or freed.
@@ -113,7 +113,7 @@ sequenceDiagram
 
 ```mermaid
 flowchart TD
-    A["PM has no other step"] --> B["wait_agent(timeout_ms = codex.waitMs)"]
+    A["PM has no other step"] --> B["wait_agent(timeout_ms = waitMs)"]
     B --> C{"Result"}
     C -- "timed_out" --> D["Stage A0 sweep"] --> A
     C -- "operator input" --> E["Handle the operator input"] --> A

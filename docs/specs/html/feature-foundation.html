@@ -153,7 +153,7 @@ body.rv-open .layout { padding-right:21rem; }
 </ul></aside>
 <main>
 <h1>Feature: Foundation</h1>
-<p class="meta">Epic 0: Foundation &nbsp; <span class="badge">planned</span></p>
+<p class="meta">Epic 0: Foundation &nbsp; <span class="badge">built</span></p>
 <h3 id="foundation-purpose">Purpose</h3>
 <p>The foundation gives every later epic a repository to build in. It imports upstream 0.17.0 with a complete upstream lock. It adds the unit tests, the CI workflow, the conformance suite, and the two test beds. After this epic, a worker can land in the repository and run every check with one command.</p>
 <h3 id="foundation-user-stories">User stories</h3>
@@ -207,7 +207,7 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li>FR-foundation-19 — <code>scripts/testbed-reset.py --forge gitea</code> returns the Gitea test bed to its seed state.
 </li>
-<li>FR-foundation-20 — The test bed seed state holds a small Python web app with tests, a CI workflow, the upstream labels, and five open issues in one epic.
+<li>FR-foundation-20 — The test bed seed state holds a small Python web app with tests, a CI workflow, the upstream labels, and one open epic and five open sub-issues.
 </li>
 <li>FR-foundation-21 — The repository holds <code>AGENTS.md</code>, <code>CLAUDE.md</code>, <code>.codex/</code>, and <code>.claude/</code> per the scaffold that the spec approval round accepted.
 </li>
@@ -355,7 +355,7 @@ P2  pass  SessionStart additionalContext reached the model
 </li>
 <li>[ ] After a conformance run, <code>~/.codex/config.toml</code> is byte-equal to its state before the run. (FR-foundation-14)
 </li>
-<li>[ ] <code>testbed-reset.py</code> returns each test bed to five open issues and no open pull requests. (FR-foundation-18 to FR-foundation-20)
+<li>[ ] <code>testbed-reset.py</code> returns each test bed to one open epic, five open sub-issues, and no open pull requests. (FR-foundation-18 to FR-foundation-20)
 </li>
 <li>[ ] <code>README.md</code> names sniper7kills, the MIT license, and the upstream URL. (FR-foundation-22, FR-foundation-23)
 </li>

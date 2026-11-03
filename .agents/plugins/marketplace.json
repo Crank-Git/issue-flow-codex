@@ -1,0 +1,20 @@
+{
+  "name": "issue-flow-codex",
+  "interface": {
+    "displayName": "issue-flow for Codex"
+  },
+  "plugins": [
+    {
+      "name": "issue-flow",
+      "source": {
+        "source": "local",
+        "path": "./"
+      },
+      "policy": {
+        "installation": "AVAILABLE",
+        "authentication": "ON_INSTALL"
+      },
+      "category": "Productivity"
+    }
+  ]
+}

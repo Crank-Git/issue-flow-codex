@@ -1,0 +1,13 @@
+{
+  "hooks": {
+    "SessionStart": [
+      { "hooks": [ { "type": "command", "command": "python3 \"$PLUGIN_ROOT/hooks/log_hook.py\"" } ] }
+    ],
+    "PreToolUse": [
+      { "matcher": ".*", "hooks": [ { "type": "command", "command": "python3 \"$PLUGIN_ROOT/hooks/log_hook.py\"" } ] }
+    ],
+    "PostToolUse": [
+      { "matcher": ".*", "hooks": [ { "type": "command", "command": "python3 \"$PLUGIN_ROOT/hooks/log_hook.py\"" } ] }
+    ]
+  }
+}

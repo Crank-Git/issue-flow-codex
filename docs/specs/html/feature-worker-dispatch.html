@@ -153,7 +153,7 @@ body.rv-open .layout { padding-right:21rem; }
 </ul></aside>
 <main>
 <h1>Feature: Worker dispatch</h1>
-<p class="meta">Epic 2: Worker dispatch &nbsp; <span class="badge">planned</span></p>
+<p class="meta">Epic 2: Worker dispatch &nbsp; <span class="badge">built</span></p>
 <h3 id="worker-dispatch-purpose">Purpose</h3>
 <p>This feature ports upstream Stage B (launch) and Stage C1 (sub-merge gate) to Codex. The PM creates a worktree for each issue, spawns a worker in it, waits for the verdict, and gates the sub-PR. The tracker logic, the plan comment, the cross-check, and the gate rules stay as upstream wrote them. Only the harness calls change.</p>
 <h3 id="worker-dispatch-user-stories">User stories</h3>
@@ -214,7 +214,7 @@ body.rv-open .layout { padding-right:21rem; }
 <ul>
 <li>FR-worker-dispatch-19 — The PM calls <code>wait_agent</code> when it has no other step to do and any subagent is live.
 </li>
-<li>FR-worker-dispatch-20 — The PM calls <code>wait_agent</code> with <code>timeout_ms</code> equal to the run configuration's <code>codex.waitMs</code>, default 600000.
+<li>FR-worker-dispatch-20 — The PM calls <code>wait_agent</code> with <code>timeout_ms</code> equal to <code>waitMs</code> in <code>.issue-flow.codex.json</code>, default 600000.
 </li>
 <li>FR-worker-dispatch-21 — After a <code>wait_agent</code> timeout, the PM runs the upstream Stage A0 sweep, then waits again.
 </li>
@@ -295,7 +295,7 @@ body.rv-open .layout { padding-right:21rem; }
 </ol>
 <h4 id="worker-dispatch-flow-2-wait-and-read-a-verdict">Flow 2 — Wait and read a verdict</h4>
 <div class="diagram"><pre class="mermaid">flowchart TD
-    A["PM has no other step"] --&gt; B["wait_agent(timeout_ms = codex.waitMs)"]
+    A["PM has no other step"] --&gt; B["wait_agent(timeout_ms = waitMs)"]
     B --&gt; C{"Result"}
     C -- "timed_out" --&gt; D["Stage A0 sweep"] --&gt; A
     C -- "operator input" --&gt; E["Handle the operator input"] --&gt; A

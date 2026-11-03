@@ -2,8 +2,8 @@
 id: loop-operations
 feature: Loop operations
 epic: "Epic 3: Loop operations"
-status: planned
-issues: []
+status: issued
+issues: [24, 25, 26, 27, 28, 29]
 mockups: []
 ---
 
@@ -41,8 +41,8 @@ wait and returns a verdict.
 - FR-loop-operations-8 — The PM asks the upstream run configuration questions as one plain-text message with numbered options and the saved answers marked.
 - FR-loop-operations-9 — The PM ends its turn after the question message and continues when the operator answers.
 - FR-loop-operations-10 — The PM saves the answers to `.issue-flow.json` with the upstream keys.
-- FR-loop-operations-11 — The PM saves Codex-only settings under the key `codex` in `.issue-flow.json`.
-- FR-loop-operations-12 — The `codex` block holds `pmModel`, `workerModel`, `workerEffort`, `helperModel`, and `waitMs`.
+- FR-loop-operations-11 — The PM saves Codex-only settings in `.issue-flow.codex.json` at the repository root. The file is committed and team-shared.
+- FR-loop-operations-12 — `.issue-flow.codex.json` holds `version` and the flat keys `pmModel`, `workerModel`, `workerEffort`, `helperModel`, and `waitMs`. It has no nested `codex` object.
 - FR-loop-operations-13 — The PM shows the models and the concurrency in the question message before the loop starts.
 
 ### Watchers
@@ -77,7 +77,7 @@ wait and returns a verdict.
 ### Compatibility
 
 - FR-loop-operations-34 — The PM writes labels, comment markers, status issue titles, and branch names in the upstream 0.17.0 format.
-- FR-loop-operations-35 — The PM reads `.issue-flow.json` files that upstream wrote, with no `codex` block, and asks only the Codex-only questions.
+- FR-loop-operations-35 — The PM reads `.issue-flow.json` files that upstream wrote, with no `.issue-flow.codex.json` beside them, and asks only the Codex-only questions.
 - FR-loop-operations-36 — Phase 0 stops when the status issue for the same login has a digest from the last 30 minutes that this session did not write. The operator can confirm that the other session is gone, and the PM then continues.
 
 ## User flows
@@ -177,7 +177,8 @@ Reply "ok" to accept all, or "<number>: <value>" for each change.
 
 ## Data touched
 
-- `.issue-flow.json`: upstream keys plus the `codex` block.
+- `.issue-flow.json`: upstream keys only, in the upstream format.
+- `.issue-flow.codex.json`: the Codex-only settings.
 - Status issue and digest comments, upstream format.
 
 ## Interfaces
@@ -201,7 +202,7 @@ Reply "ok" to accept all, or "<number>: <value>" for each change.
 
 - [ ] With hooks not trusted, the PM stops before any tracker read. (FR-loop-operations-1)
 - [ ] With the profile missing, the sandbox probe fails and the PM names `issue_flow`. (FR-loop-operations-4, 5)
-- [ ] The run configuration message lists every upstream question and the five `codex` keys. (FR-loop-operations-8 to 13)
+- [ ] The run configuration message lists every upstream question and the five Codex keys. (FR-loop-operations-8 to 13)
 - [ ] `ci_wait.py` returns `success` for a green SHA and `failure` for a red SHA on both test beds. (FR-loop-operations-15 to 17)
 - [ ] A batch PR on a test bed merges after a `ci_watcher` verdict of `success`. (FR-loop-operations-22, 24)
 - [ ] A standalone PR with a failing test gets a `followup_task` to its worker with the failure. (FR-loop-operations-25)
@@ -217,4 +218,4 @@ Reply "ok" to accept all, or "<number>: <value>" for each change.
 
 ## Open questions
 
-- Does upstream 0.17.0 keep an unknown `codex` key in `.issue-flow.json` when it rewrites the file? If it drops the key, an upstream run removes the Codex settings. Epic 3 tests this. If upstream drops it, the port moves the block to `.issue-flow.codex.json`.
+- Resolved: no upstream 0.17.0 code writes `.issue-flow.json` (`hooks/preflight.py` only reads it). An upstream PM rewrites the file from step 11 text in `skills/issue-flow/SKILL.md` and `references/session-config.md`, and that text has no rule to keep unknown keys. An upstream run can drop a `codex` key, so the port moves the settings to `.issue-flow.codex.json`.

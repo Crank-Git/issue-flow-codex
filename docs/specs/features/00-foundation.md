@@ -2,8 +2,8 @@
 id: foundation
 feature: Foundation
 epic: "Epic 0: Foundation"
-status: planned
-issues: []
+status: built
+issues: [8, 9, 10, 11, 12]
 mockups: []
 ---
 
@@ -42,7 +42,7 @@ repository and run every check with one command.
 - FR-foundation-17 — `scripts/conformance.py` records the Codex version in its report.
 - FR-foundation-18 — `scripts/testbed-reset.py --forge github` returns the GitHub test bed to its seed state.
 - FR-foundation-19 — `scripts/testbed-reset.py --forge gitea` returns the Gitea test bed to its seed state.
-- FR-foundation-20 — The test bed seed state holds a small Python web app with tests, a CI workflow, the upstream labels, and five open issues in one epic.
+- FR-foundation-20 — The test bed seed state holds a small Python web app with tests, a CI workflow, the upstream labels, and one open epic and five open sub-issues.
 - FR-foundation-21 — The repository holds `AGENTS.md`, `CLAUDE.md`, `.codex/`, and `.claude/` per the scaffold that the spec approval round accepted.
 - FR-foundation-22 — `README.md` states the upstream project, its license, and its author, and links to the upstream repository.
 - FR-foundation-23 — `LICENSE` holds the MIT license text with the upstream copyright line and the port copyright line.
@@ -162,7 +162,7 @@ P2  pass  SessionStart additionalContext reached the model
 - [ ] A pull request into `dev` runs the CI workflow, and the workflow runs all three checks. (FR-foundation-11, FR-foundation-12)
 - [ ] `python3 scripts/conformance.py` prints a pass line for P1 to P12 on Codex 0.166.0. (FR-foundation-13 to FR-foundation-17)
 - [ ] After a conformance run, `~/.codex/config.toml` is byte-equal to its state before the run. (FR-foundation-14)
-- [ ] `testbed-reset.py` returns each test bed to five open issues and no open pull requests. (FR-foundation-18 to FR-foundation-20)
+- [ ] `testbed-reset.py` returns each test bed to one open epic, five open sub-issues, and no open pull requests. (FR-foundation-18 to FR-foundation-20)
 - [ ] `README.md` names sniper7kills, the MIT license, and the upstream URL. (FR-foundation-22, FR-foundation-23)
 
 ## Out of scope

@@ -2,8 +2,8 @@
 id: spec-skills
 feature: Spec skills
 epic: "Epic 4: Spec skills"
-status: planned
-issues: []
+status: issued
+issues: [30, 31, 32, 33, 34]
 mockups: []
 ---
 

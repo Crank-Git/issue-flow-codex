@@ -2,8 +2,8 @@
 id: plugin-packaging
 feature: Plugin packaging and hooks
 epic: "Epic 1: Plugin packaging and hooks"
-status: planned
-issues: []
+status: built
+issues: [13, 14, 15, 16, 17, 18]
 mockups: []
 ---
 
@@ -19,7 +19,7 @@ It ports the two upstream hooks and adds the role guard.
 - As the operator, I want one skill that configures my project, so that the roles, the thread limit, and the permission profile are correct before the first run.
 - As the operator, I want the setup skill to show each change before it writes it, so that I control my Codex configuration.
 - As the operator, I want the PM to stop when its hooks did not run, so that the loop never runs without its guards.
-- As the maintainer, I want the spawn guard to deny the spawn shapes that upstream measured as unsafe, so that the Codex loop keeps the upstream protection.
+- As the maintainer, I want the spawn guard to deny the spawn shapes that are unsafe, so that the Codex loop keeps the upstream protection against a runaway worker.
 
 ## Functional requirements
 
@@ -59,9 +59,9 @@ It ports the two upstream hooks and adds the role guard.
 - FR-plugin-packaging-26 — The preflight hook output starts with the line `issue-flow preflight: ran <plugin version>`.
 - FR-plugin-packaging-27 — The preflight hook keeps the upstream digest content.
 - FR-plugin-packaging-28 — The preflight hook adds the line `issue-flow preflight: source=<source>` from the SessionStart `source` field.
-- FR-plugin-packaging-29 — The spawn guard denies a spawn whose `message` is a handoff brief when `fork_turns` is not `"none"`.
-- FR-plugin-packaging-30 — The spawn guard denies a spawn whose `message` is a handoff brief when `agent_type` is not `issue_worker`.
-- FR-plugin-packaging-31 — The spawn guard detects a handoff brief with the upstream rule: three or more brief field labels at line starts.
+- FR-plugin-packaging-29 — The spawn guard denies a spawn when `fork_turns` is not `"none"`. An omitted `fork_turns` means `"all"` and is denied.
+- FR-plugin-packaging-30 — The spawn guard denies a spawn whose `task_name` matches `^worker_\d+(_c\d+)?$` when `agent_type` is not `issue_worker`.
+- FR-plugin-packaging-31 — The spawn guard reads only `fork_turns`, `task_name`, and `agent_type`. It never reads `message`, because `message` arrives in the hook payload as an encrypted token.
 - FR-plugin-packaging-32 — The spawn guard denies with `permissionDecision: "deny"` and a reason that states the correct call.
 - FR-plugin-packaging-33 — The spawn guard allows every other spawn.
 - FR-plugin-packaging-34 — The role guard reads its rules from `hooks/role-policy.json`.
@@ -108,21 +108,20 @@ flowchart TD
 flowchart TD
     A["PreToolUse: tool_name matches spawn_agent$"] --> B{"Payload parses?"}
     B -- "no" --> OK["Allow"]
-    B -- "yes" --> C{"message is a handoff brief?"}
-    C -- "no" --> OK
-    C -- "yes" --> D{"fork_turns is none?"}
+    B -- "yes" --> D{"fork_turns is none?"}
     D -- "no" --> X1["Deny: use fork_turns none"]
-    D -- "yes" --> E{"agent_type is issue_worker?"}
+    D -- "yes" --> C{"task_name matches worker_n?"}
+    C -- "no" --> OK
+    C -- "yes" --> E{"agent_type is issue_worker?"}
     E -- "no" --> X2["Deny: use agent_type issue_worker"]
     E -- "yes" --> OK
 ```
 
 1. Codex calls the spawn guard before each `spawn_agent` call.
 2. If the payload does not parse, the guard allows the call.
-3. If the message is not a handoff brief, the guard allows the call.
-4. If `fork_turns` is not `"none"`, the guard denies the call.
-5. If `agent_type` is not `issue_worker`, the guard denies the call.
-6. Else the guard allows the call.
+3. If `fork_turns` is not `"none"` (or is omitted), the guard denies the call.
+4. If `task_name` matches `^worker_\d+(_c\d+)?$` and `agent_type` is not `issue_worker`, the guard denies the call.
+5. Else the guard allows the call.
 
 ### Flow 3 — Hook check at session start
 
@@ -226,7 +225,7 @@ without `apply_patch`. The roles' instructions state the same limits.
 - [ ] The setup skill on a project with a user `config.toml` keeps every user line. (FR-plugin-packaging-13)
 - [ ] `$issue-flow:setup check` reports `stale` after one byte changes in a role file, and writes no file. (FR-plugin-packaging-21, 22)
 - [ ] With trusted hooks, a new session's context holds `issue-flow preflight: ran 0.1.0`. (FR-plugin-packaging-26)
-- [ ] The spawn guard test denies a brief with `fork_turns: "all"`, denies a brief with `agent_type: "default"`, and allows a brief with `issue_worker` and `"none"`. (FR-plugin-packaging-29 to 33)
+- [ ] The spawn guard test denies a spawn with `fork_turns: "all"` and with `fork_turns` omitted, denies a worker `task_name` without `agent_type: "issue_worker"`, and allows a worker `task_name` with `issue_worker` and `"none"`. (FR-plugin-packaging-29 to 33)
 - [ ] The role guard test denies `apply_patch` for `code_auditor` and allows it for `issue_worker`. (FR-plugin-packaging-34 to 36)
 - [ ] Each hook allows the call for a payload of `not json`. (FR-plugin-packaging-37)
 - [ ] With hooks not trusted, the PM stops before it reads the tracker. (Flow 3)

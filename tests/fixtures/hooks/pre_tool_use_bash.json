@@ -1,0 +1,16 @@
+{
+  "session_id": "01a1a280-82ea-7f01-80cd-a771789b6f79",
+  "turn_id": "01a1a280-d0af-7902-96d3-becf62ec8fd4",
+  "agent_id": "01a1a280-d09e-7a33-b797-30a8d4c457eb",
+  "agent_type": "code_auditor",
+  "transcript_path": "/home/user/.codex/sessions/2026/11/03/rollout-2026-11-03T12-41-53-01a1a280-d09e-7a33-b797-30a8d4c457eb.jsonl",
+  "cwd": "/home/user/project",
+  "hook_event_name": "PreToolUse",
+  "model": "gpt-6-luna",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "Bash",
+  "tool_input": {
+    "command": "git status --short"
+  },
+  "tool_use_id": "exec-259e89e2-1068-4be9-b469-07ef7e484555"
+}

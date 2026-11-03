@@ -307,9 +307,9 @@ spent — run every step below yourself. The digest is an accelerator, never a d
    per operator, so concurrent sessions don't fight over the committed file — write the
    local file when step 10 found a co-operator, the committed file otherwise, and say
    which). When the preflight digest reported **plugin-version drift**, ask about every
-   option the saved file lacks a value for instead of defaulting it, and stamp the
-   Codex version as `pluginVersion` in `.issue-flow.codex.json`; leave
-   `.issue-flow.json`'s `pluginVersion` unchanged. Full option
+   option the saved file lacks a value for instead of defaulting it. Record the installed
+   Codex version as `pluginVersion` in `.issue-flow.codex.json` whenever you write that
+   file. Leave `.issue-flow.json`'s `pluginVersion` unchanged. Full option
    tables, the authority matrix and how practices are enforced:
    [references/session-config.md](references/session-config.md).
    If the operator changes concurrency, rerun `setup_project.py plan` and show the

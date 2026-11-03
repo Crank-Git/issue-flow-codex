@@ -83,6 +83,7 @@ one than you know → defaults, as above). The shared
 `.issue-flow.json` `pluginVersion` records the upstream release that last ran this
 project. The Codex release is stored in `.issue-flow.codex.json` `pluginVersion`.
 The Codex preflight hook reads only the Codex file for version drift.
+Phase 0 records the installed Codex version whenever it writes that file.
 
 On Codex version drift, the Codex config was written by an older plugin. Its silence
 is not consent. A field the saved file lacks may be a question that did not exist yet. During the
@@ -178,6 +179,7 @@ keeps only upstream keys, in the upstream format.
 
 | Key | Default | Meaning |
 |---|---|---|
+| `pluginVersion` | installed Codex release | The Codex release that last wrote this file. |
 | `pmModel` | `gpt-6.1-sol` | The model the PM session runs on. |
 | `workerModel` | `gpt-6.1-sol` | The model each issue-worker runs on. |
 | `workerEffort` | `medium` | The reasoning effort of each issue-worker. |
@@ -185,7 +187,7 @@ keeps only upstream keys, in the upstream format.
 | `waitMs` | `600000` | The longest time in milliseconds that one `wait_agent` call blocks. |
 
 ```json
-{ "version": 1, "pmModel": "gpt-6.1-sol", "workerModel": "gpt-6.1-sol", "workerEffort": "medium",
+{ "version": 1, "pluginVersion": "0.1.0", "pmModel": "gpt-6.1-sol", "workerModel": "gpt-6.1-sol", "workerEffort": "medium",
   "helperModel": "gpt-6-luna", "waitMs": 600000 }
 ```
 

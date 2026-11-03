@@ -901,3 +901,15 @@ path = "docs/e2e/2026-11-03-epic-2.md"
 mode = "new"
 upstream_sha256 = ""
 notes = "port-only: Epic 2 batch-gate live run report (#3)"
+
+[[file]]
+path = "agents/ci-watcher.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file. Upstream waits in a background shell; Codex waits in this role. Built into `roles/ci-watcher.toml`."
+
+[[file]]
+path = "roles/ci-watcher.toml"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file. Built from `agents/ci-watcher.md` by `scripts/build_roles.py`."

@@ -327,6 +327,89 @@ class PhaseZeroTest(unittest.TestCase):
             self.assertNotIn(word, text)
 
 
+def stage_c2():
+    return section("SKILL.md", "### C2", "## Stage D")
+
+
+def stage_d():
+    return section("SKILL.md", "## Stage D", "## Stage E")
+
+
+def deploy_reference():
+    return (SKILL_DIR / "references" / "deploy.md").read_text()
+
+
+def forge_ci_section():
+    path = SKILL_DIR.parent.parent / "references" / "forge.md"
+    lines = path.read_text().splitlines()
+    first = next(i for i, line in enumerate(lines) if line.startswith("### Actions and CI"))
+    last = next(i for i, line in enumerate(lines) if i > first and line.startswith("## Capability gaps"))
+    return "\n".join(lines[first:last])
+
+
+def ci_watcher_agent():
+    return (SKILL_DIR.parent.parent / "agents" / "ci-watcher.md").read_text()
+
+
+class CiWatcherTextTest(unittest.TestCase):
+    def test_c2_and_stage_d_spawn_a_ci_watcher_with_fork_turns_none(self):
+        for name, text in (("C2", stage_c2()), ("Stage D", stage_d())):
+            with self.subTest(section=name):
+                self.assertIn('agent_type: "ci_watcher"', text)
+                self.assertIn('fork_turns: "none"', text)
+                self.assertIn("list_agents", text)
+
+    def test_watchers_are_named_by_pr_and_by_sha(self):
+        self.assertIn("ci_<pr>", stage_c2())
+        self.assertIn("deploy_<sha7>", stage_d())
+
+    def test_standalone_ci_failure_goes_to_the_worker_with_followup_task(self):
+        text = " ".join(stage_c().split())
+        self.assertRegex(text, r"standalone[^.]*followup_task")
+
+    def test_c2_names_the_watcher_error_and_missing_rules(self):
+        text = " ".join(stage_c2().split())
+        self.assertIn("spawn one more watcher", text)
+        self.assertIn("verify_ci_ran.py", text)
+        self.assertIn("timeout", text)
+
+    def test_stage_d_maps_the_deploy_wait_states(self):
+        text = stage_d()
+        for state in ("succeeded", "failed", "rolled-back", "superseded", "missing", "timeout"):
+            with self.subTest(state=state):
+                self.assertIn(f"`{state}`", text)
+
+    def test_stage_d_spawns_the_deploy_verifier_role_and_skips_when_missing(self):
+        text = " ".join(stage_d().split())
+        self.assertIn('agent_type: "deploy_verifier"', text)
+        self.assertIn("skip the browser check", text)
+
+    def test_owned_text_has_no_claude_code_mechanics(self):
+        tokens = ("run_in_background", "isolation", "subagent_type", "CLAUDE_PLUGIN_ROOT",
+                  ".claude/worktrees", "ToolSearch", "claude mcp add")
+        for name, text in (("C2", stage_c2()), ("Stage D", stage_d()),
+                           ("deploy.md", deploy_reference()),
+                           ("forge.md CI watch", forge_ci_section())):
+            for token in tokens:
+                with self.subTest(section=name, token=token):
+                    self.assertNotIn(token, text)
+
+    def test_c2_and_deploy_reference_use_worktree_py_for_the_dev_tree(self):
+        self.assertIn(".worktrees/dev", stage_c2())
+        self.assertIn("worktree.py create", stage_c2())
+        self.assertIn("worktree.py create", deploy_reference())
+
+    def test_forge_ci_section_describes_the_watcher_not_a_background_shell(self):
+        text = forge_ci_section()
+        self.assertIn("ci_wait.py", text)
+        self.assertIn("ci_watcher", text)
+
+    def test_watcher_instructions_name_both_scripts_and_the_deadlines(self):
+        text = " ".join(ci_watcher_agent().split())
+        for token in ("ci_wait.py", "deploy_wait.py", "pending", "timeout", "60 minutes",
+                      "30 minutes", '"kind"'):
+            with self.subTest(token=token):
+                self.assertIn(token, text)
 class AfterCompactionTest(unittest.TestCase):
     def text(self):
         return section("SKILL.md", "### After a compaction", "### C1")

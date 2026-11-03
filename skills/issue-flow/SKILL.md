@@ -896,7 +896,7 @@ issues and batches from working memory** (fully recorded on the tracker); keep o
 session summary so context stays flat as the count grows. If context is compacted
 mid-loop, re-run Phase 0 recovery and continue.
 
-### Status reporting (three channels, low noise)
+### Status reporting (two channels, low noise)
 
 On every **milestone** — a batch merges, a deploy is verified or fails, the pipeline
 starves, or user input becomes gating — and otherwise at most every ~30 minutes of
@@ -917,10 +917,26 @@ activity:
    preserving everything outside the markers (re-read the body first — a human may have
    added notes). Don't spam comments; add one only for milestones worth a notification
    trail. Never touch another operator's status issue.
-3. **Push notification** for milestones only (batch merged, deploy verified/failed,
-   input needed, loop stopped): load `PushNotification` via
-   `ToolSearch` (`select:PushNotification`) and send a one-liner. If the tool isn't
-   available, skip silently — the other two channels carry it.
+   Add one line to the digest: `harness: codex <version>`. Take the version from
+   `codex --version`. An upstream PM that reads the digest ignores the line.
+
+The PM sends no push notification. The Codex CLI has no tool for it. The two channels
+above carry every milestone.
+
+### Compatibility with upstream 0.17.0
+
+The PM writes these in the upstream 0.17.0 format, so a PM in Claude Code reads them
+without a parse error:
+
+- Labels: `flow:status`, `status:ready`, `status:in-progress`, `status:in-review`,
+  `status:batched`, `status:needs-feedback`, `status:blocked` and the other `status:*` labels.
+- Comment markers: `<!-- issue-flow:begin @<me> -->`, `<!-- issue-flow:end @<me> -->` and
+  `<!-- issue-flow:convergence -->`.
+- Status issue titles: `issue-flow: session status — @<me>`.
+- Branch names: `issue/<n>-<slug>` and `epic/<n>-<slug>`.
+
+The Codex-only line `harness: codex <version>` and the Codex settings in
+`.issue-flow.codex.json` are the only additions.
 
 Between milestones, stay quiet. Never let reporting block scheduling.
 
@@ -1027,7 +1043,7 @@ business.
 - **CI runs once per batch.** Sub-issue PRs are drafts with `[skip ci]` into the integration branch; only batch PRs and urgent standalone PRs trigger provider CI. Never open a CI-running PR per sub-issue.
 - **Dependency chains share a batch.** Sequenced members of one integration branch — never a chain of stacked PRs into dev.
 - **One worktree per issue.** Different issues may touch the same files (separate worktrees, PM resolves conflicts at sub-merge); never two writers in one worktree on overlapping paths.
-- **Decisions and gates are the PM's.** Workers/Workflows are decision-free; one hitting a judgment call returns `needs-feedback`. Sub-merge, batch merge, ship-partial, conflict semantics, deploy-failure cause, and epic scope are PM decisions.
+- **Decisions and gates are the PM's.** Workers and subagents are decision-free; one hitting a judgment call returns `needs-feedback`. Sub-merge, batch merge, ship-partial, conflict semantics, deploy-failure cause, and epic scope are PM decisions.
 - **Anything needing human input is labeled `status:needs-feedback`** with a comment stating exactly what's needed — carried in every digest, never left to sit silently.
 - **Everything you author on the tracker is STE** (`references/ste.md`), written from the spec's `## Terms` vocabulary when the project has one. Evidence and other people's words are quoted verbatim, never reworded.
 - **External interfaces are read from their documentation, never assumed** (`references/external-apis.md`). This binds you as well as the workers: a plan, a verdict, or a deploy diagnosis that rests on an assumed AWS or third-party behaviour goes back — "it should support that" is not a source. Anything that creates, deletes or changes a cloud resource is confirmed with the user first.

@@ -319,3 +319,52 @@ class PhaseZeroTest(unittest.TestCase):
         text = phase_0()
         for word in ("claude mcp", "claude plugin", "ToolSearch", "isolation", "AskUserQuestion"):
             self.assertNotIn(word, text)
+
+
+def stage_e():
+    return section("SKILL.md", "## Stage E", "### Project review")
+
+
+def collaboration():
+    return (SKILL_DIR / "references" / "collaboration.md").read_text()
+
+
+class DigestAndCompatibilityTextTests(unittest.TestCase):
+    def test_stage_e_names_the_harness_line(self):
+        text = stage_e()
+        self.assertIn("harness: codex", text)
+        self.assertIn("codex --version", text)
+
+    def test_stage_e_has_no_push_notification(self):
+        text = stage_e()
+        for word in ("PushNotification", "ToolSearch"):
+            self.assertNotIn(word, text)
+
+    def test_stage_e_names_the_upstream_formats(self):
+        text = stage_e()
+        for word in ("0.17.0", "flow:status", "issue-flow: session status", "issue/<n>-<slug>"):
+            self.assertIn(word, text)
+
+    def test_hard_rules_say_subagents_not_workflows(self):
+        text = (SKILL_DIR / "SKILL.md").read_text()
+        self.assertNotIn("Workflows", text)
+
+    def test_collaboration_has_no_claude_messaging(self):
+        text = collaboration()
+        for word in ("SendMessage", "agentId", "worktree-agent-"):
+            self.assertNotIn(word, text)
+
+    def test_collaboration_routes_corrections_by_followup_task(self):
+        text = collaboration()
+        self.assertIn("followup_task", text)
+        self.assertIn("worker_<n>", text)
+        self.assertIn(".worktrees/<task_name>", text)
+
+    def test_collaboration_has_the_respawn_path(self):
+        text = " ".join(collaboration().split())
+        self.assertIn("worktree.py remove --project <dir> --task worker_<n>", text)
+
+    def test_collaboration_has_the_same_login_heading(self):
+        text = collaboration()
+        self.assertIn("\n## Same-login sessions\n", text)
+        self.assertIn("30 minutes", text)

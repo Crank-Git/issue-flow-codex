@@ -3,246 +3,6 @@ tag = "issue-flow--v0.17.0"
 commit = "03faf580b53e8187758eb18cf9944c2bf0c273fe"
 
 [[file]]
-path = ".claude-plugin/plugin.json"
-mode = "rewritten"
-upstream_sha256 = "b1a7778a57bb6640532545de9959e4935ace24861f8f91a7d114b88a5970ea10"
-notes = "Becomes `.codex-plugin/plugin.json`."
-
-[[file]]
-path = "README.md"
-mode = "patched"
-upstream_sha256 = "6f5cf3ddd736fba8e560324c4bf141d28ce77dfd655b7a1e361ad9b678bfd384"
-notes = "Port header credits upstream and the license; Codex install steps follow in a later issue."
-
-[[file]]
-path = "agents/code-auditor.md"
-mode = "patched"
-upstream_sha256 = "6e2dc453867c70efcc94995a429d718c358c1deba65230a503a1e7cabd669826"
-notes = "Becomes a role file."
-
-[[file]]
-path = "agents/deploy-verifier.md"
-mode = "patched"
-upstream_sha256 = "b7f5f2554e314e1aa0469dccd6f68a7189d84564331b99fb977771bf17b0a3d0"
-notes = "Becomes a role file; Playwright tool names."
-
-[[file]]
-path = "agents/issue-worker.md"
-mode = "rewritten"
-upstream_sha256 = "bcd39c9d9b9fdc74eeb46b2ccd6c4e7570c66f79e17db3b3aae809f4e0b7e43f"
-notes = "Front-matter becomes `roles/issue-worker.toml`. Rewrite: the toolbox section, the four spawn rules (lines 162-236), the worktree boundary (lines 237-350), and the CI watch in the runbook."
-
-[[file]]
-path = "agents/review-scribe.md"
-mode = "patched"
-upstream_sha256 = "3a372336d9e61b9602c725e51d31246a179fde49f93a30e5f6f5af5638b7f55b"
-notes = "Becomes a role file; worktree from the PM."
-
-[[file]]
-path = "agents/ux-explorer.md"
-mode = "patched"
-upstream_sha256 = "ff8061fccbd2f2929b6838b99b0b51620326f354f615fc0be4dec2f9f89156da"
-notes = "Becomes a role file; Playwright tool names."
-
-[[file]]
-path = "hooks/guard-spawn.py"
-mode = "rewritten"
-upstream_sha256 = "4f505785d867897653f7ad3bbc261fe9489e9d9a7d331e9005910064a4b80b84"
-notes = "V2 spawn shapes: `fork_turns`, `agent_type`. The brief detection stays."
-
-[[file]]
-path = "hooks/hooks.json"
-mode = "rewritten"
-upstream_sha256 = "a0d321b823f0c39774e2d97629868aa1255e4d96a5ba707c82b7448f574fd1a5"
-notes = "Codex events, `$PLUGIN_ROOT`, matcher `spawn_agent$`, role guard entry."
-
-[[file]]
-path = "hooks/preflight.py"
-mode = "patched"
-upstream_sha256 = "a4274436cbe1ba41b50f25d52c5c41d9e6a317e707d6eef5ae88c92e7e9af7a1"
-notes = "Output wrapper, `source` line, `ran` line. The digest logic stays."
-
-[[file]]
-path = "references/external-apis.md"
-mode = "patched"
-upstream_sha256 = "9af5a4f0b41953672df26201544e96497731819f2b3568bfcb31a6e9ab02e9e8"
-notes = "`codex mcp list`; no `ToolSearch`."
-
-[[file]]
-path = "references/finding-policy.md"
-mode = "verbatim"
-upstream_sha256 = "454a7f6cf8360e7d8051bfb9b12c6e3ea5cfcd6b518d23f5a3b2ae26be8d6fe8"
-notes = ""
-
-[[file]]
-path = "references/forge.md"
-mode = "rewritten"
-upstream_sha256 = "9eb251d90ce79eb5edf9fcb457b264fa9c250a303997def9311129eae9211e7c"
-notes = "The CI-watch and background-shell section (about lines 320-425). The forge operation table stays."
-
-[[file]]
-path = "references/ste.md"
-mode = "patched"
-upstream_sha256 = "77628f46bd90f3e0376268b8ecec3253fdf33650662a0b027366f08c33c06754"
-notes = "The artifact table names `AGENTS.md` and `docs/rules/`."
-
-[[file]]
-path = "scripts/gitea-ci-watch.sh"
-mode = "patched"
-upstream_sha256 = "cde6952af3430a7dbb91c39ecc35194329f7cad2f026ca47a96baefdede6ecbc"
-notes = "Comment about `run_in_background`; called by `ci_wait.py`."
-
-[[file]]
-path = "scripts/peers.py"
-mode = "dropped"
-upstream_sha256 = "218f9fab3c1d4307492bc1088f9b3b1eff8f07aeadcb7dffe3905b7dbcbfc268"
-notes = "Reads Claude Code agent-team files that Codex does not have."
-
-[[file]]
-path = "scripts/state_cas.py"
-mode = "patched"
-upstream_sha256 = "00b9347c1176636844cfe3eccd1c1348dc1b7cce41d819e51682f7741445dc4a"
-notes = "Docstring paths."
-
-[[file]]
-path = "scripts/verify_ci_ran.py"
-mode = "patched"
-upstream_sha256 = "aa09bf566281ce025c5fd8e4613f7917159be3885240591ff917d30a8b6adaae"
-notes = "Docstring paths."
-
-[[file]]
-path = "scripts/verify_claim.py"
-mode = "patched"
-upstream_sha256 = "16c5f44611018a68984aab4eb733fcb2f4560fe6daa0eb5370561edff8832e65"
-notes = "Docstring paths."
-
-[[file]]
-path = "skills/issue-flow/SKILL.md"
-mode = "rewritten"
-upstream_sha256 = "c9481ee53f4c2ce6717a3ecf41170c05785a03dc03cc5b2be379d22dc5a1a3d8"
-notes = "Two roles (31-56), core invariants (88-122), Phase 0 (123-321), Stage B launch (about 590-620), Stage C notification and messaging (621-786), Stage E status (870-897), hard rules (995-1023)."
-
-[[file]]
-path = "skills/issue-flow/references/batching.md"
-mode = "patched"
-upstream_sha256 = "6c0188a55feb1b53bcde5f3aff1c9bdfacfb824799a961e02cdcab8273fd84ea"
-notes = "Worktree paths; `followup_task`."
-
-[[file]]
-path = "skills/issue-flow/references/collaboration.md"
-mode = "patched"
-upstream_sha256 = "298c3458649dbf188da0d6839035de09844df0c5ef8f9c0e699e0ff251bbceb4"
-notes = "`followup_task` for worker messages."
-
-[[file]]
-path = "skills/issue-flow/references/deploy.md"
-mode = "patched"
-upstream_sha256 = "de765b063ec88e254a5969728630e60bb56922af93efa6a04a03c532016c40e9"
-notes = "Watcher subagent; `codex mcp`."
-
-[[file]]
-path = "skills/issue-flow/references/issue-worker.md"
-mode = "rewritten"
-upstream_sha256 = "529ec4148e032323c10d7a37944dfbf3cec35ae0544dcba66efd8dd7359953e1"
-notes = "The spawn call (1-30) and messaging (110-187)."
-
-[[file]]
-path = "skills/issue-flow/references/labels.md"
-mode = "verbatim"
-upstream_sha256 = "7597881cb704d29625787325f6c88e3729a9470379f7a417c309c5ae2dcb9750"
-notes = ""
-
-[[file]]
-path = "skills/issue-flow/references/parallelism.md"
-mode = "rewritten"
-upstream_sha256 = "521d8c02e06697417da75e507dc63fa017fbb9bdbc1279ecda369251b355ffbc"
-notes = "The one rule (8-26), what is safe (27-42), specialist reviewers and the Workflow example (171-263)."
-
-[[file]]
-path = "skills/issue-flow/references/session-config.md"
-mode = "patched"
-upstream_sha256 = "ec0f2de6db60a0999cdf301f8fd8632debc4576b62d9dd530b632e81e21aa697"
-notes = "Plain-text questions; the `codex` block."
-
-[[file]]
-path = "skills/issue-flow/references/spec-maintenance.md"
-mode = "patched"
-upstream_sha256 = "0a173fa6897f0ddf277cc2bb6e06b287b2d3896ea09dfbaa0933ea052e5301ba"
-notes = "`AGENTS.md`; `$issue-flow:` names."
-
-[[file]]
-path = "skills/issue-flow/references/worktrees.md"
-mode = "rewritten"
-upstream_sha256 = "da35fdad1ae30b73b0e9feb04cf24847680f06def63b7dda344c91f424004d17"
-notes = "Everything except teardown and parked worktrees (276-359)."
-
-[[file]]
-path = "skills/project-inherit/SKILL.md"
-mode = "patched"
-upstream_sha256 = "1f00f2c75f45dcb43f39be22c89be97be5722db0b54ecb5d49f7504c7e0256bd"
-notes = "Explorer subagents; scaffold follows `scaffold.md`."
-
-[[file]]
-path = "skills/project-planner/SKILL.md"
-mode = "rewritten"
-upstream_sha256 = "826d24b0dcee8e87bef27cd2e7d6c9787416f286fd9876647b0e67d5d56c7ceb"
-notes = "Phase 3 scaffold gate (165-176) and the checklist (266-285)."
-
-[[file]]
-path = "skills/project-planner/references/scaffold.md"
-mode = "rewritten"
-upstream_sha256 = "c27d15efb3e641e38b4fe1a3ff14e1722804cc33cd377d62f597c86b7465da38"
-notes = "`AGENTS.md`, `docs/rules/`, `.agents/skills/`, `.codex/hooks.json`, dual-harness mode, `.gitignore`."
-
-[[file]]
-path = "skills/project-planner/references/spec-format.md"
-mode = "patched"
-upstream_sha256 = "423e84cafeca1d1004cc8cacdf9e6f83a61887ad2a00c4fa6b715c3d58ed6c28"
-notes = "`docs/rules/quality.md`; `AGENTS.md`."
-
-[[file]]
-path = "skills/project-planner/scripts/render-spec.py"
-mode = "verbatim"
-upstream_sha256 = "d6fe9b720c86c7d2b49a63d82475a7f7e945c59e94b8d8fa2564699fb72f1856"
-notes = ""
-
-[[file]]
-path = "skills/project-review/SKILL.md"
-mode = "rewritten"
-upstream_sha256 = "a77e614259c45f1f92e313296d15999f7fba3b614cfe0771e06500dfe151c99f"
-notes = "Two roles (35-74), the browser check (79-90), scribe messaging (213-254)."
-
-[[file]]
-path = "skills/repo-mirror/SKILL.md"
-mode = "patched"
-upstream_sha256 = "116c57ac9f5ca1508e839d771af02b433159b4d1246f6abcbb7aa531629d6f13"
-notes = "New exclusions."
-
-[[file]]
-path = "skills/repo-mirror/scripts/mirror_filter.py"
-mode = "patched"
-upstream_sha256 = "24940cdc7f711c8907b2ebdb5a6b87011fc8b20daf99896541f7e1c292e8c66b"
-notes = "New default exclusions."
-
-[[file]]
-path = "skills/repo-mirror/templates/mirror.yml"
-mode = "verbatim"
-upstream_sha256 = "fb6e50375d850e95f71c4d70186197f2275b6590d9aeb0835ff81a62afa90b02"
-notes = ""
-
-[[file]]
-path = "skills/spec-to-issues/SKILL.md"
-mode = "patched"
-upstream_sha256 = "777429a3f1c4e7f1b4abf456bbada3582a72e72db8139b8755deb3ea736864ed"
-notes = "Plain-text questions; `$issue-flow:` names."
-
-[[file]]
-path = "skills/spec-update/SKILL.md"
-mode = "patched"
-upstream_sha256 = "2e1259e8059fe0c7de32ca9c75be97a48e62e45f263af55fed5cacaca0ac986c"
-notes = "Plain-text questions; paths."
-
-[[file]]
 path = ".agents/skills/conformance/SKILL.md"
 mode = "new"
 upstream_sha256 = ""
@@ -259,6 +19,12 @@ path = ".agents/skills/try-plugin/SKILL.md"
 mode = "new"
 upstream_sha256 = ""
 notes = "Port-only file."
+
+[[file]]
+path = ".claude-plugin/plugin.json"
+mode = "rewritten"
+upstream_sha256 = "b1a7778a57bb6640532545de9959e4935ace24861f8f91a7d114b88a5970ea10"
+notes = "Becomes `.codex-plugin/plugin.json`."
 
 [[file]]
 path = ".claude/rules/external-apis.md"
@@ -319,6 +85,48 @@ path = "CLAUDE.md"
 mode = "new"
 upstream_sha256 = ""
 notes = "Port-only file."
+
+[[file]]
+path = "LICENSE"
+mode = "new"
+upstream_sha256 = ""
+notes = "MIT text with the upstream and port copyright lines."
+
+[[file]]
+path = "README.md"
+mode = "patched"
+upstream_sha256 = "6f5cf3ddd736fba8e560324c4bf141d28ce77dfd655b7a1e361ad9b678bfd384"
+notes = "Port header credits upstream and the license; Codex install steps follow in a later issue."
+
+[[file]]
+path = "agents/code-auditor.md"
+mode = "patched"
+upstream_sha256 = "6e2dc453867c70efcc94995a429d718c358c1deba65230a503a1e7cabd669826"
+notes = "Becomes a role file."
+
+[[file]]
+path = "agents/deploy-verifier.md"
+mode = "patched"
+upstream_sha256 = "b7f5f2554e314e1aa0469dccd6f68a7189d84564331b99fb977771bf17b0a3d0"
+notes = "Becomes a role file; Playwright tool names."
+
+[[file]]
+path = "agents/issue-worker.md"
+mode = "rewritten"
+upstream_sha256 = "bcd39c9d9b9fdc74eeb46b2ccd6c4e7570c66f79e17db3b3aae809f4e0b7e43f"
+notes = "Front-matter becomes `roles/issue-worker.toml`. Rewrite: the toolbox section, the four spawn rules (lines 162-236), the worktree boundary (lines 237-350), and the CI watch in the runbook."
+
+[[file]]
+path = "agents/review-scribe.md"
+mode = "patched"
+upstream_sha256 = "3a372336d9e61b9602c725e51d31246a179fde49f93a30e5f6f5af5638b7f55b"
+notes = "Becomes a role file; worktree from the PM."
+
+[[file]]
+path = "agents/ux-explorer.md"
+mode = "patched"
+upstream_sha256 = "ff8061fccbd2f2929b6838b99b0b51620326f354f615fc0be4dec2f9f89156da"
+notes = "Becomes a role file; Playwright tool names."
 
 [[file]]
 path = "docs/adr/0000-template.md"
@@ -501,10 +309,304 @@ upstream_sha256 = ""
 notes = "Port-only file."
 
 [[file]]
+path = "hooks/guard-spawn.py"
+mode = "rewritten"
+upstream_sha256 = "4f505785d867897653f7ad3bbc261fe9489e9d9a7d331e9005910064a4b80b84"
+notes = "V2 spawn shapes: `fork_turns`, `agent_type`. The brief detection stays."
+
+[[file]]
+path = "hooks/hooks.json"
+mode = "rewritten"
+upstream_sha256 = "a0d321b823f0c39774e2d97629868aa1255e4d96a5ba707c82b7448f574fd1a5"
+notes = "Codex events, `$PLUGIN_ROOT`, matcher `spawn_agent$`, role guard entry."
+
+[[file]]
+path = "hooks/preflight.py"
+mode = "patched"
+upstream_sha256 = "a4274436cbe1ba41b50f25d52c5c41d9e6a317e707d6eef5ae88c92e7e9af7a1"
+notes = "Output wrapper, `source` line, `ran` line. The digest logic stays."
+
+[[file]]
+path = "references/external-apis.md"
+mode = "patched"
+upstream_sha256 = "9af5a4f0b41953672df26201544e96497731819f2b3568bfcb31a6e9ab02e9e8"
+notes = "`codex mcp list`; no `ToolSearch`."
+
+[[file]]
+path = "references/finding-policy.md"
+mode = "verbatim"
+upstream_sha256 = "454a7f6cf8360e7d8051bfb9b12c6e3ea5cfcd6b518d23f5a3b2ae26be8d6fe8"
+notes = ""
+
+[[file]]
+path = "references/forge.md"
+mode = "rewritten"
+upstream_sha256 = "9eb251d90ce79eb5edf9fcb457b264fa9c250a303997def9311129eae9211e7c"
+notes = "The CI-watch and background-shell section (about lines 320-425). The forge operation table stays."
+
+[[file]]
+path = "references/ste.md"
+mode = "patched"
+upstream_sha256 = "77628f46bd90f3e0376268b8ecec3253fdf33650662a0b027366f08c33c06754"
+notes = "The artifact table names `AGENTS.md` and `docs/rules/`."
+
+[[file]]
+path = "scripts/conformance.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: conformance suite (#10)"
+
+[[file]]
+path = "scripts/gitea-ci-watch.sh"
+mode = "patched"
+upstream_sha256 = "cde6952af3430a7dbb91c39ecc35194329f7cad2f026ca47a96baefdede6ecbc"
+notes = "Comment about `run_in_background`; called by `ci_wait.py`."
+
+[[file]]
+path = "scripts/peers.py"
+mode = "dropped"
+upstream_sha256 = "218f9fab3c1d4307492bc1088f9b3b1eff8f07aeadcb7dffe3905b7dbcbfc268"
+notes = "Reads Claude Code agent-team files that Codex does not have."
+
+[[file]]
+path = "scripts/state_cas.py"
+mode = "patched"
+upstream_sha256 = "00b9347c1176636844cfe3eccd1c1348dc1b7cce41d819e51682f7741445dc4a"
+notes = "Docstring paths."
+
+[[file]]
+path = "scripts/testbed-reset.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only. Returns a test bed to seed state."
+
+[[file]]
 path = "scripts/upstream_sync.py"
 mode = "new"
 upstream_sha256 = ""
 notes = "Port-only file."
+
+[[file]]
+path = "scripts/verify_ci_ran.py"
+mode = "patched"
+upstream_sha256 = "aa09bf566281ce025c5fd8e4613f7917159be3885240591ff917d30a8b6adaae"
+notes = "Docstring paths."
+
+[[file]]
+path = "scripts/verify_claim.py"
+mode = "patched"
+upstream_sha256 = "16c5f44611018a68984aab4eb733fcb2f4560fe6daa0eb5370561edff8832e65"
+notes = "Docstring paths."
+
+[[file]]
+path = "skills/issue-flow/SKILL.md"
+mode = "rewritten"
+upstream_sha256 = "c9481ee53f4c2ce6717a3ecf41170c05785a03dc03cc5b2be379d22dc5a1a3d8"
+notes = "Two roles (31-56), core invariants (88-122), Phase 0 (123-321), Stage B launch (about 590-620), Stage C notification and messaging (621-786), Stage E status (870-897), hard rules (995-1023)."
+
+[[file]]
+path = "skills/issue-flow/references/batching.md"
+mode = "patched"
+upstream_sha256 = "6c0188a55feb1b53bcde5f3aff1c9bdfacfb824799a961e02cdcab8273fd84ea"
+notes = "Worktree paths; `followup_task`."
+
+[[file]]
+path = "skills/issue-flow/references/collaboration.md"
+mode = "patched"
+upstream_sha256 = "298c3458649dbf188da0d6839035de09844df0c5ef8f9c0e699e0ff251bbceb4"
+notes = "`followup_task` for worker messages."
+
+[[file]]
+path = "skills/issue-flow/references/deploy.md"
+mode = "patched"
+upstream_sha256 = "de765b063ec88e254a5969728630e60bb56922af93efa6a04a03c532016c40e9"
+notes = "Watcher subagent; `codex mcp`."
+
+[[file]]
+path = "skills/issue-flow/references/issue-worker.md"
+mode = "rewritten"
+upstream_sha256 = "529ec4148e032323c10d7a37944dfbf3cec35ae0544dcba66efd8dd7359953e1"
+notes = "The spawn call (1-30) and messaging (110-187)."
+
+[[file]]
+path = "skills/issue-flow/references/labels.md"
+mode = "verbatim"
+upstream_sha256 = "7597881cb704d29625787325f6c88e3729a9470379f7a417c309c5ae2dcb9750"
+notes = ""
+
+[[file]]
+path = "skills/issue-flow/references/parallelism.md"
+mode = "rewritten"
+upstream_sha256 = "521d8c02e06697417da75e507dc63fa017fbb9bdbc1279ecda369251b355ffbc"
+notes = "The one rule (8-26), what is safe (27-42), specialist reviewers and the Workflow example (171-263)."
+
+[[file]]
+path = "skills/issue-flow/references/session-config.md"
+mode = "patched"
+upstream_sha256 = "ec0f2de6db60a0999cdf301f8fd8632debc4576b62d9dd530b632e81e21aa697"
+notes = "Plain-text questions; the `codex` block."
+
+[[file]]
+path = "skills/issue-flow/references/spec-maintenance.md"
+mode = "patched"
+upstream_sha256 = "0a173fa6897f0ddf277cc2bb6e06b287b2d3896ea09dfbaa0933ea052e5301ba"
+notes = "`AGENTS.md`; `$issue-flow:` names."
+
+[[file]]
+path = "skills/issue-flow/references/worktrees.md"
+mode = "rewritten"
+upstream_sha256 = "da35fdad1ae30b73b0e9feb04cf24847680f06def63b7dda344c91f424004d17"
+notes = "Everything except teardown and parked worktrees (276-359)."
+
+[[file]]
+path = "skills/project-inherit/SKILL.md"
+mode = "patched"
+upstream_sha256 = "1f00f2c75f45dcb43f39be22c89be97be5722db0b54ecb5d49f7504c7e0256bd"
+notes = "Explorer subagents; scaffold follows `scaffold.md`."
+
+[[file]]
+path = "skills/project-planner/SKILL.md"
+mode = "rewritten"
+upstream_sha256 = "826d24b0dcee8e87bef27cd2e7d6c9787416f286fd9876647b0e67d5d56c7ceb"
+notes = "Phase 3 scaffold gate (165-176) and the checklist (266-285)."
+
+[[file]]
+path = "skills/project-planner/references/scaffold.md"
+mode = "rewritten"
+upstream_sha256 = "c27d15efb3e641e38b4fe1a3ff14e1722804cc33cd377d62f597c86b7465da38"
+notes = "`AGENTS.md`, `docs/rules/`, `.agents/skills/`, `.codex/hooks.json`, dual-harness mode, `.gitignore`."
+
+[[file]]
+path = "skills/project-planner/references/spec-format.md"
+mode = "patched"
+upstream_sha256 = "423e84cafeca1d1004cc8cacdf9e6f83a61887ad2a00c4fa6b715c3d58ed6c28"
+notes = "`docs/rules/quality.md`; `AGENTS.md`."
+
+[[file]]
+path = "skills/project-planner/scripts/render-spec.py"
+mode = "verbatim"
+upstream_sha256 = "d6fe9b720c86c7d2b49a63d82475a7f7e945c59e94b8d8fa2564699fb72f1856"
+notes = ""
+
+[[file]]
+path = "skills/project-review/SKILL.md"
+mode = "rewritten"
+upstream_sha256 = "a77e614259c45f1f92e313296d15999f7fba3b614cfe0771e06500dfe151c99f"
+notes = "Two roles (35-74), the browser check (79-90), scribe messaging (213-254)."
+
+[[file]]
+path = "skills/repo-mirror/SKILL.md"
+mode = "patched"
+upstream_sha256 = "116c57ac9f5ca1508e839d771af02b433159b4d1246f6abcbb7aa531629d6f13"
+notes = "New exclusions."
+
+[[file]]
+path = "skills/repo-mirror/scripts/mirror_filter.py"
+mode = "patched"
+upstream_sha256 = "24940cdc7f711c8907b2ebdb5a6b87011fc8b20daf99896541f7e1c292e8c66b"
+notes = "New default exclusions."
+
+[[file]]
+path = "skills/repo-mirror/templates/mirror.yml"
+mode = "verbatim"
+upstream_sha256 = "fb6e50375d850e95f71c4d70186197f2275b6590d9aeb0835ff81a62afa90b02"
+notes = ""
+
+[[file]]
+path = "skills/spec-to-issues/SKILL.md"
+mode = "patched"
+upstream_sha256 = "777429a3f1c4e7f1b4abf456bbada3582a72e72db8139b8755deb3ea736864ed"
+notes = "Plain-text questions; `$issue-flow:` names."
+
+[[file]]
+path = "skills/spec-update/SKILL.md"
+mode = "patched"
+upstream_sha256 = "2e1259e8059fe0c7de32ca9c75be97a48e62e45f263af55fed5cacaca0ac986c"
+notes = "Plain-text questions; paths."
+
+[[file]]
+path = "testbed/seed/.gitea/workflows/ci.yml"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only. Seed content of the test beds."
+
+[[file]]
+path = "testbed/seed/.github/workflows/ci.yml"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only. Seed content of the test beds."
+
+[[file]]
+path = "testbed/seed/.gitignore"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only. Seed content of the test beds."
+
+[[file]]
+path = "testbed/seed/README.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only. Seed content of the test beds."
+
+[[file]]
+path = "testbed/seed/app.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only. Seed content of the test beds."
+
+[[file]]
+path = "testbed/seed/issues.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only. Seed content of the test beds."
+
+[[file]]
+path = "testbed/seed/tests/test_app.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only. Seed content of the test beds."
+
+[[file]]
+path = "tests/fixtures/conformance/.agents/plugins/marketplace.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: conformance suite (#10)"
+
+[[file]]
+path = "tests/fixtures/conformance/plugin/.codex-plugin/plugin.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: conformance suite (#10)"
+
+[[file]]
+path = "tests/fixtures/conformance/plugin/hooks/hooks.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: conformance suite (#10)"
+
+[[file]]
+path = "tests/fixtures/conformance/plugin/hooks/log_hook.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: conformance suite (#10)"
+
+[[file]]
+path = "tests/fixtures/conformance/plugin/skills/ping/SKILL.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: conformance suite (#10)"
+
+[[file]]
+path = "tests/fixtures/conformance/roles/echo_worker.toml"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: conformance suite (#10)"
+
+[[file]]
+path = "tests/fixtures/conformance/roles/git_worker.toml"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: conformance suite (#10)"
 
 [[file]]
 path = "tests/fixtures/upstream_sync/inventory.md"
@@ -561,6 +663,12 @@ upstream_sha256 = ""
 notes = "Port-only file."
 
 [[file]]
+path = "tests/test_conformance.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: conformance suite (#10)"
+
+[[file]]
 path = "tests/test_gitea_ci_watch.py"
 mode = "new"
 upstream_sha256 = ""
@@ -603,6 +711,12 @@ upstream_sha256 = ""
 notes = "from upstream scripts/test-state-cas.py"
 
 [[file]]
+path = "tests/test_testbed_reset.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only. Tests the reset script with faked forge calls."
+
+[[file]]
 path = "tests/test_upstream_sync.py"
 mode = "new"
 upstream_sha256 = ""
@@ -619,63 +733,3 @@ path = "tests/test_verify_claim.py"
 mode = "new"
 upstream_sha256 = ""
 notes = "from upstream scripts/test-verify-claim.py"
-
-[[file]]
-path = "scripts/conformance.py"
-mode = "new"
-upstream_sha256 = ""
-notes = "port-only: conformance suite (#10)"
-
-[[file]]
-path = "tests/fixtures/conformance/.agents/plugins/marketplace.json"
-mode = "new"
-upstream_sha256 = ""
-notes = "port-only: conformance suite (#10)"
-
-[[file]]
-path = "tests/fixtures/conformance/plugin/.codex-plugin/plugin.json"
-mode = "new"
-upstream_sha256 = ""
-notes = "port-only: conformance suite (#10)"
-
-[[file]]
-path = "tests/fixtures/conformance/plugin/hooks/hooks.json"
-mode = "new"
-upstream_sha256 = ""
-notes = "port-only: conformance suite (#10)"
-
-[[file]]
-path = "tests/fixtures/conformance/plugin/hooks/log_hook.py"
-mode = "new"
-upstream_sha256 = ""
-notes = "port-only: conformance suite (#10)"
-
-[[file]]
-path = "tests/fixtures/conformance/plugin/skills/ping/SKILL.md"
-mode = "new"
-upstream_sha256 = ""
-notes = "port-only: conformance suite (#10)"
-
-[[file]]
-path = "tests/fixtures/conformance/roles/echo_worker.toml"
-mode = "new"
-upstream_sha256 = ""
-notes = "port-only: conformance suite (#10)"
-
-[[file]]
-path = "tests/fixtures/conformance/roles/git_worker.toml"
-mode = "new"
-upstream_sha256 = ""
-notes = "port-only: conformance suite (#10)"
-
-[[file]]
-path = "tests/test_conformance.py"
-mode = "new"
-upstream_sha256 = ""
-notes = "port-only: conformance suite (#10)"
-
-[[file]]
-path = "LICENSE"
-mode = "new"
-upstream_sha256 = ""
-notes = "MIT text with the upstream and port copyright lines."

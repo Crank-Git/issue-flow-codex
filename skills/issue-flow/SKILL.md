@@ -256,8 +256,9 @@ spent — run every step below yourself. The digest is an accelerator, never a d
      Offer that command only when the source is concrete: one the user gave you, or one
      named in this repo (README, `AGENTS.md`, spec, or `.codex/config.toml`). For an MCP
      server, offer `codex mcp add` only when its URL or command is in a trusted source.
-     **Never invent a source, server name, or install command.** No concrete source → say
-     you found nothing and move on.
+     For a plugin that supplies a server, include the verified `codex plugin add
+     <plugin>@<marketplace>` command. **Never invent a source, server name, or install
+     command.** No concrete source → say you found nothing and move on.
    - **Offer with a plain-text question** — one numbered option per server you actually
      found, each naming the service it covers and the exact command, plus an explicit
      "none of these". Then end your turn and wait for the answer. **Adding a marketplace

@@ -37,7 +37,7 @@ Use the most authoritative source available, in this order:
    the parameters).
 2. **The official documentation**, retrieved from the vendor's own docs
    site, the package's README or reference docs at the **version the project pins**. Codex
-   CLI `--help` names the native tool `web_search`; use it when the session enables it.
+   CLI `--help` documents `--search`, which makes the native `web_search` tool available.
 3. **The vendor's own examples** in that documentation.
 
 Not authoritative: a blog post, a forum answer, a model's recollection, another project's

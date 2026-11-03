@@ -1,6 +1,6 @@
 ---
 name: project-inherit
-description: Bring an existing codebase into the issue-flow pipeline by reverse-engineering the full spec package from what is already built. Use when the user says "/project-inherit", "inherit this repo", "adopt this project", "plan an existing project", "onboard this codebase to issue-flow", or asks for issue-flow on a repo that has code but no docs/specs/. Reviews the entire repository with fanned-out read-only survey agents, harvests any existing documentation (README, docs/, ADRs, wikis, specs in other formats), interviews the user only about what code cannot answer, then writes the same approved spec package project-planner produces — built features marked built, gaps and roadmap marked planned — plus the project scaffold, ready for spec-to-issues and issue-flow.
+description: Bring an existing codebase into the issue-flow pipeline by reverse-engineering the full spec package from what is already built. Use when the user says "$issue-flow:project-inherit", "inherit this repo", "adopt this project", "plan an existing project", "onboard this codebase to issue-flow", or asks for issue-flow on a repo that has code but no docs/specs/. Reviews the entire repository with fanned-out read-only survey agents, harvests any existing documentation (README, docs/, ADRs, wikis, specs in other formats), interviews the user only about what code cannot answer, then writes the same approved spec package project-planner produces — built features marked built, gaps and roadmap marked planned — plus the project scaffold, ready for spec-to-issues and issue-flow.
 ---
 
 # Project Inherit — the planner for code that already exists
@@ -13,9 +13,9 @@ actually built. Your deliverable is identical to the planner's: an approved
 care which skill produced it:
 
 ```
-/project-inherit  →  docs/specs/ + CLAUDE.md + .claude/ + .gitignore  (review → approved)
-/spec-to-issues   →  epics + sub-issues (planned features only)
-/issue-flow       →  built, PR'd, merged, deployed
+$issue-flow:project-inherit  →  docs/specs/ + CLAUDE.md + .claude/ + .gitignore  (review → approved)
+$issue-flow:spec-to-issues   →  epics + sub-issues (planned features only)
+$issue-flow:issue-flow       →  built, PR'd, merged, deployed
 ```
 
 You never create tracker issues and you never change product code. **Every agent you
@@ -44,10 +44,10 @@ per repository, portable relative paths, no Artifacts, never overwrite existing
 ## Wrong-entry checks
 
 - `docs/specs/spec.md` already exists → this project is already in the pipeline. Point
-  the user at `/spec-update` (change or refresh) or `project-planner`'s revision path,
+  the user at `$issue-flow:spec-update` (change or refresh) or `project-planner`'s revision path,
   and stop.
 - The repo is empty or has no meaningful code → this is a greenfield plan. Hand off to
-  `/project-planner` and stop.
+  `$issue-flow:project-planner` and stop.
 
 ## Phase 0 — Harvest what is already written
 
@@ -69,12 +69,13 @@ against the code.
 
 ## Phase 1 — Review the entire repository
 
-Fan out **read-only survey agents** (`Explore` agents; one per area, in parallel,
-**spawned unnamed** — never pass `name:`, the spawn guard denies a named agent without
-worktree isolation, and one denial here stalls the phase seven times over) and
-have each return structured findings with `file:line` evidence. Size the fan-out to the
-repo — a small repo may merge areas, a monorepo may need one pass per package — but
-cover all of:
+Use `spawn_agent` to fan out **read-only survey agents** (`explorer`; one per area, in
+parallel) and have each return structured findings with `file:line` evidence. Set
+`fork_turns: "none"` and `model: "gpt-6-luna"` on every spawn. Check `list_agents`
+before each spawn. Size the fan-out to the repo — a small repo may merge areas, a
+monorepo may need one pass per package — but cover all of:
+
+If `list_agents` shows no free thread slot, survey the areas in your current thread.
 
 1. **Stack & layout** — languages, frameworks, package manifests, build tooling,
    directory conventions, entry points.
@@ -100,7 +101,8 @@ document mentions — usually most of the list).
 
 ## Phase 2 — Interview: only what the code cannot answer
 
-Use `AskUserQuestion` in batched rounds (≤4 each), like the planner — but your
+Ask questions in plain-text messages with numbered options and space for a free-text
+answer. Ask at most four questions per message, like the planner — but your
 question budget is smaller, because the code answered the mechanical half. Ask about:
 
 1. **Product intent** — what the project is for, who uses it, what problem dies. Code
@@ -115,7 +117,13 @@ question budget is smaller, because the code answered the mechanical half. Ask a
    `project-planner` Phase 1 asks them (`branch_model` lands in the front-matter).
 6. **Visibility** — asked as `project-planner` Phase 1 asks it. On a public repo this
    question comes first: committing the spec there publishes it. Under `mirrored`,
-   `/repo-mirror convert` runs before the spec is pushed.
+   `$issue-flow:repo-mirror convert` runs before the spec is pushed.
+
+After each question message, end your turn and wait for the operator's answer. Continue
+the interview in a later turn. Use `spawn_agent` with `agent_type: "explorer"`,
+`fork_turns: "none"`, and `model: "gpt-6-luna"` for read-only surveys. Check
+`list_agents` before each spawn. If no slot is free, do that survey in your current
+thread.
 
 Never ask what a survey agent, a document, or a convention can answer. Anything
 non-critical still unknown becomes a documented assumption.
@@ -170,8 +178,8 @@ undocumented — because that is what the user cannot get anywhere else.
 Same as the planner: the spec must be committed **and pushed**, then
 
 ```
-/spec-to-issues        # issues the planned features + foundation gaps only
-/issue-flow            # build them
+$issue-flow:spec-to-issues        # issues the planned features + foundation gaps only
+$issue-flow:issue-flow            # build them
 ```
 
 Say explicitly how many features went out `built` (documented, no issues) versus

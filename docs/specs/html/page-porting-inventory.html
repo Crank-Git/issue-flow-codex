@@ -171,7 +171,7 @@ body.rv-open .layout { padding-right:21rem; }
 <tr><td><code>.claude-plugin/plugin.json</code></td><td>25</td><td>rewritten</td><td>Becomes <code>.codex-plugin/plugin.json</code>.</td><td>01</td></tr>
 <tr><td><code>hooks/hooks.json</code></td><td>26</td><td>rewritten</td><td>Codex events, <code>$PLUGIN_ROOT</code>, matcher <code>spawn_agent$</code>, role guard entry.</td><td>01</td></tr>
 <tr><td><code>hooks/preflight.py</code></td><td>333</td><td>patched</td><td>Output wrapper, <code>source</code> line, <code>ran</code> line. The digest logic stays.</td><td>01, 03</td></tr>
-<tr><td><code>hooks/guard-spawn.py</code></td><td>262</td><td>rewritten</td><td>V2 spawn shapes: <code>fork_turns</code>, <code>agent_type</code>. The brief detection stays.</td><td>01</td></tr>
+<tr><td><code>hooks/guard-spawn.py</code></td><td>262</td><td>rewritten</td><td>V2 spawn rules on <code>fork_turns</code>, <code>task_name</code>, <code>agent_type</code>. The brief detection is dropped: <code>message</code> is encrypted.</td><td>01</td></tr>
 <tr><td><code>scripts/peers.py</code></td><td>264</td><td>dropped</td><td>Reads Claude Code agent-team files that Codex does not have.</td><td>01</td></tr>
 <tr><td><code>scripts/state_cas.py</code></td><td>225</td><td>patched</td><td>Docstring paths.</td><td>00</td></tr>
 <tr><td><code>scripts/verify_ci_ran.py</code></td><td>155</td><td>patched</td><td>Docstring paths.</td><td>00</td></tr>

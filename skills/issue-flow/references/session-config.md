@@ -183,7 +183,7 @@ keeps only upstream keys, in the upstream format.
 | `pmModel` | `gpt-6.1-sol` | The model the PM session runs on. |
 | `workerModel` | `gpt-6.1-sol` | The model each issue-worker runs on. |
 | `workerEffort` | `medium` | The reasoning effort of each issue-worker. |
-| `helperModel` | `gpt-6-luna` | The model of helpers (locate, review, log-reading children). |
+| `helperModel` | `gpt-6-luna` | The model of helpers, including the CI watcher. |
 | `waitMs` | `600000` | The longest time in milliseconds that one `wait_agent` call blocks. |
 
 ```json

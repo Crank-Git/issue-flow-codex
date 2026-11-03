@@ -25,8 +25,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 SEED = ROOT / "testbed" / "seed"
 LABELS = ROOT / "skills" / "issue-flow" / "references" / "labels.md"
-GITEA_SERVER = "http://192.168.2.21:3000"
-GITEA_LOGIN = "testgitea"
+GITEA_SERVER = os.environ.get("GITEA_SERVER_URL", "https://telescope.lan")
+GITEA_REPO = os.environ.get("ISSUE_FLOW_TESTBED_GITEA", "e/issue-flow-codex-testbed")
+GITEA_LOGIN = "telescope"
 KEPT_BRANCHES = ("main", "dev")
 PAGE_SIZE = 50
 
@@ -34,7 +35,7 @@ Bed = namedtuple("Bed", "repo url")
 BEDS = {
     "github": Bed("Crank-Git/issue-flow-codex-testbed",
                   "https://github.com/Crank-Git/issue-flow-codex-testbed.git"),
-    "gitea": Bed("a/issue-flow-codex-testbed", f"{GITEA_SERVER}/a/issue-flow-codex-testbed.git"),
+    "gitea": Bed(GITEA_REPO, f"{GITEA_SERVER}/{GITEA_REPO}.git"),
 }
 
 # One bootstrap line of labels.md: `gh label create "<name>" --color <hex> --description "<text>"`.
@@ -62,10 +63,15 @@ def request(forge, method, path, body=None):
         if body is not None:
             command += ["--input", "-"]
     else:
-        command = ["tea", "api", "--login", GITEA_LOGIN, "-X", method, path]
+        # -i prints the HTTP status to stderr, because tea exits 0 on an HTTP error.
+        command = ["tea", "api", "--login", GITEA_LOGIN, "-i", "-X", method, path]
         if body is not None:
             command += ["-d", "@-"]
-    return run(command, input=None if body is None else json.dumps(body))
+    done = run(command, input=None if body is None else json.dumps(body))
+    status = re.match(r"HTTP/\S+ (\d+)", done.stderr)
+    if forge == "gitea" and done.returncode == 0 and status and int(status[1]) >= 400:
+        return subprocess.CompletedProcess(command, 1, done.stdout, done.stderr)
+    return done
 
 
 def api(forge, method, path, body=None):

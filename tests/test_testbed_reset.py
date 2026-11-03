@@ -55,12 +55,18 @@ class FakeForge:
         query = urllib.parse.parse_qs(url.query)
         body = json.loads(input) if input else None
         self.calls.append((args[0], method, url.path, body))
-        return self.answer(method, url.path, query, body)
+        result = self.answer(method, url.path, query, body)
+        if args[0] == "tea" and result.returncode == 0:
+            result.stderr = "HTTP/2.0 200 OK\nContent-Type: application/json\n"
+        elif args[0] == "tea" and "404" in result.stderr:
+            # Measured on Gitea 1.25.3: tea exits 0 on an HTTP 404 and prints the status with -i.
+            return done('{"message":"not found"}', stderr="HTTP/2.0 404 Not Found\nVia: 1.1 Caddy\n")
+        return result
 
     def answer(self, method, path, query, body):
         repo = "/repos/" + testbed_reset.BEDS[self.forge].repo
         if path == "/version" and not self.server_up:
-            return done(returncode=1, stderr="dial tcp 192.168.2.21:3000: connect: connection refused")
+            return done(returncode=1, stderr="dial tcp: connect: connection refused")
         if path == "/version":
             return done(json.dumps({"version": "1.25.3"}))
         if path == repo and method == "GET":
@@ -115,6 +121,12 @@ class ResetTest(unittest.TestCase):
         self.assertEqual(len(creations), 1)
         self.assertTrue(creations[0][3]["private"])
 
+    def test_creates_the_gitea_repository_when_tea_exits_0_on_a_404(self):
+        forge = FakeForge("gitea", repo_exists=False)
+        code, _, err = forge.reset("gitea")
+        self.assertEqual((code, err), (0, ""))
+        self.assertEqual(len([c for c in forge.calls if c[2] == "/user/repos"]), 1)
+
     def test_does_not_create_the_repository_when_it_exists(self):
         forge = FakeForge("github")
         forge.reset("github")
@@ -130,7 +142,7 @@ class ResetTest(unittest.TestCase):
         forge = FakeForge("gitea", server_up=False)
         code, out, err = forge.reset("gitea")
         self.assertEqual(code, 1)
-        self.assertIn("http://192.168.2.21:3000", err)
+        self.assertIn(testbed_reset.GITEA_SERVER, err)
         self.assertEqual(out, "")
         self.assertEqual(forge.git_commands, [])
 

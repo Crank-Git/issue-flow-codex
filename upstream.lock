@@ -327,6 +327,12 @@ upstream_sha256 = ""
 notes = "port-only: role guard (#18)"
 
 [[file]]
+path = "hooks/guard-wait.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: wait_agent timeout guard (#66)"
+
+[[file]]
 path = "hooks/guard-spawn.py"
 mode = "rewritten"
 upstream_sha256 = "4f505785d867897653f7ad3bbc261fe9489e9d9a7d331e9005910064a4b80b84"
@@ -381,10 +387,22 @@ upstream_sha256 = ""
 notes = "Port-only file."
 
 [[file]]
+path = "scripts/ci_wait.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
 path = "scripts/conformance.py"
 mode = "new"
 upstream_sha256 = ""
 notes = "port-only: conformance suite (#10)"
+
+[[file]]
+path = "scripts/deploy_wait.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
 
 [[file]]
 path = "scripts/gitea-ci-watch.sh"
@@ -633,6 +651,12 @@ upstream_sha256 = ""
 notes = "port-only: live SessionStart payload (#16)"
 
 [[file]]
+path = "tests/fixtures/hooks/pre_tool_use_wait.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: recorded live wait_agent payload (#66)"
+
+[[file]]
 path = "tests/fixtures/hooks/pre_tool_use_spawn.json"
 mode = "new"
 upstream_sha256 = ""
@@ -729,16 +753,34 @@ upstream_sha256 = ""
 notes = "Port-only file."
 
 [[file]]
+path = "tests/test_ci_wait.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
 path = "tests/test_conformance.py"
 mode = "new"
 upstream_sha256 = ""
 notes = "port-only: conformance suite (#10)"
 
 [[file]]
+path = "tests/test_deploy_wait.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
 path = "tests/test_gitea_ci_watch.py"
 mode = "new"
 upstream_sha256 = ""
 notes = "from upstream scripts/test-gitea-ci-watch.py"
+
+[[file]]
+path = "tests/test_guard_wait.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: wait guard tests (#66)"
 
 [[file]]
 path = "tests/test_guard_spawn.py"
@@ -859,3 +901,21 @@ path = "docs/e2e/2026-11-03-epic-2.md"
 mode = "new"
 upstream_sha256 = ""
 notes = "port-only: Epic 2 batch-gate live run report (#3)"
+
+[[file]]
+path = "agents/ci-watcher.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file. Upstream waits in a background shell; Codex waits in this role. Built into `roles/ci-watcher.toml`."
+
+[[file]]
+path = "roles/ci-watcher.toml"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file. Built from `agents/ci-watcher.md` by `scripts/build_roles.py`."
+
+[[file]]
+path = "docs/e2e/2026-11-03-epic-3.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: Epic 3 batch-gate end-to-end report (#4)"

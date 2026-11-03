@@ -28,12 +28,16 @@ You are a worker. Run `git status` and keep a 'quote' and a \\ backslash.
 """
 
 
+WATCHER = AGENT.replace("issue-worker", "ci-watcher").replace("gpt-6.1-sol", "gpt-6-luna")
+
+
 class Fixture(unittest.TestCase):
     def setUp(self):
         self.repo = Path(tempfile.mkdtemp())
         self.addCleanup(shutil.rmtree, self.repo)
         (self.repo / "agents").mkdir()
         (self.repo / "agents" / "issue-worker.md").write_text(AGENT, encoding="utf-8")
+        (self.repo / "agents" / "ci-watcher.md").write_text(WATCHER, encoding="utf-8")
         (self.repo / "agents" / "other-agent.md").write_text(
             AGENT.replace("issue-worker", "other-agent"), encoding="utf-8")
 
@@ -57,13 +61,19 @@ class TestBuildRoles(Fixture):
         self.assertEqual(role["model"], "gpt-6.1-sol")
         self.assertEqual(role["model_reasoning_effort"], "medium")
 
+    def test_sets_the_ci_watcher_model(self):
+        build_roles.write(self.repo)
+        role = tomllib.loads((self.repo / "roles" / "ci-watcher.toml").read_text(encoding="utf-8"))
+        self.assertEqual(role["name"], "ci_watcher")
+        self.assertEqual(role["model"], "gpt-6-luna")
+
     def test_joins_the_folded_description_into_one_line(self):
         self.assertEqual(self.role()["description"], "Builds one issue inside a worktree.")
 
     def test_builds_only_ported_agents(self):
         build_roles.write(self.repo)
-        self.assertEqual([p.name for p in (self.repo / "roles").iterdir()],
-                         ["issue-worker.toml"])
+        self.assertEqual(sorted(p.name for p in (self.repo / "roles").iterdir()),
+                         ["ci-watcher.toml", "issue-worker.toml"])
 
     def test_check_passes_on_a_fresh_role_file(self):
         build_roles.write(self.repo)
@@ -77,12 +87,18 @@ class TestBuildRoles(Fixture):
         self.assertEqual(build_roles.main(["--check", "--root", str(self.repo)]), 1)
 
     def test_check_fails_when_the_role_file_is_missing(self):
-        self.assertEqual(build_roles.stale(self.repo), ["roles/issue-worker.toml"])
+        self.assertEqual(sorted(build_roles.stale(self.repo)),
+                         ["roles/ci-watcher.toml", "roles/issue-worker.toml"])
 
 
 class TestRepositoryRole(unittest.TestCase):
     def test_built_role_file_is_current(self):
         self.assertEqual(build_roles.stale(ROOT), [])
+
+    def test_ci_watcher_role_file_uses_gpt_6_luna(self):
+        role = tomllib.loads((ROOT / "roles" / "ci-watcher.toml").read_text(encoding="utf-8"))
+        self.assertEqual(role["name"], "ci_watcher")
+        self.assertEqual(role["model"], "gpt-6-luna")
 
     def test_manifest_validation_passes_on_the_built_role(self):
         self.assertEqual(validate_manifests.check(ROOT), [])

@@ -195,9 +195,9 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li>FR-loop-operations-10 — The PM saves the answers to <code>.issue-flow.json</code> with the upstream keys.
 </li>
-<li>FR-loop-operations-11 — The PM saves Codex-only settings under the key <code>codex</code> in <code>.issue-flow.json</code>.
+<li>FR-loop-operations-11 — The PM saves Codex-only settings in <code>.issue-flow.codex.json</code> at the repository root. The file is committed and team-shared.
 </li>
-<li>FR-loop-operations-12 — The <code>codex</code> block holds <code>pmModel</code>, <code>workerModel</code>, <code>workerEffort</code>, <code>helperModel</code>, and <code>waitMs</code>.
+<li>FR-loop-operations-12 — <code>.issue-flow.codex.json</code> holds <code>version</code> and the flat keys <code>pmModel</code>, <code>workerModel</code>, <code>workerEffort</code>, <code>helperModel</code>, and <code>waitMs</code>. It has no nested <code>codex</code> object.
 </li>
 <li>FR-loop-operations-13 — The PM shows the models and the concurrency in the question message before the loop starts.
 </li>
@@ -255,7 +255,7 @@ body.rv-open .layout { padding-right:21rem; }
 <ul>
 <li>FR-loop-operations-34 — The PM writes labels, comment markers, status issue titles, and branch names in the upstream 0.17.0 format.
 </li>
-<li>FR-loop-operations-35 — The PM reads <code>.issue-flow.json</code> files that upstream wrote, with no <code>codex</code> block, and asks only the Codex-only questions.
+<li>FR-loop-operations-35 — The PM reads <code>.issue-flow.json</code> files that upstream wrote, with no <code>.issue-flow.codex.json</code> beside them, and asks only the Codex-only questions.
 </li>
 <li>FR-loop-operations-36 — Phase 0 stops when the status issue for the same login has a digest from the last 30 minutes that this session did not write. The operator can confirm that the other session is gone, and the PM then continues.
 </li>
@@ -365,7 +365,9 @@ Reply "ok" to accept all, or "&lt;number&gt;: &lt;value&gt;" for each change.</c
 </ul>
 <h3 id="loop-operations-data-touched">Data touched</h3>
 <ul>
-<li><code>.issue-flow.json</code>: upstream keys plus the <code>codex</code> block.
+<li><code>.issue-flow.json</code>: upstream keys only, in the upstream format.
+</li>
+<li><code>.issue-flow.codex.json</code>: the Codex-only settings.
 </li>
 <li>Status issue and digest comments, upstream format.
 </li>
@@ -404,7 +406,7 @@ Reply "ok" to accept all, or "&lt;number&gt;: &lt;value&gt;" for each change.</c
 </li>
 <li>[ ] With the profile missing, the sandbox probe fails and the PM names <code>issue_flow</code>. (FR-loop-operations-4, 5)
 </li>
-<li>[ ] The run configuration message lists every upstream question and the five <code>codex</code> keys. (FR-loop-operations-8 to 13)
+<li>[ ] The run configuration message lists every upstream question and the five Codex keys. (FR-loop-operations-8 to 13)
 </li>
 <li>[ ] <code>ci_wait.py</code> returns <code>success</code> for a green SHA and <code>failure</code> for a red SHA on both test beds. (FR-loop-operations-15 to 17)
 </li>
@@ -430,7 +432,7 @@ Reply "ok" to accept all, or "&lt;number&gt;: &lt;value&gt;" for each change.</c
 </ul>
 <h3 id="loop-operations-open-questions" class="callout-h">Open questions</h3>
 <ul>
-<li>Does upstream 0.17.0 keep an unknown <code>codex</code> key in <code>.issue-flow.json</code> when it rewrites the file? If it drops the key, an upstream run removes the Codex settings. Epic 3 tests this. If upstream drops it, the port moves the block to <code>.issue-flow.codex.json</code>.
+<li>Resolved: no upstream 0.17.0 code writes <code>.issue-flow.json</code> (<code>hooks/preflight.py</code> only reads it). An upstream PM rewrites the file from step 11 text in <code>skills/issue-flow/SKILL.md</code> and <code>references/session-config.md</code>, and that text has no rule to keep unknown keys. An upstream run can drop a <code>codex</code> key, so the port moves the settings to <code>.issue-flow.codex.json</code>.
 </li>
 </ul><nav class="pager">
 <a href="feature-worker-dispatch.html">&larr; Feature: Worker dispatch</a>

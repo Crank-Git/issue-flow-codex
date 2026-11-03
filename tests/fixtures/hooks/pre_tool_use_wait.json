@@ -1,0 +1,14 @@
+{
+  "session_id": "01a1a2e2-58ec-70e2-9606-80e6de381b5d",
+  "turn_id": "01a1a2e2-5b74-7d90-a5ef-4da685d381b9",
+  "transcript_path": "/home/user/.codex/sessions/2026/11/03/rollout-2026-11-03T14-28-25-01a1a2e2-58ec-70e2-9606-80e6de381b5d.jsonl",
+  "cwd": "/home/user/project",
+  "hook_event_name": "PreToolUse",
+  "model": "gpt-6-luna",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "collaborationwait_agent",
+  "tool_input": {
+    "timeout_ms": 10000
+  },
+  "tool_use_id": "call_5d951a7e40324eb0966fe15a29057502"
+}

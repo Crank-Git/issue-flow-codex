@@ -162,7 +162,7 @@ worktree guard in a dogfood run), then pass the path. Two reasons, both measured
   nothing — or runs a command.
 - In a worktree-isolated worker, the guard refused an inline multi-line body
   ("runs tea with the text … cannot be shown not to be git") and refuses any body built
-  with `$(…)`. The file forms above were allowed on both forges (Claude Code 2.1.285).
+  with `$(…)`. The file forms above were allowed on both forges.
 
 On Gitea the JSON file holds the fields; build it with `jq -n --rawfile body <file>
 '{title: "WIP: <t>", head: "<branch>", base: "<base>", body: $body}' > <json>` so quoting
@@ -192,8 +192,8 @@ by its head ref. Measured on gh 2.88.1, Gitea 1.25.3 and tea 0.15.1:
   `tea api` also exits 0 on an API error and prints the error object, so check the shape.
   Page until an empty page — a short page is not proof of the end, because the cap is
   per-server. This loop is for the PM. **A worker cannot run it:** in a worktree-isolated
-  agent the guard refuses a `tea` call whose URL is built at runtime (`page=$page`) —
-  measured on Claude Code 2.1.284. A worker makes one call per page with the number typed
+  agent the guard refuses a `tea` call whose URL is built at runtime (`page=$page`), as
+  measured in an upstream run. A worker makes one call per page with the number typed
   in (`agents/issue-worker.md`, runbook step 2). The PM's loop:
 
   ```bash
@@ -315,54 +315,37 @@ underlying REST endpoints exist well before that, so on a 1.25.x server — incl
 1.25.3 this file is verified against — reach them with
 `tea api "/repos/{owner}/{repo}/actions/…"`, or use the Gitea MCP column.
 
-**`forge.pr.checks` is one blocking call, never a turn per status check.** Every agent
-turn re-reads the agent's whole context, so a 30-minute watch at one turn per check costs
-60 full-context round trips instead of one. Resolve it through the abstraction like any
-other operation — never hardcode `gh`. On GitHub it is already blocking and takes the PR
-number the worker already has; on Gitea it resolves to the watch script below. Keep either in a
-subagent so log volume never reaches the PM.
+**`forge.pr.checks` is a watcher, never a turn per status check.** Every agent turn
+re-reads the agent's whole context, so a 30-minute watch at one turn per check costs 60
+full-context round trips instead of one. Codex has no background shell that wakes the
+agent when a command ends, and it ends any command at 300 seconds
+(`docs/specs/pages/codex-harness.md`). So the wait is a subagent, the `ci_watcher` role
+(`agents/ci-watcher.md`).
 
-**Launch that call with `run_in_background: true`.** One blocking call is the right shape,
-but a *foreground* one cannot outlast the harness's `Bash` ceiling: **120000 ms by default,
-600000 ms maximum** (`BASH_DEFAULT_TIMEOUT_MS` / `BASH_MAX_TIMEOUT_MS`). Ten minutes is the
-hard limit unless the operator raised it, and two is what an agent gets if it does not pass
-`timeout` explicitly. CI runs routinely exceed both. When the call is killed the verdict is
-**lost, not delayed** — the agent sees a timeout error instead of `success` / `failure` and
-has to start the wait over, which is how a watch that never resolves becomes a merge on an
-unread check.
+1. The PM calls `list_agents`. When a thread slot is free, it calls `spawn_agent` with
+   `agent_type: "ci_watcher"`, `fork_turns: "none"`, `task_name: "ci_<pr>"`, and a brief
+   with `kind: ci`, the full `sha`, `workdir`, `pluginRoot`, `forge`, and `deadline: 60`.
+2. The watcher runs `python3 <pluginRoot>/scripts/ci_wait.py` again and again while the
+   state is `pending`. Each run ends within `--max-seconds` (default 240).
+3. The PM calls `wait_agent` and reads the verdict from the watcher's `FINAL_ANSWER`:
+   `{"kind": "ci", "sha": ..., "state": ..., "url": ...}`.
 
-A background shell keeps running across turns and re-invokes the agent when it exits, so
-the ceiling stops applying and the cost is **one turn to launch, one to read the verdict,
-regardless of how long CI takes**. That is strictly better than the foreground call on both
-axes. Both waiting paths — this one and the Stage D deploy watch
-([../skills/issue-flow/references/deploy.md](../skills/issue-flow/references/deploy.md)) —
-use it, and they use it the same way:
+`ci_wait.py` prints one JSON line `{"state": ..., "url": ...}` and exits 0. A nonzero exit
+means the forge call failed. The watcher then returns `state: "error"`, and a failed query
+is never a state. The watcher adds the state `timeout` when its deadline passes while the
+state is still `pending`. Only `success` is a pass. A worker that watches its own CI runs
+`ci_wait.py` itself in a loop, and it returns its verdict only after the last run ends.
 
-1. Launch the watch (the `gh pr checks <pr> --watch` call, or the Gitea watch script
-   below) with `run_in_background: true`. Do not pass a `timeout`; do not `sleep` in the
-   foreground waiting on it. The tool result carries the **path to the shell's output
-   file** — keep it; that file is where the verdict lands.
-2. **Wait for that shell to exit.** Do other in-scope work if you have any; otherwise end
-   your turn. The harness wakes you when the shell exits, and the notification carries
-   the same output path.
-3. Read the output file, take the one-line verdict, and only then act on it or return it.
+| `ci_wait.py` state | Meaning | Next step |
+|---|---|---|
+| `success` | Every run for the SHA is green | The gate may continue. |
+| `failure` | A run for the SHA failed | Read the failing logs (`forge.run.log`) and fix. |
+| `pending` | A run exists and is not done | The watcher runs the script again. |
+| `missing` | No run exists for the SHA | Recover it as `no-run-registered` (below). Never read it as green. |
+| `timeout` (watcher only) | The deadline passed | Run the script once yourself. Still not terminal: surface it. |
 
-**A subagent must not return its verdict before the shell exits.** This applies to the
-worker watching its own CI. The PM's deploy watch runs on the main thread and returns no
-verdict. A subagent's final text *is* its return, and a guess sent before the shell
-exits is a verdict nobody tested. Measured on Claude Code 2.1.284: a subagent that ends its turn
-while its background shell runs is woken when the shell exits, and its next reply
-becomes its result. But the harness also notifies the caller at once, marked interim
-("stopped with background work of its own still running"), carrying whatever the
-subagent last said. So end that turn with a one-line status that cannot be read as a
-verdict — `waiting on CI for PR #<n>` — and send the verdict only after reading the
-finished shell's output. The PM ignores the interim notification (SKILL.md, *Reading a
-worker notification*). A watch
-you launched and walked away from is not a watch.
-
-The loop's own `sleep` interval and iteration count are unchanged — they bound the *watch*,
-not the tool call, and `maxMinutes` may now exceed ten because nothing kills it at ten.
-A verdict that never arrives is still not a pass: an elapsed budget returns `timed-out`.
+**Do not wrap `forge.pr.checks` or `forge.run.list` in an agent-driven retry loop.** The
+wait script holds the loop and the deadline.
 
 **Do not build the Gitea watch on `tea actions runs list`.** Two measured reasons:
 
@@ -382,25 +365,24 @@ Use **`tea api`** instead. It is an authenticated passthrough to the REST API, i
 version-gated, it returns the real object (`status`, `conclusion`, `head_sha`), and it
 substitutes `{owner}`/`{repo}` from the current checkout — which the worker always has.
 The Actions endpoint filters by `head_sha` **server-side**, so anchor the watch to the
-commit you just pushed rather than to "the latest run on the branch":
+commit you just pushed rather than to "the latest run on the branch".
 
-The loop ships as a script, `scripts/gitea-ci-watch.sh` in the plugin. Run it from the
-checkout, with `run_in_background: true`, and type the full SHA in — get it first with
-`git rev-parse HEAD` as a call of its own:
+The loop ships as a script, `scripts/ci_wait.py` in the plugin. For Gitea it makes the
+same call as `scripts/gitea-ci-watch.sh`. Run it from the checkout, with the full SHA
+typed in. Get the SHA first with `git rev-parse HEAD` as a call of its own:
 
 ```bash
-bash <pluginRoot>/scripts/gitea-ci-watch.sh <40-character sha of the commit you pushed>
+python3 <pluginRoot>/scripts/ci_wait.py --forge gitea --repo-path . --sha <40-character sha of the commit you pushed>
 ```
 
-It prints one verdict line: `success`, `failure`, `no-run-registered`, `timed-out`, or
-`watch-error` (exit 1). Only `success` is a pass. `<pluginRoot>` is the plugin's directory:
-a worker has it in its brief, and the PM knows it from the skill's base directory.
+It prints one JSON line. Only `"state": "success"` is a pass. `<pluginRoot>` is the
+plugin's directory: a worker and a watcher have it in their briefs, and the PM knows it
+from the skill's base directory.
 
-**A worker must use the script, not an inline loop.** In a worktree-isolated agent the
-guard refuses `tea` inside `$(…)` and a URL built at runtime, which is what an inline loop
-needs; it allows `bash <script>` (measured on Claude Code 2.1.284, and the script itself
-run by an isolated agent on 2.1.285). `scripts/test-gitea-ci-watch.py` covers every
-verdict against a stub `tea`.
+**Use the script, not an inline loop.** A role-guarded agent can refuse `tea` inside
+`$(…)` and a URL built at runtime, which is what an inline loop needs. A plain
+`python3 <script>` call avoids both. `tests/test_ci_wait.py` covers every state against a
+stub `tea`.
 
 The script keeps four properties. Keep them in any change to it:
 
@@ -532,20 +514,15 @@ the token was never the cause and pushing a third commit only hides that.
 other configured login and resolves `{owner}`/`{repo}` to empty. Keep the remote clean and
 authenticate with a credential helper.
 
-The same rule holds on GitHub: `gh pr checks <pr> --watch` already blocks in one call.
-Never wrap `forge.pr.checks` or `forge.run.list` in an agent-driven retry loop on either
-forge — and launch the blocking call in the background on either forge, for the ceiling
-reason above. **`gh pr checks` exits non-zero when checks fail (and `8` when they are still
-pending).** That surfaces as a failed `Bash` call — treat the non-zero exit as the
-result, not as a tool error to retry. **Exit 1 has two meanings, so check which.**
-Measured on gh 2.88.1: a PR with no run at all exits 1 at once, `--watch` or not, and
-prints `no checks reported on the '<branch>' branch` to **stderr**. That is GitHub's
-`no-run-registered`, not a failure. Do not match the message — a watch that keeps only
-stdout never sees it, and its wording can change between gh versions. Count the checks
-instead: `gh pr view <pr> --json statusCheckRollup --jq '.statusCheckRollup | length'`
-prints `0` for a PR with no run (exit 0) and the check count otherwise. `0` → recover it
-as `no-run-registered` (above). A background shell reports the same exit status when
-it finishes, so the meaning of the code does not change with the launch mode.
+The same rule holds on GitHub: `ci_wait.py --forge github` reads `gh run list --commit`
+and prints the same JSON line. **Exit 1 of `gh pr checks` has two meanings, so check
+which.** Measured on gh 2.88.1: a PR with no run at all exits 1 at once and prints
+`no checks reported on the '<branch>' branch` to **stderr**. That is GitHub's
+`no-run-registered`, not a failure. Do not match the message, because its wording can
+change between gh versions. Count the checks instead:
+`gh pr view <pr> --json statusCheckRollup --jq '.statusCheckRollup | length'` prints `0`
+for a PR with no run (exit 0) and the check count otherwise. `0` → recover it as
+`no-run-registered` (above). `ci_wait.py` reports that case as the state `missing`.
 
 **`[skip ci]` is native on both.** Gitea Actions honors `[skip ci]`, `[ci skip]`,
 `[no ci]`, `[skip actions]` and `[actions skip]` in the head commit message from 1.20

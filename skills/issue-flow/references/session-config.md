@@ -86,7 +86,7 @@ plugin's manifest and puts any drift in the session's first digest.
 
 On drift, the config was written by an older plugin, so its silence is not consent:
 a field the saved file lacks may be a question that did not exist yet. During the
-step 11 confirm rounds, ask about every option the current tables define that the file
+step 11 confirm message, ask about every option the current tables define that the file
 has no value for — never default one silently — then stamp the current version. When
 the field is absent entirely (a pre-tracking config), treat it the same way. The
 committed file carries the stamp; a `.issue-flow.local.json` override session leaves
@@ -113,11 +113,33 @@ the first digest, and asks only when detection is ambiguous. The mechanics are i
 
 ## The startup prompt (Phase 0)
 
-Ask in **two batched `AskUserQuestion` rounds** — four questions each, saved values
-pre-selected as the first option and labeled `(saved)`. Never more than two rounds;
-anything unresolved falls back to the saved/default value and is stated in the digest.
+Ask in **one plain-text message**, then end your turn. The operator's reply continues
+Phase 0. Number every item. Mark each saved value with `*`. List the options of an item
+on its line. Show the models (`pmModel`, `workerModel`, `helperModel`)
+and the `concurrency` in the message. The reply format is "ok" to accept all, or
+"<number>: <value>" for each change.
 
-### Round 1 — how this run should behave
+```
+issue-flow run configuration (saved answers marked *)
+
+1. concurrency         * 3        (workers at once)
+2. batchSize           * 4
+3. runLength           * 25 issues
+...
+11. workerModel        * gpt-6.1-sol, effort medium
+12. helperModel        * gpt-6-luna
+
+Reply "ok" to accept all, or "<number>: <value>" for each change.
+```
+
+If a reply holds an invalid value, repeat the question for that item only. An item the
+operator leaves unanswered keeps its saved or default value. State it in the digest.
+
+The items fall in three groups, shown in order below. A project that an upstream PM
+configured has no `.issue-flow.codex.json`. For that project, ask the upstream items as
+usual and ask only the Codex questions for the Codex file.
+
+### Group 1 — how this run should behave
 
 | Question | Field | Options |
 |---|---|---|
@@ -126,7 +148,7 @@ anything unresolved falls back to the saved/default value and is stated in the d
 | Review plans before workers build them? | `planReview` | `no` (default) · `yes — hold each batch until I approve its plans` |
 | How much merge authority do I have? | `prAuthority` | see the table below |
 
-### Round 2 — how the work should be built
+### Group 2 — how the work should be built
 
 | Question | Field | Options |
 |---|---|---|
@@ -135,8 +157,41 @@ anything unresolved falls back to the saved/default value and is stated in the d
 | E2E test coverage? | `practices.e2e` | `none` · `user-facing changes only` (default) · `every issue` |
 | Anything else — coverage, commit style, docs, `/project-review` cadence? | `practices.coverage`, `.commitStyle`, `.docs`, `review.when`, `notes` | free text + common options (coverage threshold, Conventional Commits, docs for public APIs, when a `/project-review` runs — default `end of session`) |
 
-Round 2 is skippable when a saved config exists **and** the user picked a saved-defaults
-option in round 1 — offer "keep saved build practices" as the first choice.
+Group 2 is skippable when a saved config exists **and** the operator accepts the saved
+defaults of group 1. Offer "keep saved build practices" as item 1 of group 2.
+
+### Group 3 — Codex settings (`.issue-flow.codex.json`)
+
+| Question | Field | Options |
+|---|---|---|
+| Which model runs the PM? | `pmModel` | `gpt-6.1-sol` (default) or another model name |
+| Which model and effort run workers? | `workerModel`, `workerEffort` | `gpt-6.1-sol` with `medium` (default) |
+| Which model runs helpers? | `helperModel` | `gpt-6-luna` (default) |
+| How long does one wait call last? | `waitMs` | `600000` (default) |
+
+## Codex-only settings — `.issue-flow.codex.json`
+
+The Codex-only settings live in `.issue-flow.codex.json` at the repo root. The file is
+committed and team-shared, like `.issue-flow.json`. It is separate because an upstream PM
+rewrites `.issue-flow.json` and has no rule to keep an unknown key. `.issue-flow.json`
+keeps only upstream keys, in the upstream format.
+
+| Key | Default | Meaning |
+|---|---|---|
+| `pmModel` | `gpt-6.1-sol` | The model the PM session runs on. |
+| `workerModel` | `gpt-6.1-sol` | The model each issue-worker runs on. |
+| `workerEffort` | `medium` | The reasoning effort of each issue-worker. |
+| `helperModel` | `gpt-6-luna` | The model of helpers (locate, review, log-reading children). |
+| `waitMs` | `600000` | The longest time in milliseconds that one `wait_agent` call blocks. |
+
+```json
+{ "version": 1, "pmModel": "gpt-6.1-sol", "workerModel": "gpt-6.1-sol", "workerEffort": "medium",
+  "helperModel": "gpt-6-luna", "waitMs": 600000 }
+```
+
+The keys are flat. There is no nested `codex` object.
+
+A missing key takes its default. A missing file takes all five defaults.
 
 ## prAuthority — the merge gate
 
@@ -194,7 +249,8 @@ Hotfixes are `per-issue` regardless of this setting.
 
 Off by default. When `true`, the PM holds each multi-member batch after the Stage B
 cross-check and presents the member plans to the operator — one line per member with the
-plan-comment link — via `AskUserQuestion`: approve, revise named plans, or proceed
+plan-comment link — in one plain-text message with numbered options (the PM ends its
+turn and the reply continues it): approve, revise named plans, or proceed
 without review this batch (SKILL.md Stage B step 4b).
 
 Why it exists: under the default `batch-review`, the human's first contact with a batch
@@ -265,7 +321,8 @@ architecture choice, and this block is where the project's wiring is recorded
   push-protected.
 - `workflow` — `mode: actions` only: the deploy workflow file name.
 - `url` / `previewUrlPattern` — what the deploy-verifier loads.
-- `pollSeconds` / `maxMinutes` — the watch loop's interval and budget (defaults 30/30).
+- `pollSeconds` / `maxMinutes` — the deploy watcher's poll interval in seconds and its
+  deadline in minutes (defaults 30/30).
 
 ## docsMcp — documentation access
 
@@ -276,8 +333,8 @@ servers the PM offered, which the user installed, and whether they declined.
   more only when the project gains a dependency on a service none of the installed
   servers cover.
 - `installed` and `marketplacesAdded` are notes, not guarantees — always confirm with
-  `claude mcp list` / `claude plugin marketplace list` at startup rather than trusting the
-  file.
+  `codex mcp list` at startup rather than trusting the file. Codex has no command that lists
+  marketplaces, so `marketplacesAdded` stays a note.
 - `restartPending: true` means something was installed in a previous session and had not
   appeared yet. At startup, re-check whether it is live now: it is → clear the flag and
   say the server is available; it is not → tell the user once and keep the `WebFetch`

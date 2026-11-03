@@ -89,7 +89,13 @@ class VerdictLoopTest(unittest.TestCase):
         text = verdict_section()
         self.assertIn("wait_agent", text)
         self.assertIn("FINAL_ANSWER", text)
-        self.assertIn("codex.waitMs", text)
+        self.assertIn("`waitMs` from `.issue-flow.codex.json`", text)
+        self.assertNotIn("codex.waitMs", text)
+
+    def test_the_sweep_after_a_timeout_is_its_own_first_action_step(self):
+        text = " ".join(verdict_section().split())
+        self.assertIn("2. **Sweep after every timeout, as your first action.** Run the Stage A0 sweep", text)
+        self.assertIn("`hooks/guard-wait.py`", text)
 
     def test_the_verdict_section_has_no_interim_notification_rule(self):
         text = verdict_section().lower()
@@ -229,5 +235,269 @@ class BatchGateFixTextTest(unittest.TestCase):
         self.assertIn("agent_type", text)
 
 
+class RunConfigurationTextTest(unittest.TestCase):
+    def test_owned_sections_name_no_ask_user_question_tool(self):
+        # Phase 0 steps 1-10 belong to another issue, so the check covers step 11, Stage A and Stage B.
+        owned = (section("SKILL.md", "11. **Run configuration", "   **You create worker"),
+                 section("SKILL.md", "## Stage A — Triage", "## Stage B"), stage_b(),
+                 (SKILL_DIR / "references" / "session-config.md").read_text())
+        for text in owned:
+            self.assertNotIn("AskUserQuestion", text)
+
+    def test_session_config_names_all_five_codex_keys_with_defaults(self):
+        text = (SKILL_DIR / "references" / "session-config.md").read_text()
+        for key, default in (("pmModel", "gpt-6.1-sol"), ("workerModel", "gpt-6.1-sol"),
+                             ("workerEffort", "medium"), ("helperModel", "gpt-6-luna"),
+                             ("waitMs", "600000")):
+            with self.subTest(key=key):
+                self.assertRegex(text, rf"`{key}`[^\n]*`{re.escape(default)}`")
+
+    def test_session_config_names_the_codex_settings_file(self):
+        text = (SKILL_DIR / "references" / "session-config.md").read_text()
+        self.assertIn("`.issue-flow.codex.json`", text)
+        self.assertNotIn("nested `codex` block", text)
+        self.assertNotIn("codex.waitMs", text)
+
+    def test_run_configuration_step_uses_one_plain_text_message(self):
+        text = " ".join(section("SKILL.md", "11. **Run configuration", "   **You create worker").split())
+        self.assertIn("numbered options", text)
+        self.assertIn("end your turn", text)
+        self.assertIn(".issue-flow.codex.json", text)
+
+    def test_upstream_file_without_codex_block_gets_only_codex_questions(self):
+        text = " ".join((SKILL_DIR / "references" / "session-config.md").read_text().split())
+        self.assertIn("no `.issue-flow.codex.json`", text)
+        self.assertIn("only the Codex questions", text)
+
+
 if __name__ == "__main__":
     unittest.main()
+
+
+def phase_0():
+    """Phase 0 without step 11, whose run-configuration text another issue ports."""
+    text = section("SKILL.md", "# Phase 0", "# The PM loop")
+    start = text.index("\n11. **Run configuration")
+    end = text.index("\n12. **State recovery")
+    return " ".join((text[:start] + text[end:]).split())
+
+
+class PhaseZeroTest(unittest.TestCase):
+    def test_stops_when_the_preflight_ran_line_is_missing(self):
+        text = phase_0()
+        self.assertIn("issue-flow preflight: ran", text)
+        self.assertIn("/hooks", text)
+
+    def test_names_the_setup_project_check(self):
+        text = phase_0()
+        self.assertIn("setup_project.py check --project", text)
+        self.assertIn("$issue-flow:setup", text)
+
+    def test_names_the_sandbox_probe_and_the_issue_flow_profile(self):
+        text = phase_0()
+        self.assertIn("git update-ref refs/issue-flow/probe HEAD", text)
+        self.assertIn("git update-ref -d refs/issue-flow/probe", text)
+        self.assertIn("git ls-remote", text)
+        self.assertIn("issue_flow", text)
+
+    def test_checks_run_in_order(self):
+        text = phase_0()
+        marks = ["preflight: ran", "agent_type", "setup_project.py check", "refs/issue-flow/probe"]
+        positions = [text.index(mark) for mark in marks]
+        self.assertEqual(positions, sorted(positions))
+
+    def test_names_the_truncated_digest_line(self):
+        self.assertIn("digest truncated (time budget)", phase_0())
+
+    def test_runs_the_no_ci_suite_in_a_created_worktree(self):
+        text = phase_0()
+        self.assertIn("worktree.py create", text)
+        self.assertIn('fork_turns: "none"', text)
+        self.assertIn("workdir", text)
+
+    def test_lists_mcp_servers_with_codex_only(self):
+        self.assertIn("codex mcp list", phase_0())
+
+    def test_links_the_same_login_rule(self):
+        self.assertIn("references/collaboration.md#same-login-sessions", phase_0())
+
+    def test_has_no_claude_only_tools(self):
+        text = phase_0()
+        for word in ("claude mcp", "claude plugin", "ToolSearch", "isolation", "AskUserQuestion"):
+            self.assertNotIn(word, text)
+
+
+def stage_c2():
+    return section("SKILL.md", "### C2", "## Stage D")
+
+
+def stage_d():
+    return section("SKILL.md", "## Stage D", "## Stage E")
+
+
+def deploy_reference():
+    return (SKILL_DIR / "references" / "deploy.md").read_text()
+
+
+def forge_ci_section():
+    path = SKILL_DIR.parent.parent / "references" / "forge.md"
+    lines = path.read_text().splitlines()
+    first = next(i for i, line in enumerate(lines) if line.startswith("### Actions and CI"))
+    last = next(i for i, line in enumerate(lines) if i > first and line.startswith("## Capability gaps"))
+    return "\n".join(lines[first:last])
+
+
+def ci_watcher_agent():
+    return (SKILL_DIR.parent.parent / "agents" / "ci-watcher.md").read_text()
+
+
+class CiWatcherTextTest(unittest.TestCase):
+    def test_c2_and_stage_d_spawn_a_ci_watcher_with_fork_turns_none(self):
+        for name, text in (("C2", stage_c2()), ("Stage D", stage_d())):
+            with self.subTest(section=name):
+                self.assertIn('agent_type: "ci_watcher"', text)
+                self.assertIn('fork_turns: "none"', text)
+                self.assertIn("list_agents", text)
+
+    def test_watchers_are_named_by_pr_and_by_sha(self):
+        self.assertIn("ci_<pr>", stage_c2())
+        self.assertIn("deploy_<sha7>", stage_d())
+
+    def test_standalone_ci_failure_goes_to_the_worker_with_followup_task(self):
+        text = " ".join(stage_c().split())
+        self.assertRegex(text, r"standalone[^.]*followup_task")
+
+    def test_c2_names_the_watcher_error_and_missing_rules(self):
+        text = " ".join(stage_c2().split())
+        self.assertIn("spawn one more watcher", text)
+        self.assertIn("verify_ci_ran.py", text)
+        self.assertIn("timeout", text)
+
+    def test_stage_d_maps_the_deploy_wait_states(self):
+        text = stage_d()
+        for state in ("succeeded", "failed", "rolled-back", "superseded", "missing", "timeout"):
+            with self.subTest(state=state):
+                self.assertIn(f"`{state}`", text)
+
+    def test_stage_d_spawns_the_deploy_verifier_role_and_skips_when_missing(self):
+        text = " ".join(stage_d().split())
+        self.assertIn('agent_type: "deploy_verifier"', text)
+        self.assertIn("skip the browser check", text)
+
+    def test_owned_text_has_no_claude_code_mechanics(self):
+        tokens = ("run_in_background", "isolation", "subagent_type", "CLAUDE_PLUGIN_ROOT",
+                  ".claude/worktrees", "ToolSearch", "claude mcp add")
+        for name, text in (("C2", stage_c2()), ("Stage D", stage_d()),
+                           ("deploy.md", deploy_reference()),
+                           ("forge.md CI watch", forge_ci_section())):
+            for token in tokens:
+                with self.subTest(section=name, token=token):
+                    self.assertNotIn(token, text)
+
+    def test_c2_and_deploy_reference_use_worktree_py_for_the_dev_tree(self):
+        self.assertIn(".worktrees/dev", stage_c2())
+        self.assertIn("worktree.py create", stage_c2())
+        self.assertIn("worktree.py create", deploy_reference())
+
+    def test_forge_ci_section_describes_the_watcher_not_a_background_shell(self):
+        text = forge_ci_section()
+        self.assertIn("ci_wait.py", text)
+        self.assertIn("ci_watcher", text)
+
+    def test_watcher_instructions_name_both_scripts_and_the_deadlines(self):
+        text = " ".join(ci_watcher_agent().split())
+        for token in ("ci_wait.py", "deploy_wait.py", "pending", "timeout", "60 minutes",
+                      "30 minutes", '"kind"'):
+            with self.subTest(token=token):
+                self.assertIn(token, text)
+class AfterCompactionTest(unittest.TestCase):
+    def text(self):
+        return section("SKILL.md", "### After a compaction", "### C1")
+
+    def test_names_the_reconcile_line_and_the_tracker_comment(self):
+        text = self.text()
+        self.assertIn("list_agents", text)
+        self.assertIn("worker launched:", text)
+        self.assertIn("context compacted", text)
+
+    def test_links_the_respawn_path(self):
+        self.assertIn("references/collaboration.md", self.text())
+
+    def test_asks_a_live_worker_for_its_verdict(self):
+        self.assertIn("followup_task", self.text())
+def stage_e():
+    return section("SKILL.md", "## Stage E", "### Project review")
+
+
+def collaboration():
+    return (SKILL_DIR / "references" / "collaboration.md").read_text()
+
+
+class DigestAndCompatibilityTextTests(unittest.TestCase):
+    def test_stage_e_names_the_harness_line(self):
+        text = stage_e()
+        self.assertIn("harness: codex", text)
+        self.assertIn("codex --version", text)
+
+    def test_stage_e_has_no_push_notification(self):
+        text = stage_e()
+        for word in ("PushNotification", "ToolSearch"):
+            self.assertNotIn(word, text)
+
+    def test_stage_e_names_the_upstream_formats(self):
+        text = stage_e()
+        for word in ("0.17.0", "flow:status", "issue-flow: session status", "issue/<n>-<slug>"):
+            self.assertIn(word, text)
+
+    def test_hard_rules_say_subagents_not_workflows(self):
+        text = (SKILL_DIR / "SKILL.md").read_text()
+        self.assertNotIn("Workflows", text)
+
+    def test_collaboration_has_no_claude_messaging(self):
+        text = collaboration()
+        for word in ("SendMessage", "agentId", "worktree-agent-"):
+            self.assertNotIn(word, text)
+
+    def test_collaboration_routes_corrections_by_followup_task(self):
+        text = collaboration()
+        self.assertIn("followup_task", text)
+        self.assertIn("worker_<n>", text)
+        self.assertIn(".worktrees/<task_name>", text)
+
+    def test_collaboration_has_the_respawn_path(self):
+        text = " ".join(collaboration().split())
+        self.assertIn("worktree.py remove --project <dir> --task worker_<n>", text)
+
+    def test_collaboration_has_the_same_login_heading(self):
+        text = collaboration()
+        self.assertIn("\n## Same-login sessions\n", text)
+        self.assertIn("30 minutes", text)
+
+
+class NoAskUserQuestionTest(unittest.TestCase):
+    def test_the_pm_skill_names_no_ask_user_question_tool(self):
+        self.assertNotIn("AskUserQuestion", (SKILL_DIR / "SKILL.md").read_text())
+
+
+class BatchGateFixTextTest(unittest.TestCase):
+    def test_stage_d_and_the_intro_call_the_deploy_watch_a_subagent(self):
+        text = " ".join(section("SKILL.md", "## Stage D", "## Stage E").split())
+        intro = " ".join((SKILL_DIR / "SKILL.md").read_text().split())
+        self.assertNotIn("one background shell command", intro)
+        self.assertNotIn("is **not an agent**", intro)
+        self.assertNotIn("background loop", text)
+        self.assertIn("`ci_watcher`", intro)
+
+    def test_stage_d_passes_the_configured_deploy_deadline(self):
+        text = " ".join(section("SKILL.md", "## Stage D", "## Stage E").split())
+        self.assertNotIn("deadline: 30", text)
+        self.assertIn("deploy.maxMinutes", text)
+
+    def test_no_file_names_a_push_notification(self):
+        for path in ("SKILL.md", "references/batching.md"):
+            self.assertNotIn("push notification", (SKILL_DIR / path).read_text(), path)
+
+    def test_session_config_and_external_apis_name_no_claude_mcp_command(self):
+        for path in (SKILL_DIR / "references/session-config.md",
+                     SKILL_DIR.parent.parent / "references/external-apis.md"):
+            self.assertNotIn("claude mcp", path.read_text(), path.name)

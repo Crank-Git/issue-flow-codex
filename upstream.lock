@@ -3,6 +3,12 @@ tag = "issue-flow--v0.17.0"
 commit = "03faf580b53e8187758eb18cf9944c2bf0c273fe"
 
 [[file]]
+path = ".agents/plugins/marketplace.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
 path = ".agents/skills/conformance/SKILL.md"
 mode = "new"
 upstream_sha256 = ""
@@ -22,9 +28,9 @@ notes = "Port-only file."
 
 [[file]]
 path = ".claude-plugin/plugin.json"
-mode = "rewritten"
+mode = "dropped"
 upstream_sha256 = "b1a7778a57bb6640532545de9959e4935ace24861f8f91a7d114b88a5970ea10"
-notes = "Becomes `.codex-plugin/plugin.json`."
+notes = "replaced by .codex-plugin/plugin.json"
 
 [[file]]
 path = ".claude/rules/external-apis.md"
@@ -52,6 +58,12 @@ notes = "Port-only file."
 
 [[file]]
 path = ".claude/skills"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = ".codex-plugin/plugin.json"
 mode = "new"
 upstream_sha256 = ""
 notes = "Port-only file."
@@ -385,6 +397,12 @@ path = "scripts/upstream_sync.py"
 mode = "new"
 upstream_sha256 = ""
 notes = "Port-only file."
+
+[[file]]
+path = "scripts/validate_manifests.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "Ported from upstream scripts/validate-manifests.py (repository level)."
 
 [[file]]
 path = "scripts/verify_ci_ran.py"
@@ -721,6 +739,12 @@ path = "tests/test_upstream_sync.py"
 mode = "new"
 upstream_sha256 = ""
 notes = "Port-only file."
+
+[[file]]
+path = "tests/test_validate_manifests.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "from upstream scripts/test-validate.py"
 
 [[file]]
 path = "tests/test_verify_ci_ran.py"

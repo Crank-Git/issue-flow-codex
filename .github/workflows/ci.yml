@@ -22,9 +22,5 @@ jobs:
         run: python3 -m unittest discover -s tests
       - name: Lock check
         run: python3 scripts/upstream_sync.py --check
-      # Issue 13 adds this script. Until then the step does nothing.
       - name: Manifest check
-        run: |
-          if [ -f scripts/validate_manifests.py ]; then
-            python3 scripts/validate_manifests.py
-          fi
+        run: python3 scripts/validate_manifests.py

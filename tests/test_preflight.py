@@ -20,8 +20,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 HOOK = ROOT / "hooks" / "preflight.py"
 LABELS_MD = ROOT / "skills" / "issue-flow" / "references" / "labels.md"
-# The upstream manifest path. The Codex manifest replaces it in a later issue.
-MANIFEST = ROOT / ".claude-plugin" / "plugin.json"
+# The Codex manifest path.
+MANIFEST = ROOT / ".codex-plugin" / "plugin.json"
 PAYLOAD = {"hook_event_name": "SessionStart", "source": "startup"}
 
 

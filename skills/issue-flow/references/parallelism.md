@@ -7,31 +7,36 @@ point here.
 
 ## The one rule that makes hybrid safe
 
-**Decisions never run inside a background Workflow.** Workflow subagents are
-non-interactive — they cannot stop and ask the user mid-run. Anything that needs a
-human judgment call (product behavior, ambiguous requirement, irreversible choice)
-must be resolved on the **main thread**, where you can `AskUserQuestion` or park the
-issue `status:needs-feedback` immediately.
+**Decisions never run inside a subagent.** A subagent that `spawn_agent` starts cannot
+stop and ask the user mid-run. Anything that needs a human judgment call (product
+behavior, ambiguous requirement, irreversible choice) must be resolved on the **main
+thread**, where you can ask the user in plain text or park the issue
+`status:needs-feedback` immediately.
 
-A Workflow is a **pure, decision-free executor**. If a Workflow agent encounters a
-real decision, it does **not** guess: it returns
-`{ needsFeedback: true, question: "<the specific question>" }` for that work unit and
-stops that unit. The main thread reads this at the `<task-notification>` when the
-Workflow finishes, then surfaces it to the user / labels the issue.
+A subagent is a **pure, decision-free executor**. If it meets a real decision, it does
+**not** guess: it returns `{ needsFeedback: true, question: "<the specific question>" }`
+for that work unit and stops that unit. The main thread reads this when `wait_agent`
+reports that the subagent is done. The rules for `wait_agent` are in
+[SKILL.md](../SKILL.md) (the invariants and the verdict section).
 
-Consequence for alerting: work placed in a Workflow only reports "needs input" when
-that Workflow **completes**, not the instant the decision arises. So keep
-decision-prone work on the main thread; push only mechanical, already-decided work
-into Workflows.
+Consequence for alerting: work in a subagent reports "needs input" only when that
+subagent **finishes**, not the instant the decision arises. So keep decision-prone work
+on the main thread. Give subagents only mechanical, already-decided work.
+
+Every `spawn_agent` call passes `fork_turns: "none"`, and a subagent uses a thread slot.
+Call `list_agents` before each spawn. Spawn only when a slot is free. Else do the step
+on the main thread, or call `wait_agent` until a slot frees. `concurrency` counts workers
+only. Locate subagents, worker subagents, and watchers use the extra thread slots that
+the setup skill adds.
 
 ## What is safe to parallelize
 
 | Stage | Work | Parallel? | Mechanism |
 |---|---|---|---|
-| plan (PM, Stage B) | Locate files, map call sites | ✅ read-only | `Agent` fan-out (`Explore`) |
+| plan (PM, Stage B) | Locate files, map call sites | ✅ read-only | `spawn_agent` fan-out (`explorer`) |
 | implement (worker) | Edit code | ⚠️ only if file sets are **disjoint** | worktree-per-issue; within an issue, sequential unless partitioned |
-| self-review (worker) | Review diff by dimension | ✅ read-only | Workflow fan-out: correctness / security / maintainability / frontend / backend |
-| verify (worker/batch CI) | Read failing logs | ✅ read-only | `Agent` fan-out, one per failing job |
+| self-review (worker) | Review diff by dimension | ✅ read-only | `spawn_agent` fan-out: correctness / security / maintainability / frontend / backend |
+| verify (worker/batch CI) | Read failing logs | ✅ read-only | `spawn_agent` fan-out, one per failing job |
 | across issues | Multiple issues at once | ✅ with isolation | one git worktree + branch per issue, concurrency cap |
 | across batches | Multiple integration branches live | ✅ but prefer finishing one | batch-level conflicts resolved once at the batch gate |
 | within a dependency chain | Sequenced members | ❌ sequential by design | each forks the integration branch after its predecessor sub-merges |

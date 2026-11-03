@@ -1,0 +1,103 @@
+"""Tests for the ported text of the issue-flow skill.
+
+Each check reads one section, not the whole file. Later issues port the other
+sections, so a whole-file check would fail on text that is not yet ported.
+"""
+
+import re
+import unittest
+from pathlib import Path
+
+SKILL_DIR = Path(__file__).resolve().parent.parent / "skills" / "issue-flow"
+
+
+def section(path, start, end):
+    """Return the text from the line that starts with `start` up to the line that starts with `end`."""
+    lines = (SKILL_DIR / path).read_text().splitlines()
+    first = next(i for i, line in enumerate(lines) if line.startswith(start))
+    last = next(i for i, line in enumerate(lines) if i > first and line.startswith(end))
+    return "\n".join(lines[first:last])
+
+
+def stage_b():
+    return section("SKILL.md", "## Stage B", "## Stage C")
+
+
+def worker_reference():
+    return section("references/issue-worker.md", "# Working with issue-workers", "## Rework")
+
+
+def parallelism_rules():
+    return section("references/parallelism.md", "# Parallelism", "## Multiple issues")
+
+
+class StageBTest(unittest.TestCase):
+    def test_stage_b_names_spawn_agent_with_fork_turns_none(self):
+        text = stage_b()
+        self.assertIn("spawn_agent", text)
+        self.assertIn('fork_turns: "none"', text)
+
+    def test_stage_b_creates_the_worktree_before_it_spawns_the_worker(self):
+        text = stage_b()
+        self.assertIn("worktree.py", text)
+        self.assertLess(text.index("worktree.py create"), text.index('task_name: "worker_<n>"'))
+
+    def test_stage_b_launches_an_issue_worker_role(self):
+        text = stage_b()
+        self.assertIn('agent_type: "issue_worker"', text)
+        self.assertIn('task_name: "worker_<n>"', text)
+
+    def test_stage_b_checks_thread_slots_before_a_spawn(self):
+        self.assertLess(stage_b().index("list_agents"), stage_b().index('task_name: "worker_<n>"'))
+
+    def test_stage_b_spawns_locate_subagents_as_explorers(self):
+        text = stage_b()
+        self.assertIn('agent_type: "explorer"', text)
+        self.assertIn("gpt-6-luna", text)
+
+    def test_stage_b_comments_the_task_name_at_launch(self):
+        self.assertIn("worker launched: <task_name>", stage_b())
+
+    def test_stage_b_has_no_isolation_worktree(self):
+        self.assertNotRegex(stage_b(), r"isolation\s*[:=]?\s*[\"`]?worktree")
+        self.assertNotIn("isolation:", stage_b())
+
+    def test_stage_b_has_no_fork_subagent_type(self):
+        self.assertNotIn('subagent_type: "fork"', stage_b())
+        self.assertNotIn("denies a fork whose prompt", stage_b())
+
+    def test_stage_b_points_to_the_spawn_guard(self):
+        self.assertIn("hooks/guard-spawn.py", stage_b())
+
+
+class PortedSectionsTest(unittest.TestCase):
+    def test_no_claude_plugin_root_in_the_ported_sections(self):
+        for name, text in (("stage B", stage_b()),
+                           ("issue-worker reference", worker_reference()),
+                           ("parallelism rules", parallelism_rules())):
+            with self.subTest(section=name):
+                self.assertNotIn("CLAUDE_PLUGIN_ROOT", text)
+
+    def test_brief_carries_the_worktree_field(self):
+        self.assertRegex(worker_reference(), r"(?m)^worktree:\s+<absolute path")
+
+    def test_reference_does_not_forbid_the_pm_to_create_the_worktree(self):
+        self.assertNotIn("Do not create the worktree", worker_reference())
+        self.assertNotIn("isolation:", worker_reference())
+
+    def test_reference_links_the_worker_runbook(self):
+        self.assertIn("agents/issue-worker.md", worker_reference())
+
+    def test_parallelism_uses_codex_primitives(self):
+        text = parallelism_rules()
+        self.assertIn("wait_agent", text)
+        self.assertIn("spawn_agent", text)
+        self.assertNotRegex(text, r"\bWorkflow\b")
+        self.assertNotIn("task-notification", text)
+
+    def test_parallelism_links_the_wait_agent_rules(self):
+        self.assertRegex(parallelism_rules(), re.compile(r"\]\([^)]*SKILL\.md"))
+
+
+if __name__ == "__main__":
+    unittest.main()

@@ -1,27 +1,32 @@
 # Working with issue-workers (PM-facing)
 
-The worker's own runbook and limits live in its **self-contained agent definition**
-(`agents/issue-worker.md`, spawned as `issue-flow:issue-worker`) — the PM does not pass
-that prompt. This file is the PM's side: how to launch a worker, what to hand it, and how
-to react to what it returns.
+The worker's own runbook and limits live in its role file (`roles/issue-worker.toml`,
+role `issue_worker`), built from [agents/issue-worker.md](../../../agents/issue-worker.md).
+The runbook holds the worker's rules: the worktree boundary, the turn budget, the
+verdict. This file does not restate them. This file is the PM's side: how to launch a
+worker, what to hand it, and how to react to what it returns.
 
 ## Launch
 
-Spawn with `Agent`, `subagent_type: "issue-flow:issue-worker"`,
-**`isolation: "worktree"`**, one per claimed issue, up to `concurrency` at once (across
-all live batches). Keep the **`agentId`** the spawn result returns — it is the worker's
-address for everything below, for this session only. (`name: "worker-<issue>"` is an
-extra handle only where the `Agent` tool has a `name` parameter, which needs
-`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`.) `isolation: "worktree"` is not optional — it is what keeps concurrent
-workers apart. See [worktrees.md](worktrees.md) for what goes wrong without it.
+Launch one worker per claimed issue, up to `concurrency` at once (across all live
+batches). The steps are in `SKILL.md`, Stage B step 5:
+
+1. Run `python3 <pluginRoot>/scripts/worktree.py create ...`. The script prints the
+   worktree `path`.
+2. Call `list_agents`. Spawn only when a thread slot is free.
+3. Call `spawn_agent` with `task_name: "worker_<n>"`, `agent_type: "issue_worker"`,
+   `fork_turns: "none"`, and the brief below as `message`.
+
+The `task_name` is the address of the worker for everything below, for this session
+only. The worker's own worktree is what keeps concurrent workers apart.
+See [worktrees.md](worktrees.md) for what goes wrong without it.
 Sequenced batch members (dependency chains) launch only after their predecessor
-sub-merges. The PM is notified when each finishes — it does **not** sit and wait.
-(Fallback if the type won't resolve: spawn `general-purpose` and prepend the brief with
-"You are a decision-free issue-worker; never merge; return the verdict JSON.")
+sub-merges. When the PM has no other step, it calls `wait_agent` (`SKILL.md`, the
+verdict section, owns the rules).
 
 The worker is an **independent Opus engineer**: it may research (web), use available MCP
-servers (via `ToolSearch`), and spawn its own child agents/Workflows — all on the
-**Sonnet** tier, all **confined to that issue's worktree** and its own scratch directory,
+servers (via `ToolSearch`), and spawn its own subagents when a thread slot is free — all
+**confined to that issue's worktree** and its own scratch directory,
 and all finished before it returns its verdict. The PM sets none of this;
 it lives in the worker's agent definition. A worker may also **file new untriaged issues**
 for out-of-scope discoveries — but only those that pass the filing gate (behavior, a
@@ -37,8 +42,9 @@ the PM never routes is a finding lost.
 
 ```
 issue:        #<number> — <title>
-branch:       issue/<number>-<slug>   (the worker checks this out in the worktree the
-                                       harness gave it; the PM passes no worktree path)
+branch:       issue/<number>-<slug>   (the worker checks that the worktree has this branch)
+worktree:     <absolute path>         (the `path` that `worktree.py create` printed; the
+                                       branch is already checked out in it)
 base:         <remote>/epic/<n>-<slug>   (the integration branch; <remote>/<dev> only for standalone/hotfix.
                                        On a re-spawn for rework, pass <remote>/issue/<number>-<slug> —
                                        the branch already has commits and a PR. See Rework below.)
@@ -67,16 +73,16 @@ practices:    tdd: true|false            (tests land with or before the implemen
               docs: none|public-api|all
 steRule:      <path to the writing standard: .claude/rules/ste.md when the project has one
                (the planner writes it), else <pluginRoot>/references/ste.md — absolute>
-pluginRoot:   <absolute path of the plugin directory: two levels above the issue-flow
-               skill's base directory, e.g. …/issue-flow when the skill is at
+pluginRoot:   <absolute path of the plugin directory: two levels above this skill's
+               `SKILL.md`, e.g. …/issue-flow when the skill is at
                …/issue-flow/skills/issue-flow>
 ```
 
 `pluginRoot` is not optional either. A worker is not told where its own definition lives,
-so every `../references/…` link in its runbook — forge operations, the writing standard,
+and Codex gives a role no plugin root, so every `../references/…` link in its runbook — forge operations, the writing standard,
 the finding policy — and the Gitea CI-watch script (`scripts/gitea-ci-watch.sh`) are
-reachable only through it. The PM knows the path: the harness shows the skill's base
-directory when the skill loads.
+reachable only through it. The PM knows the path: Codex shows the absolute path of
+`SKILL.md` when the skill loads.
 
 `crossCheck` is not optional on a multi-member batch: it is the field that makes the step-4
 gate un-skippable, because you cannot fill it in before the comment exists. A worker that
@@ -93,16 +99,15 @@ of the worker's **definition of done** — not advice. A worker that cannot sati
 returns `needs-feedback` naming the practice; the PM checks them at the sub-merge gate
 and does not waive them there.
 
-**Do not create the worktree.** `isolation: "worktree"` makes the harness create it under
-`.claude/worktrees/`, pin the worker to it, and copy the project's `.worktreeinclude`
-matches in. The PM learns the path from the worker's **completion notification** (a
-`<worktree>` block carrying `worktreePath` and `worktreeBranch`); the worker also reports
-its `pwd` as `worktree` in its verdict as the fallback source. Either way the PM never
-needs (and never passes) a path in. The PM's job is
+**The PM creates the worktree**, before it spawns the worker. `worktree.py create`
+fetches the remote, branches from `base`, and copies in the ignored files that the
+project lists in `.worktreeinclude`. The PM passes the printed `path` as `worktree`. The
+worker also reports its `pwd` as `worktree` in its verdict. The PM removes the
+worktree with `worktree.py remove` after the sub-merge. The PM's job is
 to keep `.worktreeinclude` accurate — a worktree is a fresh checkout of *tracked* files,
 so `.env` and local secrets are otherwise missing and env-dependent suites fail as
 `blocked`. And remember the worker **cannot answer a permission prompt**: every command
-it needs must already be in the committed `.claude/settings.json` allow-list.
+it needs must already be allowed in the project's Codex configuration.
 
 ## Rework: message the same worker, don't spawn a new one
 

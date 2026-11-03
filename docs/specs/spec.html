@@ -537,6 +537,8 @@ body.rv-open .layout { padding-right:21rem; }
 <ul>
 <li>2026-11-03 — Batch #84 gate: include #78 only. #75 remains outside the batch because its five-timeout live criterion is unmet. The host denies nested sandbox application. Draft PR #92 holds the implementation for a later gate.
 </li>
+<li>2026-11-03 — Dogfood runs 1 and 2: the Codex PM built #75-#79, #81, #94 and #95 in this repository (batch PRs #91, #93, #100), gated and merged by the Claude Code session. The live gate proof for #75 first failed (the hooks enforced nothing: <code>PLUGIN_DATA</code> not created, no <code>Exit code:</code> header in the live Bash result, subagent payloads share the PM <code>session_id</code>), then passed after the fix. #66 and Epic 3 closed. The operator ruled that Epic 4's live checks run at the batch gate.
+</li>
 </ul><nav class="pager">
 <span></span>
 <a href="html/page-codex-harness.html">Codex harness facts &rarr;</a>

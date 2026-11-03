@@ -2,7 +2,7 @@
 id: loop-operations
 feature: Loop operations
 epic: "Epic 3: Loop operations"
-status: issued
+status: built
 issues: [24, 25, 26, 27, 28, 29]
 mockups: []
 ---

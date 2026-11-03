@@ -1,0 +1,316 @@
+---
+name: project-review
+description: >
+  User-viewpoint review of the running app in a sandbox — the QA/documentation pass
+  after issue-flow ships work. Use when the user says "/project-review", "review the
+  project", "user-test the app", "do a UX review", "build the user manual", or wants
+  recent issue-flow work exercised end to end. The PM launches a sandbox, runs/creates
+  E2E tests, fans out browser-driving ux-explorer agents that click through the app as
+  end users (screenshots + manual-ready walkthroughs), and a code-auditor that sweeps
+  for TODOs, stubs, and acceptance-criteria gaps. Nothing is fixed — the PM gathers
+  every sub-agent report, files an issue for each finding that passes the filing gate
+  (behavior, output, a dead guard, a blocked epic, a maintainer ruling), lands a manual +
+  E2E-test PR via a review-scribe, then confirms launching issue-flow to work the new
+  backlog.
+---
+
+# Project Review — use the app like a user, file what you find, fix nothing
+
+This is the QA + documentation pass that follows building: exercise the project **as an
+end user** in a **sandbox**, capture how it really behaves, and turn what you learn into
+three deliverables:
+
+1. **Tracker issues** — every bug, UX problem, gap, missing implementation, and code TODO
+   found becomes an issue, filed **by the PM**, shaped for the issue-flow loop.
+2. **A user manual** — per-flow walkthrough pages with screenshots, from the explorers'
+   real sessions, landed via a docs PR.
+3. **E2E smoke tests** — run the existing suite against the sandbox, or create one
+   codifying the explored happy paths, landed in the same PR.
+
+**The prime directive: find, never fix.** No product code changes happen during a
+review — not by you, not by any sub-agent. Docs, screenshots, and tests are the only
+things written. Fixing is issue-flow's job, and handing the new backlog to issue-flow is
+how a review ends.
+
+## Two roles
+
+- **PM (the main thread).** Orchestrates: preps the sandbox, scopes the review, fans out
+  reviewers, **gathers every report, dedups, and files all issues itself**, lands the
+  deliverables PR, reports, and hands off to issue-flow. The PM never explores inline
+  and never lets a sub-agent file issues.
+- **Sub-agents (background, self-contained prompts).** `issue-flow:ux-explorer` walks
+  one flow as a user via the browser MCP; `issue-flow:code-auditor` sweeps the code
+  read-only; `issue-flow:review-scribe` writes the manual + E2E tests. All are
+  decision-free and **none of them files issues or fixes anything**. Each declares its
+  own model tier in its agent definition — spawn them without an `opts.model` override.
+  (Fallback if an agent type won't resolve: spawn `general-purpose` on Sonnet and
+  prepend its brief with the corresponding contract — "you are a decision-free
+  <role>; never edit product code; never file issues; return the verdict JSON".)
+
+**Spawn every sub-agent unnamed — never pass `name:`.** This covers every spawn in this
+skill: the Phase 1 E2E-baseline child, the Phase 2 explorers and auditor, and the Phase 4
+scribe. The spawn guard denies a named agent without worktree isolation, and none of these
+agents needs a name: when you do message one (the scribe, Phase 4), address it by the
+`agentId` from its spawn result. A verdict-shaped label belongs in the brief or your own
+tracking, not the spawn call. Use `description` for a readable label instead.
+The scribe alone takes `isolation: "worktree"` (Phase 4) — that is for its checkout, not
+for a name.
+
+This skill runs on **GitHub or Gitea**. All tracker interaction goes through the forge's
+CLI — `gh` or `tea` — falling back to that forge's MCP server when the CLI is
+unavailable. Every command is named as an abstract operation and resolved in
+[../../references/forge.md](../../references/forge.md). Never hardcode `gh`.
+
+**Every issue you file is Simplified Technical English** — the standard is
+[`../../references/ste.md`](../../references/ste.md), and a planned project carries it at
+`.claude/rules/ste.md` with its vocabulary in `docs/specs/spec.md` § Terms. You are
+turning a sub-agent's report into a work item, so the split matters: **write** the title,
+the context and the "what to build" in STE; **quote verbatim** the reproduction steps,
+the expected-vs-actual, the console and server-log excerpts, the `path:line` references,
+and any acceptance criterion the finding contradicts. Evidence you reword is evidence you
+have damaged.
+
+---
+
+# Phase 0 — Preflight
+
+1. **Repo check.** Same as issue-flow: `git rev-parse --is-inside-work-tree`,
+   `forge.repo.view`, `forge.auth.check`. Detect the remote name and the dev-vs-live
+   branch model (review branches fork off dev when it exists, else the default branch).
+2. **Browser check.** `ToolSearch("playwright browser navigate")` /
+   `ToolSearch("chrome devtools")`. No browser MCP → tell the user the interactive half
+   degrades badly (explorers fall back to WebFetch-level checks) and suggest:
+   `claude mcp add playwright -s user -- npx -y @playwright/mcp@latest`. Offer to
+   continue degraded (code audit + HTTP checks + docs from static analysis) or stop.
+3. **Sandbox up.** The review runs against a **sandbox, never production**. Resolve in
+   order, asking the user only when ambiguous:
+   - A URL the user supplied for this review.
+   - An already-running local dev server (probe common ports the repo's config names).
+   - Something launchable from the repo: `docker compose up`, `npm run dev`,
+     `make dev`, a devcontainer — launch it with `run_in_background: true`, wait for
+     the port to answer, and keep the handle so you can stop it at the end.
+   - A deployed **dev/staging** URL (from issue-flow's deploy detection). Never the
+     production URL — explorers submit test data.
+   Capture: `SANDBOX_URL`, and a **`logCmd`** that prints/tails the server logs
+   (`docker compose logs --tail 100`, the background task's output file, or the
+   provider's log command) — explorers use it to correlate errors. Seed test data if
+   the repo has a seed script; note any seeded credentials for the explorer briefs.
+4. **Scope — what shipped recently.** The review focuses on recent issue-flow output,
+   plus a first-run pass:
+   - Find the last review marker: `forge.issue.list` filtered on `project-review run`
+     and bodies containing `<!-- project-review:`. Recent = closed issues / merged batch
+     PRs since then (else since the user-given range, else ~the last 30 days).
+   - `forge.issue.list` with `state: closed` + merged `Epic/Batch` PRs → group into
+     **user-facing flows** (auth, core object CRUD, settings, etc.). Pull each issue's
+     **acceptance criteria** — they become explorer `expectations` and auditor
+     `recentWork`.
+   - Always add one **"first-run user"** flow (land cold, figure the app out, reach the
+     core action) even if nothing recent maps to it.
+   - Cap at `MAX_FLOWS` (default 6; user-tunable) — prefer flows touching the most
+     recent work; list anything skipped in the digest, never skip silently.
+5. **Labels.** Bootstrap issue-flow's standard labels (its `references/labels.md`
+   block, which already includes `review:finding`), created with `forge.label.create`.
+   On Gitea, `forge.label.create` is not idempotent on its own — check
+   `forge.label.list` first and create only what is missing, exactly as `labels.md`
+   documents.
+6. **Review workspace.** `RUN_ID = <YYYY-MM-DD>-<short-slug>`. The deliverables branch
+   is `review/<RUN_ID>`, cut from dev by the scribe in its own harness worktree at
+   Phase 4 — you create **no** worktree yourself (the same model as issue-flow's workers:
+   [../issue-flow/references/worktrees.md](../issue-flow/references/worktrees.md)).
+   Create only a scratch dir for explorer output:
+   `<scratch>/review-<RUN_ID>/{screenshots,notes}`. Write `<scratch>` as an **absolute**
+   path in every brief — the explorers and the scribe run in other directories, and the
+   scribe in another tree.
+
+# Phase 1 — E2E baseline (existing suite)
+
+Detect an existing E2E suite (`playwright.config.*`, `cypress.config.*`, `e2e/`,
+`tests/e2e/`, a `test:e2e` script). If one exists, delegate a Sonnet child to run it
+**against `SANDBOX_URL`** and return a pass/fail summary with failing-test excerpts —
+don't run it inline (token-heavy output). Each real failure is a **finding** for
+Phase 3 (type `bug`, evidence = the test name + failure excerpt). If none exists, note
+it — the review-scribe creates one in Phase 4.
+
+# Phase 2 — Fan out the reviewers
+
+**The browser is a singleton.** The browser MCP (Playwright / Chrome DevTools) is one
+shared browser session — every agent's `browser_*` calls hit the same tabs. Two
+browser-driving agents in flight at once stomp each other's navigation and screenshots.
+Therefore: **ux-explorers run strictly one at a time, sequentially** — launch the next
+only after the previous one's verdict returns. Parallelism comes from everything that
+*doesn't* touch the browser: while an explorer runs, the code-auditor sweeps, the PM
+dedups/files issues from already-returned verdicts, and the E2E baseline child (which
+uses the repo's own Playwright install, not the MCP) can run.
+
+- **One `issue-flow:ux-explorer` per flow** from Phase 0 scope — **sequential, one in
+  flight at any moment**. Brief per flow:
+  ```
+  url:           <SANDBOX_URL>
+  flow:          <flow goal, phrased as a user goal>
+  persona:       new user, no development knowledge of this app, laptop browser
+  expectations:  <acceptance criteria quoted from the flow's recent issues>
+  screenshotDir: <scratch>/review-<RUN_ID>/screenshots/<flow-slug>/
+  notesFile:     <scratch>/review-<RUN_ID>/notes/<flow-slug>.md
+  logCmd:        <the sandbox log command>
+  testData:      <seeded accounts/records, if any>
+  ```
+- **One `issue-flow:code-auditor`** over the checkout — launch it in parallel with the
+  explorer chain (it never touches the browser). Brief: repo path, scope (default
+  whole source tree; focus paths touched by recent PRs first), `recentWork` = the
+  recent issues with acceptance criteria quoted, conventions (generated dirs to skip).
+
+The PM does not sit and wait — between explorer completions, process verdicts already
+in hand (Phase 3 dedup/filing can start immediately). An explorer returning `blocked`
+(app down, login impossible) is itself a high-severity finding; check the sandbox is
+still up before launching the next explorer.
+
+# Phase 3 — Gather & file (PM only — this is the gate)
+
+Sub-agents **report**; only the PM files. On all verdicts collected:
+
+1. **Merge findings** from every explorer, the auditor, and the Phase 1 E2E failures.
+2. **Dedup** — within the run (two explorers hitting the same broken API → one issue
+   listing both flows) and against the tracker (`forge.issue.list` filtered on
+   `<title keywords>`, plus bodies carrying `<!-- project-review:` from prior runs).
+   Update/comment an existing issue instead of double-filing.
+3. **Apply the filing gate** — [../../references/finding-policy.md](../../references/finding-policy.md).
+   A finding earns an issue in five cases and never otherwise: **behavior**, **a
+   user-visible output**, **a guard that guards nothing**, **a blocked epic**, **a question
+   the maintainer must rule**. Severity is not the test — a cosmetic behavior defect
+   qualifies; a critical-sounding documentation drift does not. Two things that **do**
+   qualify and are easy to mis-route: anything under `docs/specs/` that describes the wrong
+   product (`type:spec-update` — `features/*.md` and `spec.md` alike), and **an app change
+   an E2E test needs** — a missing
+   test-id, no seed data, no state-reset hook — which is case 3, because without it the
+   suite cannot guard the flow at all. Everything else goes to the Phase 4 deliverables PR
+   when it is documentation the scribe already writes, and otherwise to the run ledger only.
+   **Carry the routed list forward** — it goes in the scribe's brief at Phase 4, or it does
+   not happen.
+   A review that walks an app end to end produces far more findings than it produces work;
+   filing them all is what turns the next issue-flow session into a documentation loop. The
+   gate never suppresses evidence — every finding still reaches the ledger, the summary
+   issue, and the digest. State the counts in both: findings gathered, issues filed,
+   repairs routed to the PR, findings recorded only.
+4. **File one issue per qualifying finding** (`forge.issue.create`):
+   - **Title:** user-language, from the finding (`Sign-up form loses data on validation error`).
+   - **Body:** what happened (steps to reproduce, expected vs actual), **evidence**
+     (screenshot reference, console/server-log excerpt, `path:line` for code findings),
+     source (`Found by project-review run <RUN_ID>, flow: <flow>` / `code audit`),
+     related issue links (`Relates to #<n>` for acceptance-criteria gaps — the shipped
+     issue it contradicts), and the marker `<!-- project-review:<RUN_ID> -->`.
+   - **Labels:** `review:finding` + `status:ready` when clear and actionable;
+     `status:needs-feedback` (+ the question as a comment) when it needs a product
+     decision (e.g. "is this flow supposed to exist?"). High-severity breakage of a
+     core flow → add `priority:high`. A sprawling UX overhaul → file as `type:epic`
+     with the findings as its checklist, and let issue-flow decompose it.
+   - Screenshots referenced in issue bodies must be durable: they land in the docs PR
+     (Phase 4) — link the repo path the manual will use. Neither `gh` nor `tea` can
+     upload an image from the CLI, so until that PR merges the issue stands on its
+     quoted evidence: paste the console/server-log excerpt inline, name the scratch
+     screenshot path, and say the image lands with the docs PR.
+5. Keep a run ledger (finding → issue # / PR / recorded-only) for the digest and the summary issue.
+
+# Phase 4 — Deliverables PR (manual + E2E tests)
+
+1. Spawn **`issue-flow:review-scribe`** with **`isolation: "worktree"`** and no `name:`.
+   The harness gives it its own worktree, cut from the default branch; the scribe points
+   it at the review branch itself. Brief: branch `review/<RUN_ID>`, `base:
+   <remote>/<dev>` (a re-run for a CI failure passes `<remote>/review/<RUN_ID>` instead,
+   once the branch is pushed), `remote`, the explorers' `walkthrough` files, `screenshotDir` =
+   `<scratch>/review-<RUN_ID>/screenshots/` (the **root** — it holds one `<flow-slug>/`
+   subdir per flow, and those subdirs are preserved in the manual so identically
+   numbered screenshots from different flows can't overwrite each other), flow outcomes,
+   the Phase 1 E2E detection (`framework/dir/runCmd`), `SANDBOX_URL`, `manualDir`
+   (default `docs/manual`), repo conventions, and **`steRule:`** — the path to the
+   project's `.claude/rules/ste.md` if it has one, else the plugin's
+   `references/ste.md` — so the manual is written to the same standard as the spec —
+   and **`routedRepairs:`**, the Phase 3 list of documentation findings routed to this PR
+   (each one: file, what is wrong, what it should say). The scribe repairs those in the
+   same PR. Omit the list and the ledger claims work nobody did.
+2. On its verdict — keep the notification's `worktreePath` and `worktreeBranch` for
+   teardown — check `notesForPM` (app changes a test needs — e.g. missing
+   test-ids — go through the filing gate like any other finding; a missing test-id that
+   blocks a test is a dead guard and earns an issue, marker included, not a fix), then push the
+   branch from your own checkout (`git push -u <remote> review/<RUN_ID>` — branch refs are
+   shared across worktrees, so you need not enter the scribe's) and open **one PR
+   `review/<RUN_ID>` → dev**: title
+   `Project review <RUN_ID>: user manual + E2E smoke tests`, body listing manual pages,
+   tests added, the test-run result, **the routed repairs and where each landed** (read them
+   from the scribe's `repairsMade`), and the filed-issue ledger. A repair the scribe reports
+   unmade is stated as unmade with its reason, never dropped from the list. Docs + tests only —
+   this PR is standalone, so **CI runs normally** on it.
+3. Gate it like any PM merge — which includes the project's merge authority. Read
+   `prAuthority` from `.issue-flow.json` when it exists: a PR into dev takes the
+   batch-PR column (issue-flow's `references/session-config.md`), so under the default
+   `batch-review` and stricter, request a **human approving review** and do not merge
+   without it. Then: CI green, threads resolved → merge. CI failure caused by the new
+   tests → send it back to a scribe re-run, then **push again** and wait for CI on the new
+   head. Prefer `SendMessage` to the same scribe by its `agentId`. When it is gone (a
+   restart), spawn a fresh scribe with `base: <remote>/review/<RUN_ID>` — but first remove
+   the old scribe's tree, which still has `review/<RUN_ID>` checked out and would make the
+   new scribe's checkout fail (`already used by worktree`): find it by branch with
+   `git worktree list --porcelain` and remove it with `git worktree remove -f -f`.
+   **Never patch product code to make a review test pass.**
+
+# Phase 5 — Report & hand off to issue-flow
+
+1. **Review summary issue.** Create (or update) an issue titled
+   `Project review <RUN_ID>`, labeled **`review:finding` only**. Do **not** label it
+   `flow:status` — that label means "an operator's live issue-flow session", and
+   issue-flow's co-operator check (`references/collaboration.md`) would read this record
+   as another person running the loop.
+   Body (bookkeeping, not a work item): sandbox used, flows walked with the outcome of
+   each, findings filed as a table (issue # / severity / type), findings routed to the
+   deliverables PR or recorded only (one line each, so nothing the run found is lost),
+   the manual + E2E PR link, and anything skipped (flow cap, degraded browser).
+   Marker `<!-- project-review:<RUN_ID> -->` — the next run scopes from it.
+   Close it once the handoff decision is made.
+2. **Terminal digest** (≤10 lines): flows walked, findings gathered, issues filed by
+   severity, repairs routed to the PR, findings recorded only, PR link, skipped items,
+   open questions.
+3. **Hand off.** The review ends by pointing issue-flow at the new backlog. Ask
+   (`AskUserQuestion`): **launch `/issue-flow` now** to work the filed findings, or
+   stop here with the backlog triaged and ready? If the user already told you up front
+   to "review then fix", skip the ask and invoke the `issue-flow:issue-flow` skill
+   directly — the findings are labeled `status:ready`/`status:needs-feedback`, so its
+   Stage A triage picks them straight up.
+4. **Teardown.** Stop any sandbox you launched. Remove the scribe's worktree when the PR
+   merges, and also when the review ends without a merge (a human review still pending,
+   an abandoned run) — the branch is pushed, so the tree holds nothing the remote lacks.
+   Find it by its branch, not by a remembered path (a restart loses the notification):
+   the `git worktree list --porcelain` entry on `refs/heads/review/<RUN_ID>`. Remove it
+   with `git worktree remove -f -f <path>` (a lock can outlive its agent), then delete the
+   scribe's harness branch — `worktreeBranch` from the notification, or, without it, every
+   `worktree-agent-*` branch no worktree has checked out — and `git worktree prune`.
+
+---
+
+# Hard rules
+
+- **Find, never fix.** No product code changes during a review — by the PM or any
+  sub-agent. The only writes are screenshots, walkthrough notes, manual pages, E2E
+  tests, and tracker issues/comments. A broken sandbox or failing flow is a finding,
+  not a repair task.
+- **One browser-driving agent at a time.** The browser MCP is a single shared session;
+  ux-explorers run sequentially, and no other browser user (e.g. a deploy-verifier)
+  may be in flight while one runs. Parallelize only non-browser work (code-auditor,
+  E2E via the repo's own runner, PM filing).
+- **Only the PM files issues.** Explorers, the auditor, the scribe, and any fallback
+  children report findings; the PM dedups and creates every issue. One finding, one
+  issue, with evidence and the `<!-- project-review:<RUN_ID> -->` marker.
+- **User viewpoint is the standard.** Explorers are briefed as non-developers judging
+  what they can see and do; "works if you know the trick" is a UX finding. Logs and
+  code are for *evidence*, never for excusing behavior a user would call broken.
+- **Sandbox only.** Never explore production, never real credentials, never real
+  personal data; test data is clearly fake. Destructive admin actions stop the flow
+  (`partial`) rather than run.
+- **Every finding is evidenced** — screenshot, console/log excerpt, or `path:line`.
+  No evidence, no issue.
+- **Issues and manual pages are STE** (`references/ste.md`). Titles and your own prose
+  are written to the standard; steps, excerpts, paths and quoted criteria stay verbatim.
+- **Deliverables land via PR** (docs + tests → one standalone CI-run PR to dev),
+  through the normal merge gate. Never push directly to dev/live; never merge red.
+- **Caps are loud.** Flow cap, degraded browser, skipped areas — always in the digest
+  and summary issue, never silent.
+- **The review ends with the handoff** — confirm (or, if pre-authorized, launch)
+  issue-flow on the new findings. Filed-but-forgotten defeats the loop.

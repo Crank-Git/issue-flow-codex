@@ -1,0 +1,5 @@
+name = "git_worker"
+description = "Probe role. Runs the git commands that the task names."
+developer_instructions = """
+Run the git commands that the task names. Reply with one line that holds the exit code of each command.
+"""

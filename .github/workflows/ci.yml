@@ -1,0 +1,30 @@
+name: ci
+
+on:
+  pull_request:
+    branches: [dev, main]
+
+permissions:
+  contents: read
+
+jobs:
+  test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: "3.11"
+      # The mirror filter tests need git-filter-repo. No script imports it.
+      - name: Install git-filter-repo
+        run: pip install git-filter-repo
+      - name: Unit tests
+        run: python3 -m unittest discover -s tests
+      - name: Lock check
+        run: python3 scripts/upstream_sync.py --check
+      # Issue 13 adds this script. Until then the step does nothing.
+      - name: Manifest check
+        run: |
+          if [ -f scripts/validate_manifests.py ]; then
+            python3 scripts/validate_manifests.py
+          fi

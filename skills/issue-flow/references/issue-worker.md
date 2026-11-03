@@ -1,0 +1,187 @@
+# Working with issue-workers (PM-facing)
+
+The worker's own runbook and limits live in its **self-contained agent definition**
+(`agents/issue-worker.md`, spawned as `issue-flow:issue-worker`) — the PM does not pass
+that prompt. This file is the PM's side: how to launch a worker, what to hand it, and how
+to react to what it returns.
+
+## Launch
+
+Spawn with `Agent`, `subagent_type: "issue-flow:issue-worker"`,
+**`isolation: "worktree"`**, one per claimed issue, up to `concurrency` at once (across
+all live batches). Keep the **`agentId`** the spawn result returns — it is the worker's
+address for everything below, for this session only. (`name: "worker-<issue>"` is an
+extra handle only where the `Agent` tool has a `name` parameter, which needs
+`CLAUDE_CODE_EXPERIMENTAL_AGENT_TEAMS=1`.) `isolation: "worktree"` is not optional — it is what keeps concurrent
+workers apart. See [worktrees.md](worktrees.md) for what goes wrong without it.
+Sequenced batch members (dependency chains) launch only after their predecessor
+sub-merges. The PM is notified when each finishes — it does **not** sit and wait.
+(Fallback if the type won't resolve: spawn `general-purpose` and prepend the brief with
+"You are a decision-free issue-worker; never merge; return the verdict JSON.")
+
+The worker is an **independent Opus engineer**: it may research (web), use available MCP
+servers (via `ToolSearch`), and spawn its own child agents/Workflows — all on the
+**Sonnet** tier, all **confined to that issue's worktree** and its own scratch directory,
+and all finished before it returns its verdict. The PM sets none of this;
+it lives in the worker's agent definition. A worker may also **file new untriaged issues**
+for out-of-scope discoveries — but only those that pass the filing gate (behavior, a
+user-visible output, a guard that guards nothing, a blocked epic, a maintainer ruling).
+Every other discovery it repairs in its own PR, within the files its change already
+touches, and reports in `notesForPM` when the repair would reach wider. Filed issues are
+picked up by the **next scheduled sweep** (SKILL.md, Stage A0/A: on load, before a merge
+gate, or when the ready pool empties) — a routine worker completion does *not* trigger a
+full re-triage. `notesForPM` is the exception: read it on every verdict, because a note
+the PM never routes is a finding lost.
+
+## Handoff brief (the only thing the PM passes in)
+
+```
+issue:        #<number> — <title>
+branch:       issue/<number>-<slug>   (the worker checks this out in the worktree the
+                                       harness gave it; the PM passes no worktree path)
+base:         <remote>/epic/<n>-<slug>   (the integration branch; <remote>/<dev> only for standalone/hotfix.
+                                       On a re-spawn for rework, pass <remote>/issue/<number>-<slug> —
+                                       the branch already has commits and a PR. See Rework below.)
+ci:           skip | run               (skip = batch member: draft PR, [skip ci] commits, local checks.
+                                        run = standalone/hotfix: normal PR, watch provider CI)
+batch:        epic #<n> | batch #<n> | standalone
+members:      <count of members in the batch; 1 for standalone/hotfix>
+              (how the worker knows whether a crossCheck is owed — never omit it)
+crossCheck:   <URL of the batch cross-check comment on the tracking issue>
+              (required whenever `members` > 1; `n/a` for standalone/hotfix and for a
+               single-member batch — SKILL.md Stage B step 4 skips the check there.
+               The worker validates this as its first action and returns `blocked`
+               without doing any work if it is absent, empty, "pending", or
+               unresolvable — see SKILL.md Stage B step 5.)
+remote:       <remote>
+forge:        the run configuration's forge block, passed verbatim: {type, host, owner,
+              repo, interface}. The worker uses it to pick gh or tea. Never omit it; a worker
+              that has to guess the forge is a worker that fails on its first tracker call.
+plan:         <the plan the PM already commented on the issue>
+conventions:  <test cmd, lint cmd, merge style, repo specifics>
+practices:    tdd: true|false            (tests land with or before the implementation)
+              ddd: true|false            (model the domain concepts the plan names)
+              e2e: none|user-facing|all  (when an E2E spec is required)
+              coverage: <n>|null         (threshold to report in localChecks)
+              commitStyle: <e.g. conventional>
+              docs: none|public-api|all
+steRule:      <path to the writing standard: .claude/rules/ste.md when the project has one
+               (the planner writes it), else <pluginRoot>/references/ste.md — absolute>
+pluginRoot:   <absolute path of the plugin directory: two levels above the issue-flow
+               skill's base directory, e.g. …/issue-flow when the skill is at
+               …/issue-flow/skills/issue-flow>
+```
+
+`pluginRoot` is not optional either. A worker is not told where its own definition lives,
+so every `../references/…` link in its runbook — forge operations, the writing standard,
+the finding policy — and the Gitea CI-watch script (`scripts/gitea-ci-watch.sh`) are
+reachable only through it. The PM knows the path: the harness shows the skill's base
+directory when the skill loads.
+
+`crossCheck` is not optional on a multi-member batch: it is the field that makes the step-4
+gate un-skippable, because you cannot fill it in before the comment exists. A worker that
+receives no `crossCheck` line cannot tell "the check was skipped" from "the PM forgot the
+field", so it treats both as `blocked`.
+
+`steRule` is not optional decoration: the worker writes **code comments, docstrings, test
+names, and its PR body** to that standard, using the spec's `## Terms` vocabulary. Pass
+the project's own copy whenever it exists — it is scoped to the source globs, so it loads
+while the worker edits code.
+
+`practices` comes from the session's [run configuration](session-config.md) and is part
+of the worker's **definition of done** — not advice. A worker that cannot satisfy one
+returns `needs-feedback` naming the practice; the PM checks them at the sub-merge gate
+and does not waive them there.
+
+**Do not create the worktree.** `isolation: "worktree"` makes the harness create it under
+`.claude/worktrees/`, pin the worker to it, and copy the project's `.worktreeinclude`
+matches in. The PM learns the path from the worker's **completion notification** (a
+`<worktree>` block carrying `worktreePath` and `worktreeBranch`); the worker also reports
+its `pwd` as `worktree` in its verdict as the fallback source. Either way the PM never
+needs (and never passes) a path in. The PM's job is
+to keep `.worktreeinclude` accurate — a worktree is a fresh checkout of *tracked* files,
+so `.env` and local secrets are otherwise missing and env-dependent suites fail as
+`blocked`. And remember the worker **cannot answer a permission prompt**: every command
+it needs must already be in the committed `.claude/settings.json` allow-list.
+
+## Rework: message the same worker, don't spawn a new one
+
+Several gates send an issue **back to the worker** — an unevidenced criterion, a missed
+practice, a review comment, a conflict to resolve. Two mechanisms, and they are not
+equivalent:
+
+- **Preferred — `SendMessage` to the worker that returned the verdict**, by the
+  `agentId` from its spawn result (or `worker-<issue>` where names exist). It keeps its
+  context, its per-agent worktree, and its branch already checked out, so nothing is
+  re-pointed and nothing can be lost. Measured with the teams flag unset: a returned
+  isolated worker resumed by `agentId` answered from its original context.
+- **Fallback — re-spawn**, when the worker is gone (session restarted, or it is no longer
+  addressable). A re-spawn is a **new agent in a new empty worktree on the default
+  branch**, so the brief must carry `base: <remote>/issue/<number>-<slug>` — the published
+  branch — plus the plan, the PR number, what the gate rejected, and **the same `crossCheck`
+  URL the original brief carried**: a re-spawn runs the First action exactly like a fresh
+  launch and returns `blocked` without it. Passing the integration branch as `base` here
+  would reset the issue branch and orphan the PR's commits.
+
+Either way the PM tears the worktree down only once the issue is `status:batched` or
+terminally parked — not between rework rounds.
+
+## Return contract
+
+**This mirrors the schema in `agents/issue-worker.md`, which is authoritative** — only the
+agent definition reaches the worker at runtime, so that file decides what is emitted and
+this one must track it. Change both together, or the PM reads a field the worker never
+sends.
+
+The worker returns exactly this object as its final message:
+
+```json
+{
+  "type": "object",
+  "required": ["issue", "outcome", "detail"],
+  "properties": {
+    "issue":      { "type": "number" },
+    "branch":     { "type": "string" },
+    "worktree":   { "type": "string", "description": "the worker's own worktree path (its pwd) — the PM's fallback handle for teardown when the completion notification is unavailable" },
+    "prNumber":   { "type": "number" },
+    "outcome":    { "type": "string", "enum": ["ready-to-merge", "checkpoint", "needs-feedback", "blocked"] },
+    "detail":     { "type": "string" },
+    "remaining":  { "type": "string", "description": "what is done, what is left, the next concrete step (required when outcome is checkpoint)" },
+    "localChecks":{ "type": "string", "description": "what was run and the result, e.g. 'pytest 212 passed; ruff clean; build ok' (required when ci: skip)" },
+    "criteria":   { "type": "array", "description": "one entry per acceptance criterion in the issue — required for ready-to-merge",
+                    "items": { "type": "object", "required": ["text", "met", "evidence"],
+                               "properties": { "text": {"type":"string"}, "met": {"type":"boolean"}, "evidence": {"type":"string"} } } },
+    "question":   { "type": "string" },
+    "blocker":    { "type": "string" },
+    "openThreads":{ "type": "number" },
+    "notesForPM": { "type": "string", "description": "findings outside this issue that the worker neither filed nor repaired — a stale record in a file its change never touched, a wider prose drift; one line each, null when there are none" }
+  }
+}
+```
+
+## How the PM reacts to each verdict (Stage C1)
+
+| outcome | PM action (the gate) |
+|---|---|
+| `ready-to-merge` | Verify threads resolved + `localChecks` green (or CI green when `ci: run`) + the **pre-patch check** when the PR adds or changes tests (`localChecks` states the new tests failed against the pre-patch code — absent goes back to the worker) + **every acceptance criterion in `criteria` met and evidenced** (missing/unmet/unevidenced → back to the worker via `SendMessage`, see Rework; disputed → `needs-feedback`); resolve any conflict vs the integration branch; `forge.pr.ready` then `forge.pr.merge.squash` **with the message written out — `--subject "<title> (#<pr>)" --body "[skip ci]"`, never the forge's default** (SKILL.md C1 step 4: GitHub's default carries the token only by luck, Gitea's carries none and starts a full CI run per sub-merge); then **check what landed** — fetch the integration branch and grep its head, re-triggering only per C1 step 4b (SKILL.md C1 step 4b); **`forge.issue.status.set <member> status:batched` as its own step, before any bookkeeping** (SKILL.md C1 step 5 — never a bare label add); then tick the tracking checklist, remove the worktree it reported (`git worktree remove -f -f <worktree>`; `git branch -D <worktreeBranch>` from its notification; `git worktree prune`), launch any sequenced successor. When the batch completes → batch gate (Stage C2). Standalone/hotfix: gate the PR like a batch PR into dev (the batch-PR column of `prAuthority` — [session-config.md](session-config.md)), merge `--squash`, **close the issue** (`Closes #` auto-closes only when dev is the default branch; otherwise close it manually with a comment linking the PR) and clear its status label, then Stage D directly. |
+| `checkpoint` | The worker hit its turn budget with work pushed; nothing is wrong. Re-spawn a **fresh** worker (not `SendMessage` — that reuses the context the checkpoint exists to discard) with the same brief, `base: <remote>/issue/<n>-<slug>`, and `remaining` appended to the plan. Remove the checkpointed worktree (`git worktree remove -f -f <worktree>`; `git branch -D <worktreeBranch>` from its notification) — the replacement gets a fresh one and re-checks-out the published branch. **Leave the status label untouched** — `status:in-review` if the worker had opened its PR, `status:in-progress` if it checkpointed before that; both are correct and the replacement adopts the open PR. Post one terse comment recording the checkpoint (the chain cap counts these). **Does not free the slot** — the issue is still in flight. No gate, no digest line. |
+| `needs-feedback` | Label `status:needs-feedback`, post `question` as an issue comment, park per the feedback policy (notify; ask interactively only when it gates work). Free the slot. |
+| `blocked` | Label `status:blocked`, comment naming `blocker`. Free the slot. |
+| *(no verdict)* | Marked interim ("stopped with background work of its own still running") → not an outcome; keep the slot, the verdict follows. Final with no JSON → `SendMessage` once for the verdict, then `blocked`. For an issue already gated → ignore. (SKILL.md, *Reading a worker notification*.) |
+
+**On every verdict, read `notesForPM`** — it carries findings the worker neither filed nor
+repaired, and it is the only place they exist. Put each one through the filing gate: a
+gate-passing finding becomes an issue, everything else becomes a **pending repair** in your
+`flow:status` marker block, taken by the next batch that touches those files. A
+`notesForPM` you do not read is a finding the worker deliberately did not file because this
+policy told it not to.
+
+After handling any verdict, top the pipeline back up to `concurrency`.
+
+## Why this keeps the PM thin
+
+The worker returns a few lines, not the diff/logs/files it churned through. The PM holds
+only pointers + the verdict — the context discipline in
+[parallelism.md](parallelism.md). The expensive context lives and dies inside disposable
+workers, so a single session can clear far more issues than one context window could
+hold.

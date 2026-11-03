@@ -2,7 +2,7 @@
 id: worker-dispatch
 feature: Worker dispatch
 epic: "Epic 2: Worker dispatch"
-status: issued
+status: built
 issues: [19, 20, 21, 22, 23]
 mockups: []
 ---

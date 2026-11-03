@@ -529,6 +529,8 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li>2026-11-03 — Epic 1 batch gate (PR #57). A live run showed that Codex encrypts <code>tool_input.message</code> in the spawn hook payload. The operator ruled on #17: the spawn guard denies every spawn whose <code>fork_turns</code> is not <code>"none"</code>, and a <code>worker_&lt;n&gt;</code> spawn without <code>agent_type: issue_worker</code>. FR-plugin-packaging-29 to 31 changed to match. The preflight hook prints its <code>ran</code> line in every session and runs within a 40 s budget.
 </li>
+<li>2026-11-03 — Epic 2 batch gate (PR #67). The consolidated end-to-end run on the GitHub test bed (operator go-ahead: <code>gpt-6.1-sol</code> PM, <code>gpt-6-luna</code> workers) proved all 12 live criteria in attempt 1 of 3. <code>worktree.py remove</code> gained <code>--merged</code> for squash-merged branches. The run found that the PM does not always pass <code>codex.waitMs</code> or sweep after each timeout; #66 enforces both in Epic 3.
+</li>
 </ul><nav class="pager">
 <span></span>
 <a href="html/page-codex-harness.html">Codex harness facts &rarr;</a>

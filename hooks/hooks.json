@@ -39,6 +39,26 @@
           }
         ]
       }
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "wait_agent$",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$PLUGIN_ROOT/hooks/record-wait-state.py\""
+          }
+        ]
+      },
+      {
+        "matcher": "Bash",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python3 \"$PLUGIN_ROOT/hooks/record-wait-state.py\""
+          }
+        ]
+      }
     ]
   }
 }

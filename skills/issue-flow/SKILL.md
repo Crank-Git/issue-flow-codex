@@ -281,13 +281,17 @@ spent — run every step below yourself. The digest is an accelerator, never a d
 10. **Co-operator check.** List other open `flow:status` issues updated in the last 24h —
    each is another person running this loop on the same repo. Read their in-flight issue
    numbers and integration branches, treat them as taken, and never edit their status
-   issue. See [references/collaboration.md](references/collaboration.md). Two sessions on the same forge login are a special case: read [references/collaboration.md#same-login-sessions](references/collaboration.md#same-login-sessions) before you treat the other session as your own. This runs
-   **before** the run configuration on purpose: whether a co-operator is active decides
-   which file step 11 writes.
+   issue. See [references/collaboration.md](references/collaboration.md). Two sessions on the same forge login are a special case: read [references/collaboration.md#same-login-sessions](references/collaboration.md#same-login-sessions) before you treat the other session as your own. Add any required confirmation as item 0 of the run-configuration question in step 11. This check runs
+   before the run configuration because a live co-operator decides which file step 11 writes.
 11. **Run configuration — confirm with the user, every session.** Load `.issue-flow.json`
    (repo root, committed) if present, seed missing values from `docs/specs/spec.md` when
    there is a spec, and **re-confirm** in one plain-text message: numbered options, the
-   saved values marked `*`. Then end your turn. The operator's reply continues the step.
+   saved values marked `*`. If step 10 found a same-login digest, make its confirmation
+   item 0 in this message and include the digest time and its `harness:` line. Item 0 asks
+   the operator to confirm that the other session is gone. An unanswered or deferred item
+   0 does not count as confirmation. One reply answers item 0 and the run configuration.
+   Then end your turn. The operator's reply continues the step. Do not write to the status
+   issue, claim an issue, or spawn a worker until the operator explicitly confirms item 0.
    Never apply a saved config silently. It
    covers: `concurrency` (workers in flight, default 3), `batchSize` (max members in a
    loose batch, default 4), `runLength` (one batch / N issues / until the backlog is

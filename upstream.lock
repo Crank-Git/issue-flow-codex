@@ -12,7 +12,7 @@ notes = "Becomes `.codex-plugin/plugin.json`."
 path = "README.md"
 mode = "patched"
 upstream_sha256 = "6f5cf3ddd736fba8e560324c4bf141d28ce77dfd655b7a1e361ad9b678bfd384"
-notes = "Port credit and Codex install steps."
+notes = "Port header credits upstream and the license; Codex install steps follow in a later issue."
 
 [[file]]
 path = "agents/code-auditor.md"
@@ -673,3 +673,9 @@ path = "tests/test_conformance.py"
 mode = "new"
 upstream_sha256 = ""
 notes = "port-only: conformance suite (#10)"
+
+[[file]]
+path = "LICENSE"
+mode = "new"
+upstream_sha256 = ""
+notes = "MIT text with the upstream and port copyright lines."

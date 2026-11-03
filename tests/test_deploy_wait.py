@@ -81,12 +81,23 @@ class ActionsModeTest(unittest.TestCase):
     def test_maps_no_actions_run_to_missing(self):
         self.assertEqual(self.wait([])["state"], "missing")
 
+    def test_reports_a_skipped_deploy_run_as_not_succeeded(self):
+        result = self.wait([{"status": "completed", "conclusion": "skipped", "url": "u"}])
+        self.assertEqual(result["state"], "missing")
+
 
 class CommandLineTest(unittest.TestCase):
     def test_exits_nonzero_with_one_stderr_line_when_command_mode_has_no_status_cmd(self):
         done = subprocess.run([sys.executable, str(SCRIPTS / "deploy_wait.py"), "--mode", "command", "--sha", SHA],
                               capture_output=True, text=True)
         self.assertNotEqual(done.returncode, 0)
+        self.assertEqual(len(done.stderr.strip().splitlines()), 1)
+
+    def test_exits_1_with_one_stderr_line_on_a_status_command_with_a_bad_quote(self):
+        done = subprocess.run([sys.executable, str(SCRIPTS / "deploy_wait.py"), "--mode", "command",
+                               "--status-cmd", "echo 'unclosed", "--sha", SHA],
+                              capture_output=True, text=True)
+        self.assertEqual(done.returncode, 1)
         self.assertEqual(len(done.stderr.strip().splitlines()), 1)
 
 

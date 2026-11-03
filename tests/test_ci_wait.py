@@ -1,7 +1,9 @@
 """Tests for scripts/ci_wait.py. Forge calls and the clock are faked; no test touches a network."""
 
+import os
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -97,6 +99,19 @@ class CommandLineTest(unittest.TestCase):
         done = subprocess.run([sys.executable, str(SCRIPTS / "ci_wait.py"), "--forge", "github", "--sha", "abc"],
                               capture_output=True, text=True)
         self.assertNotEqual(done.returncode, 0)
+        self.assertEqual(len(done.stderr.strip().splitlines()), 1)
+        self.assertEqual(done.stdout, "")
+
+    def test_exits_1_with_one_stderr_line_on_malformed_gh_output(self):
+        with tempfile.TemporaryDirectory() as bin_dir:
+            fake = Path(bin_dir) / "gh"
+            fake.write_text("#!/bin/sh\necho 'not json'\n")
+            fake.chmod(0o755)
+            env = {**os.environ, "PATH": f"{bin_dir}{os.pathsep}{os.environ['PATH']}"}
+            done = subprocess.run([sys.executable, str(SCRIPTS / "ci_wait.py"), "--forge", "github",
+                                   "--repo", "o/r", "--sha", "abc", "--max-seconds", "5"],
+                                  capture_output=True, text=True, env=env)
+        self.assertEqual(done.returncode, 1)
         self.assertEqual(len(done.stderr.strip().splitlines()), 1)
         self.assertEqual(done.stdout, "")
 

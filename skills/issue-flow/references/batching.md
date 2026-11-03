@@ -252,7 +252,7 @@ Batch complete = every member `status:batched` or terminally parked.
 7. Close members: automatic via `Closes #` **only when dev is the default branch**;
    otherwise close each manually with a comment linking the batch PR. Close the `type:batch`
    tracking issue; an epic closes when its last child closes.
-8. Digest (terminal + status issue + push notification), then Stage D.
+8. Digest (terminal + status issue), then Stage D.
 
 ## Cost/latency notes
 

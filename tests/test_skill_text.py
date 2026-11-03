@@ -477,3 +477,27 @@ class DigestAndCompatibilityTextTests(unittest.TestCase):
 class NoAskUserQuestionTest(unittest.TestCase):
     def test_the_pm_skill_names_no_ask_user_question_tool(self):
         self.assertNotIn("AskUserQuestion", (SKILL_DIR / "SKILL.md").read_text())
+
+
+class BatchGateFixTextTest(unittest.TestCase):
+    def test_stage_d_and_the_intro_call_the_deploy_watch_a_subagent(self):
+        text = " ".join(section("SKILL.md", "## Stage D", "## Stage E").split())
+        intro = " ".join((SKILL_DIR / "SKILL.md").read_text().split())
+        self.assertNotIn("one background shell command", intro)
+        self.assertNotIn("is **not an agent**", intro)
+        self.assertNotIn("background loop", text)
+        self.assertIn("`ci_watcher`", intro)
+
+    def test_stage_d_passes_the_configured_deploy_deadline(self):
+        text = " ".join(section("SKILL.md", "## Stage D", "## Stage E").split())
+        self.assertNotIn("deadline: 30", text)
+        self.assertIn("deploy.maxMinutes", text)
+
+    def test_no_file_names_a_push_notification(self):
+        for path in ("SKILL.md", "references/batching.md"):
+            self.assertNotIn("push notification", (SKILL_DIR / path).read_text(), path)
+
+    def test_session_config_and_external_apis_name_no_claude_mcp_command(self):
+        for path in (SKILL_DIR / "references/session-config.md",
+                     SKILL_DIR.parent.parent / "references/external-apis.md"):
+            self.assertNotIn("claude mcp", path.read_text(), path.name)

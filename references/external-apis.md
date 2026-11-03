@@ -52,7 +52,7 @@ searches the marketplaces the user has configured, and offers what it found. It 
 offer to **add a marketplace** when the server it needs lives in one the user has not
 added yet. Three constraints on that offer:
 
-- **Only offer what you actually found**, or what `claude mcp list` shows is already
+- **Only offer what you actually found**, or what `codex mcp list` shows is already
   connected. A marketplace may be offered only from a **concrete source** — one the user
   supplied, or one named in the repository (README, `CLAUDE.md`, the spec,
   `.claude/settings.json`). Never invent a marketplace URL, a plugin name, a server name,

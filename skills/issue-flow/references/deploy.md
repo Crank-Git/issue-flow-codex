@@ -86,7 +86,7 @@ workdir:    <the project directory>
 pluginRoot: <absolute path of the plugin directory>
 forge:      <the forge block>
 deploy:     <the deploy block: mode, statusCmd or workflow, pollSeconds>
-deadline:   30
+deadline:   <deploy.maxMinutes, default 30>
 ```
 
 The watcher runs `scripts/deploy_wait.py` again and again while the state is `pending`.
@@ -110,7 +110,7 @@ The state is the verdict:
 | `pending` | ours was seen `pending`/`running`. The watcher runs the script again. |
 | `timeout` | the watcher's deadline passed while ours was still `pending` (`timed-out` in the table below) |
 | `superseded` | ours was never observed; the branch's newest deployment is a different commit |
-| `missing` | nothing deployed at all during the watch (`no-deployment-observed` in the table below) |
+| `missing` | nothing deployed at all during the watch (`no-deployment-observed` in the table below). In `actions` mode a run with conclusion `skipped` deployed nothing, so it counts as `missing`. |
 | `error` | the status query itself failed (`watch-error` in the table below) — never a verdict |
 
 Five properties worth keeping if you rewrite it:

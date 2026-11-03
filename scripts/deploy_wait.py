@@ -61,7 +61,11 @@ def wait_command(status, sha, max_seconds, poll_seconds, clock=time.monotonic, s
 
 
 def wait_actions(fetch, sha, max_seconds, poll_seconds, clock=time.monotonic, sleep=time.sleep):
-    result = ci_wait.wait(fetch, max_seconds, poll_seconds, clock, sleep)
+    # A skipped run deployed nothing, so it is not a deployment of our SHA.
+    def fetch_deploys(timeout):
+        return [r for r in fetch(timeout) if r["conclusion"] != "skipped"]
+
+    result = ci_wait.wait(fetch_deploys, max_seconds, poll_seconds, clock, sleep)
     return {"state": ACTIONS_STATE[result["state"]], "url": result["url"], "jobId": None, "sha": sha}
 
 
@@ -85,7 +89,10 @@ def main(argv=None):
         parser.error("--repo is required for --forge github")
     try:
         if args.mode == "command":
-            argv_status = shlex.split(args.status_cmd)
+            try:
+                argv_status = shlex.split(args.status_cmd)
+            except ValueError as error:
+                raise WaitError(f"--status-cmd is not a valid command line: {error}") from None
             result = wait_command(lambda timeout: ci_wait.run_command(argv_status, timeout),
                                   args.sha, args.max_seconds, args.poll_seconds)
         else:

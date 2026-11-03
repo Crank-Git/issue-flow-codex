@@ -28,12 +28,18 @@ class WaitError(Exception):
 
 
 def parse_github(body):
-    return [{"status": r["status"], "conclusion": r["conclusion"], "url": r["url"]}
-            for r in json.loads(body)]
+    try:
+        return [{"status": r["status"], "conclusion": r["conclusion"], "url": r["url"]}
+                for r in json.loads(body)]
+    except (ValueError, KeyError, TypeError) as error:
+        raise WaitError(f"gh output is not a run list: {error!r}") from None
 
 
 def parse_gitea(body):
-    data = json.loads(body)
+    try:
+        data = json.loads(body)
+    except ValueError as error:
+        raise WaitError(f"tea output is not JSON: {error}") from None
     # An object without a run list is an API error such as {"message": "not found"}.
     # Reading it as "no runs" would report `missing` for a failed request.
     runs = data.get("workflow_runs", data.get("runs")) if isinstance(data, dict) else None

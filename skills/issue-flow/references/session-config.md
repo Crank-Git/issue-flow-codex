@@ -321,7 +321,8 @@ architecture choice, and this block is where the project's wiring is recorded
   push-protected.
 - `workflow` — `mode: actions` only: the deploy workflow file name.
 - `url` / `previewUrlPattern` — what the deploy-verifier loads.
-- `pollSeconds` / `maxMinutes` — the watch loop's interval and budget (defaults 30/30).
+- `pollSeconds` / `maxMinutes` — the deploy watcher's poll interval in seconds and its
+  deadline in minutes (defaults 30/30).
 
 ## docsMcp — documentation access
 
@@ -332,8 +333,8 @@ servers the PM offered, which the user installed, and whether they declined.
   more only when the project gains a dependency on a service none of the installed
   servers cover.
 - `installed` and `marketplacesAdded` are notes, not guarantees — always confirm with
-  `claude mcp list` / `claude plugin marketplace list` at startup rather than trusting the
-  file.
+  `codex mcp list` at startup rather than trusting the file. Codex has no command that lists
+  marketplaces, so `marketplacesAdded` stays a note.
 - `restartPending: true` means something was installed in a previous session and had not
   appeared yet. At startup, re-check whether it is live now: it is → clear the flag and
   say the server is available; it is not → tell the user once and keep the `WebFetch`

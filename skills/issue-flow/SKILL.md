@@ -43,10 +43,11 @@ Neither is required — issue-flow works on any triage-able tracker.
 
 This file is the **PM's** operating manual — it is the only role that reads it. The
 sub-agents have their own **self-contained** prompts and never load this one:
-`issue_worker` (the worker) and `deploy_verifier` (Stage D's browser check). The PM
+`issue_worker` (the worker), `ci_watcher` (the CI and deploy watch), and `deploy_verifier`
+(Stage D's browser check). The PM
 spawns them with `spawn_agent` and the matching `agent_type`, and passes only a short
 per-task brief; everything else they need lives in their own definition. Stage D's deploy watch
-is **not an agent** — it is one background shell command (see
+is a `ci_watcher` subagent that runs `deploy_wait.py` (see
 [references/deploy.md](references/deploy.md)).
 
 **Model tiers.** You control exactly one: **keep the PM on `gpt-6.1-sol`.**
@@ -214,7 +215,7 @@ spent — run every step below yourself. The digest is an accelerator, never a d
    2. **A deploy workflow in the forge's own Actions** (a workflow under
       `.github/workflows/` or `.gitea/workflows/` that deploys on push to the deploy
       branch) → deploy status *is* a run; Stage D watches it with the same
-      commit-anchored background loop as CI (`mode: actions`).
+      commit-anchored watcher loop as CI (`mode: actions`).
    3. **A status command the project ships or the user supplies** —
       `scripts/deploy-status.sh`, a `deploy-check` project skill, or a command given
       once at preflight — printing `<state> <jobId> <sha>` (`mode: command`). This is
@@ -450,7 +451,7 @@ every single verdict buys nothing and costs a full-context pass each time.
 4. **Feedback policy (park by default, ask only when it pays).** Gather every open
    `status:needs-feedback` item with a pending question (from triage, a worker, a
    semantic conflict, or a deploy). Then:
-   - **Default — park and notify, keep working.** Ensure each question is a crisp issue
+   - **Default — park, record it in the digest, keep working.** Ensure each question is a crisp issue
      comment, list them in the status digest (Stage E reporting), and continue
      scheduling everything that doesn't need an answer. Do **not** stop the loop to ask.
    - **Ask in one plain-text message (a numbered list, one question per item, each with an
@@ -511,8 +512,8 @@ back in `notesForPM`.
    finished-but-unreviewed batches are inventory stacked in front of the pipeline's real
    bottleneck — the human reviewer — and another parallel batch adds inventory, not
    throughput, while its conflicts against the unreviewed work compound. Keep filling
-   worker slots for batches already in flight, work the parked questions, and notify the
-   operator **once per cap event** (digest + push) that reviews are the constraint —
+   worker slots for batches already in flight, work the parked questions, and tell the
+   operator **once per cap event** in the digest that reviews are the constraint —
    naming the setting and its value (`reviewWipLimit: 2`), since it is a default most
    operators never chose; an approval or merge frees the cap. The cap is soft and binds
    only under an authority setting that parks work for review — under `autonomous` it
@@ -679,12 +680,15 @@ reconcile before it builds anything twice. The preflight hook marks a compaction
 1. Call `list_agents`, and read every open `worker launched:` comment, before the next
    tracker write.
 2. Match each live subagent to an issue by its `task_name`: `worker_<n>`,
-   `worker_<n>_c<k>`, `ci_<pr>`, `deploy_<sha7>`, `locate_<n>_<k>`, or `crosscheck_<n>`.
+   `worker_<n>_c<k>`, `ci_<pr>`, `ci_<pr>_r2`, `deploy_<sha7>`, `deploy_<sha7>_r2`,
+   `locate_<n>_<k>`, `suite_<n>`, `batchreview_<n>`, or `crosscheck_<n>`.
 3. An issue that is `status:in-progress` with no live worker → follow the respawn path
    in [references/collaboration.md](references/collaboration.md). Do not respawn by any
    other route.
-4. A live worker with no matching issue state → send one `followup_task` that asks for
-   its verdict JSON.
+4. A live worker with no matching issue state → send one `followup_task` that asks a
+   worker for its verdict JSON and a watcher for its watcher verdict.
+5. A batch PR with no live `ci_<pr>` watcher and no verdict → the watcher is lost. Spawn
+   it again with the same brief.
 
 Then continue the loop.
 
@@ -710,7 +714,7 @@ Triggered by a worker's `FINAL_ANSWER` with its verdict — read it as above. Ac
   1. Verify: all PR threads resolved, PR targets the **integration branch**, worker reported the **local checks green** (`localChecks` in its verdict), and the session's `practices` were met (tests-first evidence, E2E where required, coverage threshold, commit style, docs — see [session-config.md](references/session-config.md)). When the PR adds or changes tests, `localChecks` must also carry the **pre-patch check** — the new tests were run against the pre-patch code and failed (`agents/issue-worker.md`, Verify): a test that already passed before the change is evidence of nothing, and its green is permanent. Missing or unstated goes back to the worker like any other unevidenced practice. A practice missed without a stated reason goes back to the worker; it is not waived at the gate. No provider CI to wait for.
   1b. **Acceptance criteria gate.** The worker returns `criteria: [{text, met, evidence}]` — one entry per acceptance criterion in the issue body. Check the list is **complete** (every criterion in the issue appears) and that each `met: true` carries real evidence (a test name, a command output, a file:line). Any criterion `met: false`, missing, or evidenced only by "implemented" goes **back to the worker** with the specific criterion quoted; a criterion the worker argues is wrong or unbuildable is a product question → `forge.issue.status.set <n> status:needs-feedback` (removes `status:in-review`), not a waiver. Acceptance criteria are the definition of done that `spec-to-issues` wrote down — this is where they are enforced, not months later in `project-review`.
   2. **Conflict vs the integration branch** (a sibling just sub-merged): mechanical → resolve directly or via a short-lived worker; **semantic** (two intents on the same logic) → `forge.issue.status.set <n> status:needs-feedback` on both issues (each removes whichever single `status:` label it carries), park, do not guess.
-  3. **Authority gate.** If `prAuthority` is `review-all` or `propose-only`, do **not** merge: ready the PR, request review, `forge.issue.status.set <member> status:awaiting-review` (removes `status:in-review` — a bare label add here leaves the same split status step 5 exists to prevent), notify once, and go schedule other work. Merge only after a human approving review lands (a reaction or a vague "looks good" is not one). Under `autonomous`/`batch-review`, sub-merges are yours.
+  3. **Authority gate.** If `prAuthority` is `review-all` or `propose-only`, do **not** merge: ready the PR, request review, `forge.issue.status.set <member> status:awaiting-review` (removes `status:in-review` — a bare label add here leaves the same split status step 5 exists to prevent), post one status-issue comment saying review is requested, and go schedule other work. Merge only after a human approving review lands (a reaction or a vague "looks good" is not one). Under `autonomous`/`batch-review`, sub-merges are yours.
   4. Sweep for new comments on the PR (Stage A0) — a "hold this" posted a minute ago outranks your gate — then merge the sub-PR: `forge.pr.ready` then `forge.pr.merge.squash` (on Gitea, follow with `forge.branch.delete` — `tea pr merge` does not remove the branch). **Write the squash message yourself, ending in `[skip ci]`** — `--subject "<title> (#<pr>)" --body "[skip ci]"` on `gh`, `--title`/`--message` on `tea`, `title`/`message` on the MCP. Do not let the merge compose it: the default message is a *different thing on each forge*, and both defaults are wrong here. GitHub folds the member's commits into the body, so the token arrives by luck — luck a repository setting can withdraw. Gitea (measured, 1.25.3) folds nothing: its default is the title and `(#n)` alone, no token survives, and **the sub-merge starts a full CI run** — one per member, which is the entire cost the batch model exists to avoid, and it shows up only as runs nobody explains.
 
   4b. **Check what actually landed, and re-trigger if the batch PR is already open.** The merged-into branch is the only place that shows the real message, so read it there:
@@ -811,7 +815,7 @@ parked work is entangled. That call is the PM's.
 4b. **Authority gate.** Under the default `batch-review` (and under `review-all` /
    `propose-only`), the batch PR needs a **human approving review** before it merges:
    request review, `forge.issue.status.set <tracking> status:awaiting-review` (removes
-   whichever single `status:` label the tracking issue is carrying), notify once, and go
+   whichever single `status:` label the tracking issue is carrying), post one status-issue comment saying review is requested, and go
    do other work — never block on it. Requested changes → fix worker → re-request review.
    Only `autonomous` lets you merge a batch PR yourself. Branch protection always wins
    over this setting; never route around it and never admin-merge. Sweep for comments
@@ -858,8 +862,8 @@ deployment carries the head SHA it built, not the merge commit you meant). Then 
 `list_agents`. When a thread slot is free, call `spawn_agent` with
 `task_name: "deploy_<sha7>"` (`<sha7>` is the first 7 characters of that SHA),
 `agent_type: "ci_watcher"`, `fork_turns: "none"`, and a brief of `kind: deploy`, the full `sha`,
-`workdir` (the project), `pluginRoot`, `forge`, the `deploy` block, and `deadline: 30`
-(minutes). When no slot is free, call `wait_agent` until one frees. Between spawn and
+`workdir` (the project), `pluginRoot`, `forge`, the `deploy` block, and `deadline: <deploy.maxMinutes>`
+(minutes; default 30). When no slot is free, call `wait_agent` until one frees. Between spawn and
 verdict, keep orchestrating. Whenever the PM has no other step, call `wait_agent`.
 
 The watcher returns `{"kind": "deploy", "sha": ..., "state": ..., "url": ...}` in its
@@ -877,7 +881,7 @@ On the watcher's verdict:
   check, treat the deploy as built but not browser-verified, and say so in the digest.
   On its verdict:
   - **`verified`** → remove `status:deploying`, comment the confirmation with the
-    screenshot ref on the batch PR / tracking issue. Digest + notify (Stage E). Done.
+    screenshot ref on the batch PR / tracking issue. Post the digest (Stage E). Done.
   - **`broken` / `unreachable`** → this is a failed deploy. Follow **Deploy failed**
     below, with cause `code-regression` unless the verifier's evidence points at
     config/secret/infra.
@@ -944,7 +948,7 @@ Each handled verdict frees a slot → return to Stage A/B and refill — **excep
 replacement worker occupies the same one. **Drop finished
 issues and batches from working memory** (fully recorded on the tracker); keep only the running
 session summary so context stays flat as the count grows. If context is compacted
-mid-loop, re-run Phase 0 recovery and continue.
+mid-loop, follow § After a compaction and continue.
 
 ### Status reporting (two channels, low noise)
 
@@ -970,7 +974,7 @@ activity:
    Add one line to the digest: `harness: codex <version>`. Take the version from
    `codex --version`. An upstream PM that reads the digest ignores the line.
 
-The PM sends no push notification. The Codex CLI has no tool for it. The two channels
+The PM sends no alert outside the two channels. The Codex CLI has no tool for it. The two channels
 above carry every milestone.
 
 ### Compatibility with upstream 0.17.0
@@ -1063,7 +1067,7 @@ empty, or the user says stop), the convergence check trips, no workable issues r
 workers finish and gate their results, then stop. On stop: `git worktree list --porcelain`
 → `worktree.py remove` any tree on a merged or abandoned `issue/*` branch → `git worktree prune`. A parked standalone tree kept at park time (it held unpushed or
 uncommitted work) is neither: leave it, and list it in the final digest. Then
-post a final digest on all three channels — shipped, deployed, blocked (why),
+post a final digest on both channels (terminal and status issue) — shipped, deployed, blocked (why),
 awaiting-feedback, awaiting human review, and anything skipped due to caps (never
 truncate silently).
 
@@ -1089,7 +1093,7 @@ business.
 # Hard rules
 
 - **The PM never implements inline.** Every issue is built by a background worker; the PM only grooms, batches, schedules, gates, resolves conflicts, monitors deploys, and reports.
-- **The PM keeps its turn open with `wait_agent` and ends its turn only when the loop stops** (FR-worker-dispatch-27). Codex does not wake an idle PM. Questions are parked and notified by default; interactive asks only when starving, when the user is present, or when an answer gates a built batch.
+- **The PM keeps its turn open with `wait_agent` and ends its turn only when the loop stops** (FR-worker-dispatch-27). Codex does not wake an idle PM. Questions are parked and listed in the digest by default; interactive asks only when starving, when the user is present, or when an answer gates a built batch.
 - **CI runs once per batch.** Sub-issue PRs are drafts with `[skip ci]` into the integration branch; only batch PRs and urgent standalone PRs trigger provider CI. Never open a CI-running PR per sub-issue.
 - **Dependency chains share a batch.** Sequenced members of one integration branch — never a chain of stacked PRs into dev.
 - **One worktree per issue.** Different issues may touch the same files (separate worktrees, PM resolves conflicts at sub-merge); never two writers in one worktree on overlapping paths.
@@ -1114,4 +1118,4 @@ business.
 - Never force-push shared branches; **feature work** never lands by direct push to live/dev or to an integration branch — everything lands via PR (sub-PRs into the integration branch, one batch PR into dev). Three narrow direct pushes are part of this loop and stay allowed: the empty subject-only CI trigger/recovery commits (C1 4b, C2 steps 1 and 5), the committed run-configuration/spec-bookkeeping writes (Phase 0 step 11, C2 step 8), and the no-sub-PR fallback's local sub-merges ([batching.md](references/batching.md)). Nothing else. Never merge with red checks or unresolved threads.
 - **Epics with no sub-issues are decomposed, not implemented.** Generate the sub-issues first; park anything ambiguous as `status:needs-feedback`.
 - **A merge isn't done until the deploy is confirmed** when a deploy target exists. A failed deploy spins up a hotfix issue (standalone, CI on) or a `needs-feedback`/`blocked` label — it is never ignored.
-- Every state change leaves a tracker trace (label + comment), and every milestone leaves a digest (terminal + status issue + push notification).
+- Every state change leaves a tracker trace (label + comment), and every milestone leaves a digest (terminal + status issue).

@@ -645,7 +645,7 @@ back in `notesForPM`.
 
    Sequenced members launch **after** their predecessor sub-merges (their branch then forks the updated integration branch). Return to orchestrating.
 
-   **The brief carries `pluginRoot`**, the plugin's absolute directory: two levels above the directory of this skill's `SKILL.md`. Codex shows the absolute path of `SKILL.md` when the skill loads. Codex gives a role no plugin root. The worker resolves its `../references/…` links and the CI watcher script only through `pluginRoot`. Pass `steRule` as an absolute path for the same reason.
+   **The brief carries `pluginRoot`**, the plugin's absolute directory: two levels above the directory of this skill's `SKILL.md`. Codex shows the absolute path of `SKILL.md` when the skill loads. Codex gives a role no plugin root. The worker resolves its `../references/…` links only through `pluginRoot`. The `ci_watcher` subagent runs `scripts/ci_wait.py` and `scripts/deploy_wait.py` through the same path. Pass `steRule` as an absolute path for the same reason.
 
 ## Stage C — Integrate (two gates)
 

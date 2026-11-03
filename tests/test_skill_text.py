@@ -531,7 +531,7 @@ class RemainingClaudeMechanicsTest(unittest.TestCase):
                  *root.joinpath("references").rglob("*.md")]
         forbidden = re.compile(
             r"WebFetch|ToolSearch|AskUserQuestion|\.claude/settings\.json|"
-            r"claude mcp|isolation\s*:\s*[\"']worktree[\"']|ci-watch",
+            r"claude mcp|isolation\s*:\s*[\"']worktree[\"']|(?<!gitea-)ci-watch",
             re.IGNORECASE,
         )
         matches = [(path.relative_to(root), line.strip())

@@ -368,7 +368,7 @@ The Actions endpoint filters by `head_sha` **server-side**, so anchor the watch 
 commit you just pushed rather than to "the latest run on the branch".
 
 The loop ships as a script, `scripts/ci_wait.py` in the plugin. For Gitea it makes the
-same call as Gitea CI watcher script. Run it from the checkout, with the full SHA
+same API calls as `scripts/gitea-ci-watch.sh`. Run it from the checkout, with the full SHA
 typed in. Get the SHA first with `git rev-parse HEAD` as a call of its own:
 
 ```bash

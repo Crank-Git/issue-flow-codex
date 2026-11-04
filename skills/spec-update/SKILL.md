@@ -88,9 +88,9 @@ becomes a question or an open-questions entry, never an invention.
      multi-page (`spec.html` index + `html/` leaf pages, `pages:` front-matter
      supported, in-page review layer). Commit `html/` and, when present,
      `review-comments.md` with the package; never leave them untracked.
-   - Missing `docs/adr/` (template), `docs/external.md`, `.claude/rules/quality.md`,
-     `.claude/rules/ste.md`: scaffold per `scaffold.md` — proposing before writing
-     anything under `.claude/`, as always.
+   - Missing `docs/adr/` (template), `docs/external.md`, `docs/rules/quality.md`,
+     `docs/rules/ste.md`: scaffold per `scaffold.md` — proposing before writing
+     anything under `docs/rules/` or `.codex/`, as always.
    - Front-matter drift: missing `branch_model`, `visibility`, `spec_version`, `html_generated`,
      feature `id`s, or a `features:` list that disagrees with the directory. Ask for
      anything you cannot derive (a wrong `branch_model` guess would misroute every

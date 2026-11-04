@@ -635,3 +635,45 @@ class RemainingClaudeMechanicsTest(unittest.TestCase):
                    for line in path.read_text().splitlines()
                    if forbidden.search(line)]
         self.assertEqual([], matches)
+
+
+class SpecSkillsRulePathTest(unittest.TestCase):
+    SKILLS = ("project-planner", "spec-update", "spec-to-issues")
+
+    def skill_text(self, name):
+        root = Path(__file__).resolve().parent.parent
+        return " ".join((root / "skills" / name / "SKILL.md").read_text().split())
+
+    def test_claude_rule_paths_appear_only_beside_the_docs_rules_path(self):
+        for name in self.SKILLS:
+            text = self.skill_text(name)
+            for rule in ("ste", "quality"):
+                if f".claude/rules/{rule}.md" in text:
+                    self.assertIn(f"docs/rules/{rule}.md", text, f"{name} {rule}")
+
+    def test_planner_and_update_name_no_bare_claude_rules_glob(self):
+        for name in ("project-planner", "spec-update"):
+            self.assertNotIn("every `.claude/rules/*.md` file", self.skill_text(name))
+
+    def test_planner_writes_agents_md_not_claude_md_for_the_standard(self):
+        text = self.skill_text("project-planner")
+        self.assertNotIn("`spec.html` prose, `CLAUDE.md`", text)
+        self.assertIn("`AGENTS.md`", text)
+
+    def test_never_overwrite_rule_lists_codex_files(self):
+        text = self.skill_text("project-planner")
+        start = text.index("**Never overwrite existing project files.**")
+        rule = text[start:start + 400]
+        self.assertIn("`AGENTS.md`", rule)
+        self.assertIn("`.codex/config.toml`", rule)
+
+    def test_mirror_filters_codex_paths(self):
+        text = self.skill_text("project-planner")
+        start = text.index("**mirrored**")
+        rule = text[start:start + 500]
+        for path in ("`AGENTS.md`", "`docs/rules/`", "`.agents/`", "`.codex/`"):
+            self.assertIn(path, rule)
+
+    def test_spec_update_gates_docs_rules_and_codex_writes(self):
+        text = self.skill_text("spec-update")
+        self.assertIn("anything under `docs/rules/` or `.codex/`", text)

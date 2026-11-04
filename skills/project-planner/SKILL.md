@@ -21,12 +21,12 @@ never moves forward.
 ## Ground rules
 
 - **Everything you write is Simplified Technical English.** The spec, every feature file,
-  `spec.html` prose, `CLAUDE.md`, and every `.claude/rules/*.md` file follow the standard
+  `spec.html` prose, `AGENTS.md`, and every `docs/rules/*.md` file follow the standard
   in [`../../references/ste.md`](../../references/ste.md). **Read that file before you
   write anything in Phase 2.** A spec is read by engineers, by agents, and by later
   planning waves — one sentence that reads two ways gets built two ways. The one thing
   you never rewrite is the user's own words: quote them verbatim, then restate in STE.
-  You also carry the standard into the project itself (Phase 3, `.claude/rules/ste.md`),
+  You also carry the standard into the project itself (Phase 3, `docs/rules/ste.md`; `.claude/rules/` pointer files only in dual-harness mode),
   so `spec-to-issues`, workers and reviewers keep writing the same way.
 - **Never assume an external interface — read its documentation.** Any cloud service,
   third-party API, provider CLI or library the spec names is described from that tool's
@@ -48,8 +48,8 @@ never moves forward.
 - **Never publish Artifacts.** Mockups and `spec.html` are files in the project. Review
   happens by opening `docs/specs/spec.html` locally (see
   [Phase 4](#phase-4--review-cycle-gate-user-approval)). Do not call the Artifact tool.
-- **Never overwrite existing project files.** `CLAUDE.md`, `.claude/settings.json` and
-  `.gitignore` are merged/appended and reported, never replaced.
+- **Never overwrite existing project files.** `AGENTS.md`, `CLAUDE.md`, `.codex/config.toml`,
+  `.claude/settings.json` and `.gitignore` are merged/appended and reported, never replaced.
 
 ## Phase 0 — Survey before asking
 
@@ -99,7 +99,8 @@ Cover, roughly in this order:
    - **public** — everything public, specs and issues included.
    - **private** — everything private.
    - **mirrored** — a private repo holds everything; a public mirror gets the code with
-     `docs/specs/`, `docs/adr/`, `CLAUDE.md` and `.claude/` filtered out
+     `docs/specs/`, `docs/adr/`, `AGENTS.md` (nested ones too), `docs/rules/`, `.agents/`,
+     `.codex/`, `CLAUDE.md` and `.claude/` filtered out
      (`$issue-flow:repo-mirror setup`).
    Record the answer as `visibility` in the spec front-matter.
 6. **Constraints** — budget/CI limits, timeline, compliance, design/brand direction,

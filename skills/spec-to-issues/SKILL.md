@@ -15,7 +15,7 @@ checklist. The engineering breakdown is *your* job, derived from the detail in
 
 **Every issue you create is written in Simplified Technical English.** Read the standard
 in [`../../references/ste.md`](../../references/ste.md) — or the project's own
-`.claude/rules/ste.md`, which the planner wrote from it — before you draft a single title
+`docs/rules/ste.md` (or `.claude/rules/ste.md` in an upstream-scaffolded project), which the planner wrote from it — before you draft a single title
 or body. Titles, bodies, acceptance criteria and comments all follow it; § 4 has the
 patterns for each. Two rules carry the most weight here:
 

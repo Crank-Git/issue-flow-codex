@@ -18,9 +18,19 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 # An agent file joins this list when its feature ports it. Other agent files keep their
 # Claude Code front-matter until then (issue #35).
-PORTED = ("issue-worker", "ci-watcher")
+PORTED = (
+    "issue-worker", "ci-watcher", "ux-explorer", "deploy-verifier",
+    "review-scribe", "code-auditor",
+)
 # The Codex model and effort of each ported role. The agent file names a Claude model.
-CODEX_MODELS = {"issue_worker": ("gpt-6.1-sol", "medium"), "ci_watcher": ("gpt-6-luna", "low")}
+CODEX_MODELS = {
+    "issue_worker": ("gpt-6.1-sol", "medium"),
+    "ci_watcher": ("gpt-6-luna", "low"),
+    "ux_explorer": ("gpt-6.1-sol", "medium"),
+    "deploy_verifier": ("gpt-6-luna", "low"),
+    "review_scribe": ("gpt-6.1-sol", "medium"),
+    "code_auditor": ("gpt-6-luna", "low"),
+}
 FRONTMATTER = re.compile(r"^---\n(.*?)\n---\n", re.S)
 LITERAL_DELIMITER = "'''"
 

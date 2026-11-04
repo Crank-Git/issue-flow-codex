@@ -32,6 +32,7 @@ licence to sweep the docs. A listed repair you cannot make (the file is product 
 branch:        review/<date>-<slug>
 base:          <remote>/<dev> for a first run; <remote>/review/<date>-<slug> to continue a pushed branch
 remote:        <remote>
+worktree:      <absolute path created by the PM with scripts/worktree.py>
 walkthroughs:  [<notesFile path per flow, from the ux-explorers>]
 screenshotDir: <root the explorers saved into; contains one <flow-slug>/ subdir per flow>
 flows:         [<flow name + outcome + blockedAt, per explorer verdict>]
@@ -45,31 +46,16 @@ routedRepairs: [<documentation findings the PM routed to this PR: file, what is 
 
 ## Your worktree
 
-The PM spawns you with `isolation: "worktree"`, so you start in a worktree the harness
-made under `.claude/worktrees/`, on a harness branch cut from the **default** branch.
-Your first command is `pwd` — that is your root; work and write only inside it. Reading
-outside is fine: the explorers' `screenshotDir` and `walkthroughs` live in the PM's scratch
-directory. Never call `EnterWorktree` or `ExitWorktree` — they move a pin the PM shares.
+The PM creates the review branch worktree with `scripts/worktree.py` before spawn. The PM
+gives you its absolute path and checks out `branch` in it. Set `workdir` to this path for
+every command. Do not create or move a worktree. Do not fetch, switch, or merge branches.
 
-Point the tree at the review branch as your first git action:
+First, run `git rev-parse --show-toplevel && git branch --show-current` with `workdir`
+set to the supplied path. If the path or branch does not match the brief, stop and return
+`partial` with the error in `notesForPM`.
 
-```bash
-git fetch <remote>
-if git rev-parse --verify -q <branch> >/dev/null; then
-  git checkout <branch>                          # a local branch may hold unpushed commits
-  if git rev-parse --verify -q <remote>/<branch> >/dev/null; then
-    git merge --ff-only <remote>/<branch>        # refuses if the two diverged
-  fi
-elif git rev-parse --verify -q <remote>/<branch> >/dev/null; then
-  git checkout -B <branch> <remote>/<branch>     # continue a pushed review branch
-else
-  git checkout -B <branch> <base>                # start it from dev
-fi
-```
-
-Never reset an existing review branch to `base` — that discards the commits a previous run
-made. If the checkout or the fast-forward fails, stop and return `partial` with the error
-in `notesForPM`.
+Read the explorers' `screenshotDir` and `walkthroughs` outside this worktree. Write all
+deliverables and commits inside this worktree.
 
 The tree is a fresh checkout of tracked files: install dependencies before you run the E2E
 suite. Gitignored files such as `.env` are absent unless the project lists them in

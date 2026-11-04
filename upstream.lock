@@ -1003,3 +1003,21 @@ path = "tests/test_wait_replay.py"
 mode = "new"
 upstream_sha256 = ""
 notes = "port-only: replay the recorded PM hook sequence (#75)"
+
+[[file]]
+path = ".github/workflows/tag-release.yml"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: tag the port release when the manifest version changes (#42)"
+
+[[file]]
+path = "scripts/release_tag.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: select a release tag for a changed manifest version (#42)"
+
+[[file]]
+path = "tests/test_release_tag.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: test release tag selection and documentation (#42)"

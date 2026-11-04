@@ -7,16 +7,58 @@ The upstream source is at <https://github.com/Sniper7Kills-LLC/claude-plugins>.
 The port runs the same autonomous issue loop as a native Codex CLI plugin. It tracks
 upstream tag `issue-flow--v0.17.0`. `upstream.lock` records the port mode of each file.
 
-Current state: the spec is approved. Epic 0 (foundation) is merged. Epic 1 (plugin packaging) is next. The port does
-not run on Codex yet.
+The port includes seven upstream skills and the Codex setup skill. See the install
+instructions below to add the marketplace, trust the hooks, and configure a project.
 
 The license is in `LICENSE`. It keeps the upstream copyright line and adds a line for
 the port.
 
 ---
 
-The text below is the upstream documentation. It describes the Claude Code plugin.
-Where it differs from this port, `docs/specs/` is correct.
+The reference sections below retain upstream guidance. They describe the Claude Code
+plugin unless the Codex-specific sections below say otherwise. Where behavior differs,
+`docs/specs/` defines the Codex port.
+
+## Install the Codex port
+
+Add the marketplace and install the plugin:
+
+```bash
+codex plugin marketplace add Crank-Git/issue-flow-codex
+codex plugin add issue-flow@issue-flow-codex
+```
+
+Start Codex in the project and run `$issue-flow:setup`. The setup skill shows each diff
+before it writes the selected files. Review each diff and accept only the files you want
+the setup skill to write.
+
+After setup, run `/hooks` and trust the issue-flow hooks. Codex skips plugin hooks until
+you trust them. Start a new Codex session after you trust the hooks.
+
+Use `$issue-flow:issue-flow` to start the loop. The table maps each upstream skill to its
+Codex invocation.
+
+| Upstream skill | Codex invocation |
+|---|---|
+| `project-planner` | `$issue-flow:project-planner` |
+| `project-inherit` | `$issue-flow:project-inherit` |
+| `spec-update` | `$issue-flow:spec-update` |
+| `spec-to-issues` | `$issue-flow:spec-to-issues` |
+| `issue-flow` | `$issue-flow:issue-flow` |
+| `project-review` | `$issue-flow:project-review` |
+| `repo-mirror` | `$issue-flow:repo-mirror` |
+| `setup` (Codex addition) | `$issue-flow:setup` |
+
+The Codex port tracks upstream `issue-flow--v0.17.0`. The port release version is
+independent of the upstream version.
+
+Codex has these known limits:
+
+- Codex does not wake an idle PM when a subagent finishes. The PM keeps its turn open
+  with `wait_agent`.
+- Plugin updates change the hook content hash. Run `/hooks` and trust the hooks again
+  after an update.
+- Codex project trust controls whether Codex reads the project's `.codex/` files.
 
 ---
 
@@ -184,7 +226,7 @@ sequenceDiagram
     participant F as forge
     PM->>F: plan comment + assign (the claim)
     PM->>F: batch cross-check comment
-    PM->>W: spawn — isolation worktree, handoff brief
+    PM->>W: spawn — worker's own worktree, handoff brief
     W->>F: draft PR into the integration branch ([skip ci])
     W->>W: implement · self-review · full local suite
     W-->>PM: verdict — ready-to-merge, criteria, localChecks
@@ -403,9 +445,9 @@ promotion from `dev` to the live branch.
    updates the status issue body, and sends a push notification. Between milestones it
    stays quiet. The loop continues while workable backlog remains.
 
-**Model tiers.** Each agent's own `model:` frontmatter is authoritative. The current
-summary: PM and issue-worker run on **Opus**; a worker's children, the deploy-verifier,
-the ux-explorer, the code-auditor and the review-scribe run on **Sonnet**.
+**Upstream model tiers.** Claude Code reads each agent's `model:` frontmatter. Codex
+roles use the model settings in the project's `.codex/agents/` files. The setup skill
+copies those role files into each project.
 
 ## Install
 
@@ -457,10 +499,9 @@ Required:
 
 - The provider's CLI, installed and authenticated: `gh auth login` (GitHub) or
   `tea logins add` (Gitea), with the `repo` and `workflow` scopes.
-- `git` 2.5 or later, for worktrees. Each worker runs with `isolation: "worktree"`, so
-  Claude Code creates its worktree **inside the checkout**, at `.claude/worktrees/`
-  (gitignored), and pins that worker to it. Add gitignored build inputs (`.env` and
-  friends) to a `.worktreeinclude` at the repo root and they are copied in for you.
+- `git` 2.5 or later, for worktrees. Each Codex worker uses its own git worktree under
+  `.worktrees/`. Codex does not create or manage the worker worktree. Add gitignored
+  build inputs to the worktree setup when the project needs them.
 - CI that honors `[skip ci]`. GitHub Actions honors it natively; Gitea Actions does the
   same from Gitea 1.20. If your provider does not, the PM proposes a one-time workflow
   filter for the `epic/**` and `batch/**` branches, or falls back to local sub-merges with

@@ -1,0 +1,16 @@
+{
+  "session_id": "REDACTED-SESSION-ID",
+  "turn_id": "REDACTED-TURN-ID",
+  "agent_id": "REDACTED-AGENT-ID",
+  "agent_type": "issue_worker",
+  "transcript_path": "/home/user/.codex/sessions/2026/11/03/rollout-2026-11-03T20-53-38-REDACTED-AGENT-ID.jsonl",
+  "cwd": "/home/user/project",
+  "hook_event_name": "PreToolUse",
+  "model": "gpt-6-luna",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "apply_patch",
+  "tool_input": {
+    "command": "*** Begin Patch\n*** Update File: /home/user/project/.worktrees/worker_1/README.md\n@@\n+gate step 2\n*** End Patch"
+  },
+  "tool_use_id": "exec-REDACTED-TOOL-USE-ID-2"
+}

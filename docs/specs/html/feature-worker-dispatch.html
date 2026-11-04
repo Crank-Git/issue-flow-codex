@@ -199,7 +199,7 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li>FR-worker-dispatch-13 — The worker runs every shell command with <code>workdir</code> set to the <code>worktree</code> path.
 </li>
-<li>FR-worker-dispatch-14 — The worker writes files only under the <code>worktree</code> path and its scratch directory.
+<li>FR-worker-dispatch-14 — The worker writes files only under the <code>worktree</code> path and its scratch directory. The role guard enforces the <code>.worktrees/</code> boundary, and the runbook enforces the own-tree rule.
 </li>
 <li>FR-worker-dispatch-15 — The worker returns <code>blocked</code> without work when the <code>worktree</code> path does not exist or is not on the brief's branch.
 </li>

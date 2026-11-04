@@ -41,7 +41,7 @@ and the gate rules stay as upstream wrote them. Only the harness calls change.
 - FR-worker-dispatch-11 — The PM names a replacement worker after a checkpoint `worker_<n>_c<k>`, where `<k>` counts the checkpoints.
 - FR-worker-dispatch-12 — The handoff brief holds every upstream brief field, plus `worktree: <absolute path>`.
 - FR-worker-dispatch-13 — The worker runs every shell command with `workdir` set to the `worktree` path.
-- FR-worker-dispatch-14 — The worker writes files only under the `worktree` path and its scratch directory.
+- FR-worker-dispatch-14 — The worker writes files only under the `worktree` path and its scratch directory. The role guard enforces the `.worktrees/` boundary, and the runbook enforces the own-tree rule.
 - FR-worker-dispatch-15 — The worker returns `blocked` without work when the `worktree` path does not exist or is not on the brief's branch.
 - FR-worker-dispatch-16 — The PM calls `list_agents` before each spawn and spawns only when a thread slot is free.
 - FR-worker-dispatch-17 — The PM comments `worker launched: <task_name>` on the issue at launch.

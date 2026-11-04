@@ -63,6 +63,7 @@ Evidence tags:
 18. **The Bash PostToolUse `tool_response` is the raw command output.** It is a string with no exit-code header and no exit-code field. A failed command has no marker. A command that never ran shows `sandbox-exec: sandbox_apply: Operation not permitted`. Evidence: 98 payloads from the #75 gate run (Codex 0.166.0, `gpt-6-luna`), sanitized in `tests/fixtures/hooks/gate75_pm_sequence.json`. Source: `codex-rs core/src/tools/context.rs:483-490`.
 19. **Subagent hook payloads share the PM's `session_id`.** They differ by `agent_id` and `agent_type`. A hook that keeps per-session state must ignore every payload with an `agent_id`, or a worker's calls change the PM's state. Same evidence as item 18.
 20. **Gitea MCP tools appear as `mcp__<server>__<tool>`.** The PostToolUse matcher `^mcp__.+__list_(issues|pull_requests)$` selects the list calls. The gate run had no MCP server, so this name shape is not yet recorded from a live run.
+21. **A spawned worker's `apply_patch` payload names the PM's project root as `cwd`.** The payload has no `workdir` and no `task_name`, only `agent_id` and `agent_type`. A relative path in the patch resolves against that `cwd`, so it lands in the PM's checkout. A role guard can enforce the `.worktrees/` boundary, but it cannot tell a worker's own tree from a sibling's. Evidence: the #111 gate run (Codex 0.166.0, `gpt-6-luna`); payloads in `tests/fixtures/hooks/apply_patch_outside_worktree.json` and `apply_patch_inside_worktree.json`.
 
 The profile used in facts 8 and 9:
 

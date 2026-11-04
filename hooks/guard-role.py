@@ -11,9 +11,15 @@ A role rule can use these keys:
   bash_prefixes     command prefixes denied for the `Bash` tool
   patch_only_under  `apply_patch` may write only below this directory (relative to `cwd`)
   spawn_roles       roles that the `spawn_agent` tool may not start
-  patch_only_under_project_worktrees  `apply_patch` may write only below the worker's own
-                    tree `<project>/.worktrees/<task>/`, taken from `cwd`; it denies the call
-                    when `cwd` is not inside such a tree, and denies a sibling's tree
+  patch_only_under_project_worktrees  `apply_patch` may write only below `<cwd>/.worktrees/`
+                    or below the system temp directory (the worker's scratch directory)
+
+The worktree rule enforces the `.worktrees/` boundary only. It cannot tell a worker's own
+tree from a sibling's tree, because the payload of a spawned worker carries no `task_name`:
+only `agent_id` and `agent_type`, and its `cwd` is the PM's project root, never the worktree
+(codex-harness fact 21, measured in the #111 gate run). The rule "write only in your own
+worktree" belongs to the runbook in `agents/issue-worker.md`. `apply_patch` has no working
+directory, so a relative path resolves against the project root and the guard denies it.
 
 The guard is not a security boundary. A shell command can write a file without
 `apply_patch`, and the guard does not resolve symlinks.
@@ -27,6 +33,7 @@ import os
 import posixpath
 import re
 import sys
+import tempfile
 from pathlib import Path
 
 POLICY = Path(__file__).with_name("role-policy.json")
@@ -39,15 +46,26 @@ def has_prefix(command, prefix):
     return command.startswith(prefix) and not command[len(prefix):len(prefix) + 1].isalnum()
 
 
-def outside_scratch(patch_text, cwd, scratch, boundary_cwd=None):
-    """Return patch paths outside `scratch`, resolved from `cwd` and rooted at `boundary_cwd`."""
-    root = posixpath.normpath(posixpath.join(boundary_cwd or cwd, scratch))
-    outside = []
-    for path in PATCH_PATH.findall(patch_text):
-        resolved = posixpath.normpath(posixpath.join(cwd, path.strip()))
-        if not resolved.startswith(root + "/"):
-            outside.append(path.strip())
-    return outside
+def patch_paths(patch_text, cwd):
+    """Return (as written, normalized) for each patch path, resolved against `cwd`."""
+    return [(path.strip(), posixpath.normpath(posixpath.join(cwd, path.strip())))
+            for path in PATCH_PATH.findall(patch_text)]
+
+
+def outside_scratch(patch_text, cwd, scratch):
+    """Return patch paths outside `scratch`, a directory given relative to `cwd`."""
+    root = posixpath.normpath(posixpath.join(cwd, scratch))
+    return [path for path, resolved in patch_paths(patch_text, cwd)
+            if not resolved.startswith(root + "/")]
+
+
+def outside_worktrees(patch_text, cwd):
+    """Return patch paths outside `<cwd>/.worktrees/` and outside the system temp directories."""
+    worktrees = posixpath.normpath(posixpath.join(cwd, ".worktrees")) + "/"
+    temp = [posixpath.normpath(root) + "/"
+            for root in {tempfile.gettempdir(), "/tmp", "/private/tmp", "/var/folders"}]
+    return [path for path, resolved in patch_paths(patch_text, cwd)
+            if not resolved.startswith(worktrees) and not resolved.startswith(tuple(temp))]
 
 
 def violation(payload, rule):
@@ -65,25 +83,19 @@ def violation(payload, rule):
             if has_prefix(command, prefix):
                 return f"a Bash command may not start with `{prefix}`"
     if tool == "apply_patch":
-        scratch = rule.get("patch_only_under")
         cwd = payload.get("cwd", "")
-        boundary_cwd = None
+        command = arguments.get("command", "")
         if rule.get("patch_only_under_project_worktrees") and cwd:
-            parts = posixpath.normpath(cwd).split("/")
-            if ".worktrees" not in parts[:-1]:
-                return ("the worktree rule needs the working directory inside the worker's own "
-                        f"tree .worktrees/<task>/, not {cwd}")
-            index = parts.index(".worktrees")
-            boundary_cwd = "/".join(parts[:index]) or "/"
-            scratch = f".worktrees/{parts[index + 1]}/"
-            cwd = posixpath.normpath(cwd)
-        outside = (outside_scratch(arguments.get("command", ""), cwd, scratch, boundary_cwd)
-                   if scratch else [])
-        if outside:
-            if boundary_cwd:
-                return (f"the worktree rule permits apply_patch only under the worker's own tree "
-                        f"({scratch}), not {', '.join(outside)}")
-            return f"apply_patch may write only below {scratch}, not {', '.join(outside)}"
+            outside = outside_worktrees(command, cwd)
+            if outside:
+                return ("the worktree rule permits apply_patch only below .worktrees/ or the "
+                        f"temp directory, not {', '.join(outside)}; a relative path resolves "
+                        f"against the project checkout {cwd}, so give an absolute path")
+        else:
+            scratch = rule.get("patch_only_under")
+            outside = outside_scratch(command, cwd, scratch) if scratch else []
+            if outside:
+                return f"apply_patch may write only below {scratch}, not {', '.join(outside)}"
     if re.search("spawn_agent$", tool) and arguments.get("agent_type") in rule.get("spawn_roles", []):
         return f"the role may not spawn the role {arguments['agent_type']}"
     return None

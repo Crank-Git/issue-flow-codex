@@ -10,6 +10,7 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -17,6 +18,8 @@ ROOT = Path(__file__).resolve().parent.parent
 HOOK = ROOT / "hooks" / "guard-role.py"
 FIXTURES = ROOT / "tests" / "fixtures" / "hooks"
 APPLY_PATCH = json.loads((FIXTURES / "pre_tool_use_apply_patch.json").read_text())
+OUTSIDE = json.loads((FIXTURES / "apply_patch_outside_worktree.json").read_text())
+INSIDE = json.loads((FIXTURES / "apply_patch_inside_worktree.json").read_text())
 BASH = json.loads((FIXTURES / "pre_tool_use_bash.json").read_text())
 
 
@@ -40,9 +43,10 @@ def patch(role, *paths):
     return payload(APPLY_PATCH, role, tool_input={"command": text})
 
 
-def worker_patch(cwd, command):
-    return payload(APPLY_PATCH, "issue_worker", cwd=cwd,
-                   tool_input={"command": command})
+def worker_patch(*directives):
+    """Build a worker apply_patch payload. A spawned worker's cwd is the PM's project root."""
+    text = "*** Begin Patch\n" + "\n".join(directives) + "\n*** End Patch"
+    return payload(OUTSIDE, "issue_worker", tool_input={"command": text})
 
 
 def spawn(role, spawned):
@@ -85,67 +89,35 @@ class RoleGuardTest(unittest.TestCase):
     def test_denies_apply_patch_for_code_auditor(self):
         self.assertDenied(patch("code_auditor", "note.txt"), "code_auditor", "apply_patch")
 
-    def test_allows_apply_patch_for_issue_worker(self):
-        self.assertAllowed(worker_patch(
-            "/repo/.worktrees/worker_17",
-            "*** Begin Patch\n*** Add File: note.txt\n+x\n*** End Patch",
-        ))
+    def test_denies_issue_worker_patch_outside_the_worktrees_by_absolute_path(self):
+        self.assertDenied(OUTSIDE, "worktree", "/home/user/project/README.md")
 
-    def test_denies_issue_worker_patch_in_the_project_checkout(self):
-        self.assertDenied(worker_patch(
-            "/repo/.worktrees/worker_17",
-            "*** Begin Patch\n*** Add File: /repo/skills/note.txt\n+x\n*** End Patch",
-        ), "worktree", "/repo/skills/note.txt")
+    def test_allows_issue_worker_patch_inside_a_worktree_by_absolute_path(self):
+        self.assertAllowed(INSIDE)
 
-    def test_denies_issue_worker_patch_with_project_root_cwd(self):
-        self.assertDenied(worker_patch(
-            "/repo",
-            "*** Begin Patch\n*** Add File: /repo/skills/note.txt\n+x\n*** End Patch",
-        ), "worktree", "/repo")
+    def test_denies_issue_worker_patch_by_relative_path_into_the_project_checkout(self):
+        self.assertDenied(worker_patch("*** Update File: README.md"),
+                          "worktree", "README.md", ".worktrees/")
 
-    def test_denies_issue_worker_patch_into_a_worktree_with_project_root_cwd(self):
-        self.assertDenied(worker_patch(
-            "/repo",
-            "*** Begin Patch\n*** Add File: /repo/.worktrees/worker_17/note.txt\n+x\n*** End Patch",
-        ), "worktree")
+    def test_allows_issue_worker_patch_by_relative_path_under_worktrees(self):
+        self.assertAllowed(worker_patch("*** Update File: .worktrees/worker_1/README.md"))
 
-    def test_denies_issue_worker_patch_in_the_project_checkout_from_a_nested_cwd(self):
-        self.assertDenied(worker_patch(
-            "/repo/.worktrees/worker_17/hooks",
-            "*** Begin Patch\n*** Add File: /repo/skills/note.txt\n+x\n*** End Patch",
-        ), "worktree")
+    def test_allows_issue_worker_patch_into_the_system_temp_directory(self):
+        for root in (tempfile.gettempdir(), "/tmp", "/private/tmp", "/var/folders/ab/cd"):
+            with self.subTest(root=root):
+                self.assertAllowed(worker_patch(f"*** Add File: {root}/pr-body.md"))
 
-    def test_allows_issue_worker_patch_that_stays_in_its_own_tree_from_a_nested_cwd(self):
-        self.assertAllowed(worker_patch(
-            "/repo/.worktrees/worker_17/hooks",
-            "*** Begin Patch\n*** Add File: ../note.txt\n+x\n*** End Patch",
-        ))
-
-    def test_allows_issue_worker_patch_by_absolute_path_into_its_own_tree(self):
-        self.assertAllowed(worker_patch(
-            "/repo/.worktrees/worker_17/hooks",
-            "*** Begin Patch\n*** Add File: /repo/.worktrees/worker_17/note.txt\n+x\n*** End Patch",
-        ))
-
-    def test_denies_issue_worker_patch_into_a_sibling_worker_tree(self):
-        self.assertDenied(worker_patch(
-            "/repo/.worktrees/worker_17",
-            "*** Begin Patch\n*** Add File: /repo/.worktrees/worker_18/note.txt\n+x\n*** End Patch",
-        ), "worktree", "worker_18")
-
-    def test_denies_issue_worker_patch_into_a_sibling_tree_from_a_nested_cwd(self):
-        self.assertDenied(worker_patch(
-            "/repo/.worktrees/worker_17/hooks",
-            "*** Begin Patch\n*** Add File: ../../worker_18/note.txt\n+x\n*** End Patch",
-        ), "worktree")
-
-    def test_denies_issue_worker_patch_that_escapes_the_project_worktrees(self):
+    def test_denies_issue_worker_patch_that_climbs_out_of_the_worktrees(self):
         for directive in ("Add File", "Update File", "Delete File", "Move to"):
             with self.subTest(directive=directive):
                 self.assertDenied(worker_patch(
-                    "/repo/.worktrees/worker_17",
-                    f"*** Begin Patch\n*** {directive}: ../../skills/note.txt\n*** End Patch",
-                ), "worktree")
+                    f"*** {directive}: /home/user/project/.worktrees/worker_1/../../README.md"),
+                    "worktree", "README.md")
+
+    def test_denies_issue_worker_move_out_of_the_worktrees(self):
+        self.assertDenied(worker_patch(
+            "*** Update File: .worktrees/worker_1/a.md", "*** Move to: skills/a.md"),
+            "skills/a.md")
 
     def test_denies_spawn_of_issue_worker_from_issue_worker(self):
         self.assertDenied(spawn("issue_worker", "issue_worker"), "issue_worker", "spawn")

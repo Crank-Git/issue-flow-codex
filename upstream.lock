@@ -985,3 +985,15 @@ path = "tests/test_wait_replay.py"
 mode = "new"
 upstream_sha256 = ""
 notes = "port-only: replay the recorded PM hook sequence (#75)"
+
+[[file]]
+path = "tests/fixtures/hooks/apply_patch_outside_worktree.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: live worker apply_patch payload outside the worktrees (#108, gate #111)"
+
+[[file]]
+path = "tests/fixtures/hooks/apply_patch_inside_worktree.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: live worker apply_patch payload inside a worktree (#108, gate #111)"

@@ -45,6 +45,61 @@ def parallelism_rules():
     return section("references/parallelism.md", "# Parallelism", "## Multiple issues")
 
 
+class PlannerHandoffTextTest(unittest.TestCase):
+    def test_planner_checklist_names_codex_scaffold_paths(self):
+        planner = Path(__file__).resolve().parent.parent / "skills" / "project-planner" / "SKILL.md"
+        text = planner.read_text()
+        checklist = text.split("## Output checklist", 1)[1]
+
+        for path in ("AGENTS.md", "docs/rules/", ".agents/skills/", ".codex/"):
+            with self.subTest(path=path):
+                self.assertTrue(path in checklist, f"output checklist omits {path}")
+        claude_item = re.search(r"(?m)^- \[ \].*(?:CLAUDE\.md|`?\.claude/)", checklist)
+        self.assertIsNone(claude_item, "output checklist has a Claude-only scaffold item")
+        phase_three = text.split("## Phase 3", 1)[1].split("## Phase 4", 1)[0]
+        self.assertIn("AGENTS.md", phase_three)
+        self.assertIn(".codex/config.toml", phase_three)
+        self.assertNotIn("permissions.allow", phase_three)
+
+    def test_worker_brief_passes_project_rule_paths(self):
+        root = Path(__file__).resolve().parent.parent
+        text = "\n".join(path.read_text() for path in (
+            root / "skills/issue-flow/SKILL.md",
+            root / "skills/issue-flow/references/issue-worker.md",
+        ))
+
+        self.assertTrue("absolute path `<project>/docs/rules/ste.md`" in text,
+                        "brief omits the project STE path")
+        self.assertTrue("<pluginRoot>/references/ste.md" in text,
+                        "brief omits the plugin STE fallback")
+        self.assertTrue("absolute path `<project>/docs/rules/quality.md`" in text,
+                        "brief omits the project quality path")
+        self.assertTrue("Omit `qualityRule` otherwise" in text,
+                        "brief does not omit qualityRule when the file is absent")
+        claude_rule = re.search(r"<project>/\.claude/rules/ste\.md", text)
+        self.assertIsNone(claude_rule, "brief points to the Claude-only STE path")
+
+
+class ProjectInheritScaffoldTextTest(unittest.TestCase):
+    def test_inherit_offers_the_codex_scaffold_with_optional_dual_harness(self):
+        path = Path(__file__).resolve().parent.parent / "skills" / "project-inherit" / "SKILL.md"
+        text = path.read_text()
+        handoff = next(line for line in text.splitlines()
+                       if line.startswith("$issue-flow:project-inherit  →"))
+        phase_four = " ".join(text.split("## Phase 4 — Scaffold, render, review", 1)[1].split(
+            "## Phase 5 — Handoff", 1)[0].split())
+
+        self.assertIn("AGENTS.md", handoff)
+        self.assertIn("docs/rules/", handoff)
+        self.assertIn(".agents/skills/", handoff)
+        self.assertIn(".codex/", handoff)
+        self.assertNotIn("CLAUDE.md + .claude/", handoff)
+        self.assertIn("dual-harness mode", phase_four)
+        self.assertIn("AGENTS.md", phase_four)
+        self.assertIn("docs/rules/", phase_four)
+        self.assertNotIn("`.claude/` scaffold", phase_four)
+
+
 class StageBTest(unittest.TestCase):
     def test_stage_b_names_spawn_agent_with_fork_turns_none(self):
         text = stage_b()
@@ -507,6 +562,41 @@ class NoAskUserQuestionTest(unittest.TestCase):
         self.assertNotIn("AskUserQuestion", (SKILL_DIR / "SKILL.md").read_text())
 
 
+class SpecSkillsInterviewTest(unittest.TestCase):
+    root = Path(__file__).resolve().parent.parent
+    names = ("project-planner", "project-inherit", "spec-update", "spec-to-issues")
+
+    def skill(self, name):
+        return (self.root / "skills" / name / "SKILL.md").read_text()
+
+    def test_spec_skills_use_plain_text_questions_and_end_the_turn(self):
+        for name in self.names:
+            with self.subTest(skill=name):
+                text = self.skill(name)
+                self.assertNotIn("AskUserQuestion", text)
+                self.assertIn("numbered", text.lower())
+                self.assertIn("end your turn", text.lower())
+                self.assertRegex(text, r"(?i)at most four|≤\s*4|four questions")
+
+    def test_spec_skills_name_handoffs_with_plugin_namespace(self):
+        for name in self.names:
+            with self.subTest(skill=name):
+                text = self.skill(name)
+                for skill in self.names:
+                    self.assertNotIn(f"`/{skill}`", text)
+                    self.assertNotIn(f'"/{skill}"', text)
+
+    def test_spec_skills_use_codex_explorers_with_a_free_slot_check(self):
+        for name in self.names:
+            with self.subTest(skill=name):
+                text = self.skill(name)
+                self.assertIn('agent_type: "explorer"', text)
+                self.assertIn('fork_turns: "none"', text)
+                self.assertIn('model: "gpt-6-luna"', text)
+                self.assertIn("list_agents", text)
+                self.assertIn("current thread", text.lower())
+
+
 class BatchGateFixTextTest(unittest.TestCase):
     def test_stage_d_and_the_intro_call_the_deploy_watch_a_subagent(self):
         text = " ".join(section("SKILL.md", "## Stage D", "## Stage E").split())
@@ -545,3 +635,45 @@ class RemainingClaudeMechanicsTest(unittest.TestCase):
                    for line in path.read_text().splitlines()
                    if forbidden.search(line)]
         self.assertEqual([], matches)
+
+
+class SpecSkillsRulePathTest(unittest.TestCase):
+    SKILLS = ("project-planner", "spec-update", "spec-to-issues")
+
+    def skill_text(self, name):
+        root = Path(__file__).resolve().parent.parent
+        return " ".join((root / "skills" / name / "SKILL.md").read_text().split())
+
+    def test_claude_rule_paths_appear_only_beside_the_docs_rules_path(self):
+        for name in self.SKILLS:
+            text = self.skill_text(name)
+            for rule in ("ste", "quality"):
+                if f".claude/rules/{rule}.md" in text:
+                    self.assertIn(f"docs/rules/{rule}.md", text, f"{name} {rule}")
+
+    def test_planner_and_update_name_no_bare_claude_rules_glob(self):
+        for name in ("project-planner", "spec-update"):
+            self.assertNotIn("every `.claude/rules/*.md` file", self.skill_text(name))
+
+    def test_planner_writes_agents_md_not_claude_md_for_the_standard(self):
+        text = self.skill_text("project-planner")
+        self.assertNotIn("`spec.html` prose, `CLAUDE.md`", text)
+        self.assertIn("`AGENTS.md`", text)
+
+    def test_never_overwrite_rule_lists_codex_files(self):
+        text = self.skill_text("project-planner")
+        start = text.index("**Never overwrite existing project files.**")
+        rule = text[start:start + 400]
+        self.assertIn("`AGENTS.md`", rule)
+        self.assertIn("`.codex/config.toml`", rule)
+
+    def test_mirror_filters_codex_paths(self):
+        text = self.skill_text("project-planner")
+        start = text.index("**mirrored**")
+        rule = text[start:start + 500]
+        for path in ("`AGENTS.md`", "`docs/rules/`", "`.agents/`", "`.codex/`"):
+            self.assertIn(path, rule)
+
+    def test_spec_update_gates_docs_rules_and_codex_writes(self):
+        text = self.skill_text("spec-update")
+        self.assertIn("anything under `docs/rules/` or `.codex/`", text)

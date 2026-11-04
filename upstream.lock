@@ -927,6 +927,12 @@ upstream_sha256 = ""
 notes = "port-only: ADR 0004"
 
 [[file]]
+path = "tests/test_planner_scaffold.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: project-planner scaffold contract tests (#31)"
+
+[[file]]
 path = "docs/e2e/2026-11-03-issue-75-timeout-sweep.md"
 mode = "new"
 upstream_sha256 = ""

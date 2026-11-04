@@ -1,6 +1,6 @@
 ---
 name: project-planner
-description: Interactive project planning that produces a reviewable spec package plus a ready-to-work project scaffold. Use when the user says "/project-planner", "plan a project", "spec out <idea>", "design a project", or wants a new project/feature-set defined before any code. Interviews the user, writes a detailed multi-file spec (docs/specs/), self-contained HTML mockups, a browsable spec.html, CLAUDE.md, .claude/ (settings + permissions, hooks, rules, project skills/commands) and .gitignore, runs a user review cycle until the spec is approved — then hands off to spec-to-issues, which creates the tracker epics/sub-issues that issue-flow builds.
+description: Interactive project planning that produces a reviewable spec package plus a ready-to-work project scaffold. Use when the user says "$issue-flow:project-planner", "plan a project", "spec out <idea>", "design a project", or wants a new project/feature-set defined before any code. Interviews the user, writes a detailed multi-file spec (docs/specs/), self-contained HTML mockups, a browsable spec.html, AGENTS.md, docs/rules/, .agents/skills/, .codex/, and .gitignore, runs a user review cycle until the spec is approved — then hands off to spec-to-issues, which creates the tracker epics/sub-issues that issue-flow builds.
 ---
 
 # Project Planner — spec first, scaffold second, issues later, code last
@@ -9,9 +9,9 @@ You are the **planner**. Your deliverable is an **approved spec package plus a w
 project scaffold on disk** — not issues, not application code. The pipeline is:
 
 ```
-/project-planner  →  docs/specs/ + CLAUDE.md + .claude/ + .gitignore  (review → approved)
-/spec-to-issues   →  tracker epics + sub-issues
-/issue-flow       →  built, PR'd, merged, deployed
+$issue-flow:project-planner  →  docs/specs/ + AGENTS.md + docs/rules/ + .agents/skills/ + .codex/ + .gitignore  (review → approved)
+$issue-flow:spec-to-issues   →  tracker epics + sub-issues
+$issue-flow:issue-flow       →  built, PR'd, merged, deployed
 ```
 
 You never create tracker issues (that's `spec-to-issues`) and you never implement the
@@ -21,12 +21,12 @@ never moves forward.
 ## Ground rules
 
 - **Everything you write is Simplified Technical English.** The spec, every feature file,
-  `spec.html` prose, `CLAUDE.md`, and every `.claude/rules/*.md` file follow the standard
+  `spec.html` prose, `AGENTS.md`, and every `docs/rules/*.md` file follow the standard
   in [`../../references/ste.md`](../../references/ste.md). **Read that file before you
   write anything in Phase 2.** A spec is read by engineers, by agents, and by later
   planning waves — one sentence that reads two ways gets built two ways. The one thing
   you never rewrite is the user's own words: quote them verbatim, then restate in STE.
-  You also carry the standard into the project itself (Phase 3, `.claude/rules/ste.md`),
+  You also carry the standard into the project itself (Phase 3, `docs/rules/ste.md`; `.claude/rules/` pointer files only in dual-harness mode),
   so `spec-to-issues`, workers and reviewers keep writing the same way.
 - **Never assume an external interface — read its documentation.** Any cloud service,
   third-party API, provider CLI or library the spec names is described from that tool's
@@ -48,8 +48,8 @@ never moves forward.
 - **Never publish Artifacts.** Mockups and `spec.html` are files in the project. Review
   happens by opening `docs/specs/spec.html` locally (see
   [Phase 4](#phase-4--review-cycle-gate-user-approval)). Do not call the Artifact tool.
-- **Never overwrite existing project files.** `CLAUDE.md`, `.claude/settings.json` and
-  `.gitignore` are merged/appended and reported, never replaced.
+- **Never overwrite existing project files.** `AGENTS.md`, `CLAUDE.md`, `.codex/config.toml`,
+  `.claude/settings.json` and `.gitignore` are merged/appended and reported, never replaced.
 
 ## Phase 0 — Survey before asking
 
@@ -59,14 +59,14 @@ Before the first question, spend one round finding out what you can without the 
   or an existing codebase?
 - Existing `CLAUDE.md`, `AGENTS.md`, `.claude/`, `.gitignore`, `README`, package
   manifest, lockfile, CI config, `docs/specs/`?
-- Existing codebase → delegate a survey (an `Explore` agent) for stack, layout, test
+- Existing codebase → delegate a survey (an `explorer` agent) for stack, layout, test
   command, conventions. When the codebase is substantial — built features, real users,
-  history worth documenting — offer **`/project-inherit`** instead: it reviews the
+  history worth documenting — offer **`$issue-flow:project-inherit`** instead: it reviews the
   whole repository and writes the spec backward from what exists, which this skill's
   forward-planning interview does not.
 - A `docs/specs/spec.md` already present → this is a **revision**, not a new plan. Read
   it, and interview only about what's changing. For a scoped change to an approved
-  spec (one new feature, a retirement, a format refresh), **`/spec-update`** is the
+  spec (one new feature, a retirement, a format refresh), **`$issue-flow:spec-update`** is the
   lighter tool.
 
 Report what you found in one short paragraph before Phase 1, so the user knows what you
@@ -74,8 +74,8 @@ already know.
 
 ## Phase 1 — Interview
 
-Understand before writing. Use `AskUserQuestion` in **small batched rounds (≤4
-questions each**, concrete options plus free text). **Loop as many rounds as the
+Understand before writing. Ask questions in plain-text messages with numbered options
+and space for a free-text answer. Ask at most four questions per message. **Loop as many rounds as the
 project needs** — but stay at product altitude. Ask about a detail only when the spec
 genuinely cannot be written without it; do not interrogate the user about anything you
 can decide from convention, infer from their stack answer, or find out yourself.
@@ -99,8 +99,9 @@ Cover, roughly in this order:
    - **public** — everything public, specs and issues included.
    - **private** — everything private.
    - **mirrored** — a private repo holds everything; a public mirror gets the code with
-     `docs/specs/`, `docs/adr/`, `CLAUDE.md` and `.claude/` filtered out
-     (`/repo-mirror setup`).
+     `docs/specs/`, `docs/adr/`, `AGENTS.md` (nested ones too), `docs/rules/`, `.agents/`,
+     `.codex/`, `CLAUDE.md` and `.claude/` filtered out
+     (`$issue-flow:repo-mirror setup`).
    Record the answer as `visibility` in the spec front-matter.
 6. **Constraints** — budget/CI limits, timeline, compliance, design/brand direction,
    third-party integrations.
@@ -115,6 +116,12 @@ to.** Once the user picks a host, a payment provider, an auth provider or a data
 fetch that provider's current documentation before you write its `Interfaces`,
 `Architecture & stack` or `Environments & config` entries. Do not describe an API from
 memory — see [`../../references/external-apis.md`](../../references/external-apis.md).
+
+After each question message, end your turn and wait for the operator's answer. Continue
+the interview in a later turn. Use `spawn_agent` with `agent_type: "explorer"`,
+`fork_turns: "none"`, and `model: "gpt-6-luna"` for a read-only survey when a thread is
+free. Check `list_agents` before each spawn. If no slot is free, do the survey in your
+current thread.
 
 Stop interviewing when you can write every section below **without inventing product
 intent**. Anything still unknown that is not product-critical becomes a documented
@@ -162,33 +169,33 @@ back.
 
 Generate `spec.html` from the markdown — copy the skill's `scripts/render-spec.py`
 into `docs/specs/`, vendor the mermaid asset, and run it; the markdown is the spec and
-`spec.html` is its generated website, never a hand-written summary. Then `CLAUDE.md`,
-`docs/adr/` + `docs/external.md`,
-`.claude/` (settings, rules, skills, commands, hooks) and the `.gitignore` block. The
-format and the rules for each — including the permission floor, the hook safety rules,
-and the mandatory `.claude/rules/ste.md` and `.claude/rules/quality.md` — are in
+`spec.html` is its generated website, never a hand-written summary. Then `AGENTS.md`,
+`docs/rules/`, project skills in `.agents/skills/`, hooks in `.codex/hooks.json`,
+`docs/adr/`, `docs/external.md`, and the `.gitignore` block. In dual-harness mode, also
+propose `CLAUDE.md` and `.claude/rules/` files. The format and rules for each are in
 **[references/scaffold.md](references/scaffold.md)**.
 
-Two things gate this phase, so they stay here:
+Three things gate this phase:
 
-- **Nothing under `.claude/` is written until the user approves it** in the Phase 4
-  review round. Propose the permission list, every hook, and every skill first.
-- **Never overwrite an existing `CLAUDE.md`, `.claude/settings.json` or `.gitignore`.**
-  Merge, append, and report what changed.
+- **The planner writes no scaffold files until the user approves them** in the Phase 4
+  review round. Propose each hook and skill first.
+- **The planner does not write a permission allow-list.** The setup skill's `issue_flow`
+  permission profile sets session access.
+- **Never overwrite an existing `AGENTS.md`, `CLAUDE.md`, `.codex/config.toml`, or
+  `.gitignore`.** Propose additions and merge them after approval.
 
 
 ## Phase 4 — Review cycle (gate: user approval)
 
 1. Print a **short digest** in the terminal: goals, epic list with sizes, stack, and the
-   open questions — plus the scaffold **proposal**: the exact `permissions.allow`
-   entries, each hook's exact command, and each skill/command with a one-line purpose.
-   Permissions, hooks and skills are written only after the user approves them; the
-   spec files and mockups may be written first so there is something to review.
+   open questions — plus the scaffold **proposal**: each hook's exact command and each
+   skill with a one-line purpose. Hooks and skills require user approval before the planner
+   writes them. The planner may write spec files and mockups first.
 2. **Open the spec locally** — `xdg-open docs/specs/spec.html` (Linux), `open` (macOS),
    `start ""` (Windows). If the command is unavailable or the session is
    non-interactive, print the absolute path instead and continue; never fail the phase
    over it. Do not publish an Artifact.
-3. Ask via `AskUserQuestion`: **Approve** / **Revise** (collect what to change), plus
+3. Ask in a plain-text message with numbered options: **Approve** / **Revise** (collect what to change), plus
    the specific items from `Risks & open questions`. Tell the user they can also
    comment directly in the rendered pages (hover a heading, or the Review drawer) and
    **Export** the result as `docs/specs/review-comments.md` — feedback lands next to
@@ -212,18 +219,18 @@ Two things gate this phase, so they stay here:
 `spec-to-issues` writes issue bodies that link to `docs/specs/...`, and issue-flow's
 workers see only **tracked, pushed** files. So before handing off, state plainly:
 
-> The spec must be committed **and pushed** before `/spec-to-issues`, or every spec link
+> The spec must be committed **and pushed** before `$issue-flow:spec-to-issues`, or every spec link
 > in every issue will be dead and the workers will build blind.
 
 Under `visibility: mirrored`, the spec must reach the **private** repo only. If the
-repos do not exist yet, the first command is `/repo-mirror setup`, before anything is
+repos do not exist yet, the first command is `$issue-flow:repo-mirror setup`, before anything is
 pushed.
 
 Then give the next commands:
 
 ```
-/spec-to-issues        # create the tracker epics + sub-issues from docs/specs/
-/issue-flow            # build it autonomously
+$issue-flow:spec-to-issues        # create the tracker epics + sub-issues from docs/specs/
+$issue-flow:issue-flow            # build it autonomously
 ```
 
 Do not run them yourself unless the user asks.
@@ -263,24 +270,29 @@ Before you declare the planner done, verify:
 - [ ] `docs/specs/review-comments.md` — if any review round produced one, every
       comment is `status: resolved` (or explicitly left open with the user's consent)
       and the file is committed with the spec.
-- [ ] `CLAUDE.md` — under 200 lines, pointer to the spec is plain text not `@import`.
-- [ ] `.claude/settings.json` — conservative permissions, no wildcards, no secrets;
-      every hook approved by the user and guarded against a missing tool.
-- [ ] `.claude/rules/ste.md` — written, scoped to the prose paths, pointing at the
-      spec's `## Terms` table. Without it the standard dies at the handoff.
-- [ ] **The filing gate is in `CLAUDE.md`** — the five cases that earn a tracker issue, the
+- [ ] `AGENTS.md` — under 24 KiB with nested `AGENTS.md` files, with a plain-text pointer
+      to the spec, the filing gate, and the project rule paths.
+- [ ] `docs/rules/ste.md` — written, scoped to prose paths, and pointing at the spec's
+      `## Terms` table.
+- [ ] `docs/rules/quality.md` — written and scoped to source paths.
+- [ ] `docs/rules/external-apis.md` — written and scoped to external interfaces.
+- [ ] `.agents/skills/run/SKILL.md` and `.agents/skills/test/SKILL.md` — written with
+      relative paths and no permission allow-list.
+- [ ] `.codex/hooks.json` — contains only hooks that the spec justifies and the user
+      approves; each hook checks for a missing tool.
+- [ ] **The filing gate is in `AGENTS.md`** — the five cases that earn a tracker issue, the
       rule that every other finding is repaired by the change set that found it, and where
       each repair goes in this project's branch model. Without it the loop files an issue
       per stale record and the backlog regenerates as fast as it clears. On a repo that
       already had a `CLAUDE.md`, proposed and the user declined also satisfies this.
-- [ ] `.claude/rules/quality.md` — written, path-scoped to the source globs, every rule
-      checkable pass/fail per diff.
+- [ ] `docs/rules/quality.md` — every rule is checkable pass/fail per diff.
 - [ ] `docs/adr/` seeded — the template plus an ADR for any contested choice the
       interview settled; `docs/external.md` present — names and pointers only, never a
       secret or a value.
-- [ ] `.claude/rules/*.md` — path-scoped where the content is area-specific.
-- [ ] `.claude/skills/*/SKILL.md` — at minimum `run` and `test` for a fresh project;
-      relative paths only, minimal `allowed-tools`.
-- [ ] `.gitignore` — Claude Code block present, spec files not ignored.
+- [ ] `.gitignore` — issue-flow entries present, spec files not ignored.
 - [ ] No absolute paths, no external asset requests, no Artifacts published.
 - [ ] `status: approved` only if the user actually approved.
+
+For dual-harness mode, also propose `CLAUDE.md` with `@AGENTS.md`, `.claude/rules/`
+pointer files, and the upstream Claude Code `.gitignore` lines. These files are secondary
+to the Codex scaffold checklist above.

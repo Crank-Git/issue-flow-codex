@@ -1,6 +1,6 @@
 ---
 name: spec-to-issues
-description: Turn an approved project-planner spec into tracker epics and sub-issues (GitHub or Gitea) shaped for the issue-flow loop. Use when the user says "/spec-to-issues", "create issues from the spec", "push the spec to GitHub", "push the spec to Gitea", optionally with a spec path. Reads docs/specs/spec.md plus docs/specs/features/*.md, verifies approval and that the spec is committed and pushed, then decomposes each epic into labeled, linked, dependency-annotated sub-issues sized for issue-flow's batch model.
+description: Turn an approved project-planner spec into tracker epics and sub-issues (GitHub or Gitea) shaped for the issue-flow loop. Use when the user says "$issue-flow:spec-to-issues", "create issues from the spec", "push the spec to GitHub", "push the spec to Gitea", optionally with a spec path. Reads docs/specs/spec.md plus docs/specs/features/*.md, verifies approval and that the spec is committed and pushed, then decomposes each epic into labeled, linked, dependency-annotated sub-issues sized for issue-flow's batch model.
 ---
 
 # Spec → Issues — materialize an approved spec on the tracker
@@ -15,7 +15,7 @@ checklist. The engineering breakdown is *your* job, derived from the detail in
 
 **Every issue you create is written in Simplified Technical English.** Read the standard
 in [`../../references/ste.md`](../../references/ste.md) — or the project's own
-`.claude/rules/ste.md`, which the planner wrote from it — before you draft a single title
+`docs/rules/ste.md` (or `.claude/rules/ste.md` in an upstream-scaffolded project), which the planner wrote from it — before you draft a single title
 or body. Titles, bodies, acceptance criteria and comments all follow it; § 4 has the
 patterns for each. Two rules carry the most weight here:
 
@@ -34,7 +34,7 @@ patterns for each. Two rules carry the most weight here:
   accept those too; several candidates → ask which.
 - Read the front-matter. **`status: approved` is the gate.** If it's `draft`, stop and
   ask: the user can approve it now (confirm explicitly — then set `status: approved` +
-  date, same as the planner would) or go back to `/project-planner`. Never silently
+  date, same as the planner would) or go back to `$issue-flow:project-planner`. Never silently
   treat a draft as approved.
 - Read `spec.md` **and every file in its `features:` list** (entries are
   `{ id, file }` pairs). A missing or unreadable feature file is a hard stop — report exactly which, and send the user back to the
@@ -43,7 +43,7 @@ patterns for each. Two rules carry the most weight here:
   a `status:` of `planned | issued | built | retired`. Create issues for the `planned`
   ones; skip `issued`/`built`/`retired` and say so. This is what makes second and third
   planning waves safe — a re-approved spec re-issues only what actually changed, and a
-  feature `/spec-update` retired stays retired instead of resurfacing as new work.
+  feature `$issue-flow:spec-update` retired stays retired instead of resurfacing as new work.
   (A `spec_version: 1` spec has no ids or statuses. Treat every feature as `planned`,
   fall back to the marker/title dedup in Preflight, and tell the user their spec predates
   per-feature tracking.)
@@ -63,7 +63,7 @@ resolved in [../../references/forge.md](../../references/forge.md).
   Write the resolved `owner/name` back to `spec.md`'s `repo:` front-matter field.
 - **`visibility: mirrored` → the repo must be private.** Issue bodies quote the spec
   verbatim. If `forge.repo.view` shows a public repo, stop: the issues belong in the
-  private repo (`/repo-mirror`), not in the mirror.
+  private repo (`$issue-flow:repo-mirror`), not in the mirror.
 - **The spec must be committed and pushed.** Issue bodies link `docs/specs/...` paths,
   and issue-flow's workers run in git worktrees that contain tracked files only — an
   unpushed spec means dead links and blind workers. Check for uncommitted or unpushed
@@ -114,12 +114,19 @@ unit of *engineering*, not a heading in the spec:
 
 ## 4 — Confirm the plan, then create
 
+Survey the spec and issue coverage with `explorer` agents when a free thread slot is
+available. Use `spawn_agent` with `agent_type: "explorer"`, `fork_turns: "none"`,
+and `model: "gpt-6-luna"`. Check `list_agents` before each spawn. If no slot is free,
+survey in your current thread.
+
 Show the user a compact table first — epics, derived sub-issue titles and counts, ready
-vs needs-feedback, detected dependencies, FR coverage — and confirm once
-(`AskUserQuestion`: create all / adjust / abort). Then, per epic in milestone order:
+vs needs-feedback, detected dependencies, FR coverage — and ask in a plain-text message
+with numbered options: create all, adjust, or abort. Ask at most four questions per
+message. End your turn and wait for the operator's answer. Then, per epic in milestone
+order:
 
 1. **Epic issue.** Title `Epic: <title>`; labels `type:epic`, `status:blocked` (blocked
-   on children); body = epic goal, exit criteria, `Depends on: #<other epic>` when the
+   on children); body = epic goal, exit criteria, the line `Depends on #<other epic>` (exactly that phrase, no colon and no heading, because issue-flow's triage reads it) when the
    spec says so, a task-list checklist of its sub-issues (fill in numbers as you create
    them), spec pointers (`docs/specs/spec.md` + the feature files it covers), and the
    marker `<!-- spec:<slug> feature:<feature-id> -->` (the epic's marker names the first
@@ -158,7 +165,7 @@ vs needs-feedback, detected dependencies, FR coverage — and confirm once
 - Point at the next step:
 
 ```
-/issue-flow        # the PM will batch each epic onto an integration branch and build it
+$issue-flow:issue-flow        # the PM will batch each epic onto an integration branch and build it
 ```
 
 ## Rules

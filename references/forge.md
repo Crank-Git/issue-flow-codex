@@ -539,6 +539,15 @@ requires it — before trusting any check as evidence the commit was tested.
 
 ## Capability gaps
 
+**GitHub sub-issue links take the database id, not the issue number.** Link a child issue to its epic in two calls:
+
+```bash
+SID=$(gh api repos/<owner>/<repo>/issues/<child> -q .id)
+gh api -X POST repos/<owner>/<repo>/issues/<epic>/sub_issues -F sub_issue_id="$SID"
+```
+
+Use `-F`, not `-f`: the field must be sent as an integer. A failed link call creates nothing, so retry the link only. Never create the child issue again; a second create makes a duplicate.
+
 **Gitea has no sub-issue API.** Checked against 1.25.3: `/repos/{owner}/{repo}/issues/{index}`
 exposes `dependencies` and `blocks`, but no `sub_issues`. Epic decomposition on Gitea
 therefore uses the fallback this plugin already documents for GitHub — a `Part of #<n>`

@@ -126,7 +126,7 @@ message. End your turn and wait for the operator's answer. Then, per epic in mil
 order:
 
 1. **Epic issue.** Title `Epic: <title>`; labels `type:epic`, `status:blocked` (blocked
-   on children); body = epic goal, exit criteria, `Depends on: #<other epic>` when the
+   on children); body = epic goal, exit criteria, the line `Depends on #<other epic>` (exactly that phrase, no colon and no heading, because issue-flow's triage reads it) when the
    spec says so, a task-list checklist of its sub-issues (fill in numbers as you create
    them), spec pointers (`docs/specs/spec.md` + the feature files it covers), and the
    marker `<!-- spec:<slug> feature:<feature-id> -->` (the epic's marker names the first

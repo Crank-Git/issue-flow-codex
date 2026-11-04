@@ -83,7 +83,7 @@ Write all three rule files. Copy their rule content from the plugin references. 
 not load these files automatically. `AGENTS.md` and each worker brief must name the paths.
 
 `docs/rules/ste.md` contains the writing rules, verbatim exclusions, artifact patterns,
-and checklist from `references/ste.md`. Replace its Terms section with a pointer to
+and checklist from this plugin's `references/ste.md` (`<pluginRoot>/references/ste.md`; `<pluginRoot>` is two directories above this skill's `SKILL.md`). Replace its Terms section with a pointer to
 `docs/specs/spec.md`'s `## Terms` table. A reader must read this file before writing
 prose, code comments, docstrings, test names, issues, or pull-request text.
 

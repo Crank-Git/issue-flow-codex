@@ -45,6 +45,35 @@ def parallelism_rules():
     return section("references/parallelism.md", "# Parallelism", "## Multiple issues")
 
 
+class PlannerHandoffTextTest(unittest.TestCase):
+    def test_planner_checklist_names_codex_scaffold_paths(self):
+        planner = Path(__file__).resolve().parent.parent / "skills" / "project-planner" / "SKILL.md"
+        text = planner.read_text()
+        checklist = text.split("## Output checklist", 1)[1]
+
+        for path in ("AGENTS.md", "docs/rules/", ".agents/skills/", ".codex/"):
+            with self.subTest(path=path):
+                self.assertIn(path, checklist)
+        self.assertNotRegex(checklist, r"(?m)^- \[ \].*(?:CLAUDE\.md|`?\.claude/)")
+        phase_three = text.split("## Phase 3", 1)[1].split("## Phase 4", 1)[0]
+        self.assertIn("AGENTS.md", phase_three)
+        self.assertIn(".codex/config.toml", phase_three)
+        self.assertNotIn("permissions.allow", phase_three)
+
+    def test_worker_brief_passes_project_rule_paths(self):
+        root = Path(__file__).resolve().parent.parent
+        text = "\n".join(path.read_text() for path in (
+            root / "skills/issue-flow/SKILL.md",
+            root / "skills/issue-flow/references/issue-worker.md",
+        ))
+
+        self.assertIn("<project>/docs/rules/ste.md", text)
+        self.assertIn("else <pluginRoot>/references/ste.md", text)
+        self.assertIn("<project>/docs/rules/quality.md", text)
+        self.assertIn("omit this field otherwise", text)
+        self.assertNotIn("<project>/.claude/rules/ste.md", text)
+
+
 class StageBTest(unittest.TestCase):
     def test_stage_b_names_spawn_agent_with_fork_turns_none(self):
         text = stage_b()

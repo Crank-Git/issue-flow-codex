@@ -318,7 +318,7 @@ body.rv-open .layout { padding-right:21rem; }
 </ul>
 <h3 id="sandbox">Sandbox</h3>
 <ul>
-<li>The setup skill writes a permission profile <code>issue_flow</code> that extends <code>:workspace</code>, makes <code>.git</code> writable, and enables network access. Verified against: live test (worktree add, commit, and <code>git ls-remote</code> all exit 0 under this profile, and all fail under the default <code>workspace-write</code>).
+<li>The setup skill writes a permission profile <code>issue_flow</code> that extends <code>:workspace</code>, makes <code>.git</code> and <code>.agents/</code> writable, and enables network access. The profile keeps <code>.codex/</code> read-only. The operator applies <code>.codex/</code> changes and starts a new session. Verified against: the operator ruling on #109 and the profile pattern in <code>codex-harness.md</code>, fact 8.
 </li>
 <li>Subagents inherit the profile from the PM. Verified against: live test (a <code>git_worker</code> subagent created a worktree and committed).
 </li>

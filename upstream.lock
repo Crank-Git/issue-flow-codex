@@ -1008,16 +1008,28 @@ notes = "port-only: replay the recorded PM hook sequence (#75)"
 path = ".github/workflows/tag-release.yml"
 mode = "new"
 upstream_sha256 = ""
-notes = "port-only: tag the port release when the manifest version changes (#42)"
+notes = "port-only: tag an untagged manifest version on main (#42)"
 
 [[file]]
 path = "scripts/release_tag.py"
 mode = "new"
 upstream_sha256 = ""
-notes = "port-only: select a release tag for a changed manifest version (#42)"
+notes = "port-only: select a release tag for an untagged manifest version (#42)"
 
 [[file]]
 path = "tests/test_release_tag.py"
 mode = "new"
 upstream_sha256 = ""
 notes = "port-only: test release tag selection and documentation (#42)"
+
+[[file]]
+path = "tests/fixtures/hooks/apply_patch_outside_worktree.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: live worker apply_patch payload outside the worktrees (#108, gate #111)"
+
+[[file]]
+path = "tests/fixtures/hooks/apply_patch_inside_worktree.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: live worker apply_patch payload inside a worktree (#108, gate #111)"

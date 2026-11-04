@@ -6,11 +6,12 @@ from `hooks/role-policy.json`. A payload with no `agent_type` comes from the PM 
 the guard allows it. Inside a subagent, Codex sets `agent_type` to the role name
 (codex-harness fact 10).
 
-A rule for a role has up to four keys:
+A role rule can use these keys:
   tools             regexes searched in `tool_name`
   bash_prefixes     command prefixes denied for the `Bash` tool
   patch_only_under  `apply_patch` may write only below this directory (relative to `cwd`)
   spawn_roles       roles that the `spawn_agent` tool may not start
+  patch_only_under_project_worktrees  `apply_patch` stays below the project .worktrees/ directory
 
 The guard is not a security boundary: a shell command can write a file without
 `apply_patch`.

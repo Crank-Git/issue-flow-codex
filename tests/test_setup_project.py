@@ -51,6 +51,13 @@ class SetupProjectTest(unittest.TestCase):
     def config(self):
         return (self.project / ".codex" / "config.toml").read_text(encoding="utf-8")
 
+    def test_setup_skill_routes_codex_changes_to_the_operator(self):
+        skill = (ROOT / "skills" / "setup" / "SKILL.md").read_text(encoding="utf-8")
+
+        self.assertIn("Prints `.codex/` changes for operator application", skill)
+        self.assertIn("The operator applies accepted `.codex/` changes outside Codex", skill)
+        self.assertIn("Start a new `codex` session after applying `.codex/config.toml`", skill)
+
     def test_writes_the_block_into_a_missing_config_file(self):
         self.apply()
         text = self.config()
@@ -59,6 +66,11 @@ class SetupProjectTest(unittest.TestCase):
         parsed = tomllib.loads(text)
         self.assertEqual(parsed["features"]["multi_agent_v2"]["max_concurrent_threads_per_session"], 7)
         self.assertEqual(parsed["permissions"]["issue_flow"]["extends"], ":workspace")
+        filesystem = parsed["permissions"]["issue_flow"]["filesystem"][":workspace_roots"]
+        self.assertEqual(filesystem["."], "write")
+        self.assertEqual(filesystem[".git"], "write")
+        self.assertEqual(filesystem[".agents"], "write")
+        self.assertNotIn(".codex", filesystem)
 
     def test_writes_six_role_files_the_block_and_the_gitignore_line_and_nothing_else(self):
         self.apply()

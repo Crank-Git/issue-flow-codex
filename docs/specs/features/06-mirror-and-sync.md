@@ -31,7 +31,7 @@ manual checks, and the port's own releases reach the marketplace.
 - FR-mirror-and-sync-6 — A scheduled GitHub Actions workflow checks the upstream tags once a day.
 - FR-mirror-and-sync-7 — When the workflow finds a tag `issue-flow--v*` newer than the lock's tag, it opens one tracker issue titled `Sync upstream <tag>`.
 - FR-mirror-and-sync-8 — The workflow opens no second issue for a tag that already has one.
-- FR-mirror-and-sync-9 — The sync issue body holds the `sync-report.md` content, in the upstream issue body format.
+- FR-mirror-and-sync-9 — The sync issue body holds the `sync-report.md` content. When the report is longer than the forge accepts, the body drops the diff blocks and names the local command that prints the full report.
 
 ### repo-mirror
 

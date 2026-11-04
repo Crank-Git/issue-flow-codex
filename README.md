@@ -52,6 +52,9 @@ Codex invocation.
 The Codex port tracks upstream `issue-flow--v0.17.0`. The port release version is
 independent of the upstream version.
 
+The release workflow tags a manifest version when it has no matching tag. This creates
+the initial `issue-flow-codex--v0.1.0` tag when the workflow first runs on `main`.
+
 Codex has these known limits:
 
 - Codex does not wake an idle PM when a subagent finishes. The PM keeps its turn open

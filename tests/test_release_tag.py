@@ -60,6 +60,7 @@ class ReleaseDocsTest(unittest.TestCase):
         self.assertIn("codex plugin marketplace add Crank-Git/issue-flow-codex", readme)
         self.assertIn("codex plugin add issue-flow@issue-flow-codex", readme)
         self.assertIn("run `/hooks` and trust the issue-flow hooks", readme)
+        self.assertIn("initial `issue-flow-codex--v0.1.0` tag", readme)
         for skill in ("project-planner", "project-inherit", "spec-update",
                       "spec-to-issues", "issue-flow", "project-review", "repo-mirror"):
             self.assertIn(f"`$issue-flow:{skill}`", readme)

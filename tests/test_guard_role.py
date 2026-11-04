@@ -108,9 +108,11 @@ class RoleGuardTest(unittest.TestCase):
                 self.assertAllowed(worker_patch(f"*** Add File: {root}/pr-body.md"))
 
     def test_denies_a_patch_to_the_project_checkout_when_the_project_lives_under_a_temp_dir(self):
-        for path in ("/private/tmp/proj/README.md", "/tmp/proj/README.md", "README.md"):
+        # On macOS, /tmp is a link to /private/tmp. On Linux, it is not.
+        project = os.path.realpath("/tmp/proj")
+        for path in (f"{project}/README.md", "/tmp/proj/README.md", "README.md"):
             with self.subTest(path=path):
-                self.assertDenied(worker_patch(f"*** Update File: {path}", cwd="/private/tmp/proj"),
+                self.assertDenied(worker_patch(f"*** Update File: {path}", cwd=project),
                                   "worktree", "README.md")
 
     def test_allows_a_patch_to_a_worktree_when_the_project_lives_under_a_temp_dir(self):

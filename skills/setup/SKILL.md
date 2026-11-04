@@ -1,6 +1,6 @@
 ---
 name: setup
-description: Configure one project for the issue-flow loop. Use when the operator says "$issue-flow:setup", "set up issue-flow", or "configure this project for issue-flow". Copies the role files into .codex/agents/, writes the issue-flow block in .codex/config.toml, and adds .worktrees/ to .gitignore. Shows the diff of each file and writes a file only after the operator accepts it. Also checks an existing setup when the operator asks.
+description: Configure one project for the issue-flow loop. Use when the operator says "$issue-flow:setup". Prints `.codex/` changes for operator application, writes accepted files outside `.codex/`, and checks existing setup.
 ---
 
 # Setup — configure a project for the issue-flow loop
@@ -35,15 +35,19 @@ directory two levels above it. Call it `<pluginRoot>`. The script is
    show the new diff of `.codex/config.toml`.
 6. Ask about each file, one question per file, in plain text. Name the path as the plan
    shows it, for example `.codex/agents/issue_worker.toml`, `.codex/config.toml`, or
-   `.gitignore`, and ask "Write this file?". Then end your turn and wait for the
-   answers. Codex has no question tool in default mode, so the operator answers in the
-   next message. Accept a file only when the operator accepts its diff.
+   `.gitignore`, and ask whether the operator will apply the change. Then end your turn
+   and wait for the answers. Codex has no question tool in default mode. The operator
+   answers in the next message. Accept a file only when the operator accepts its diff.
 7. Run `python3 <pluginRoot>/scripts/setup_project.py apply --project <project> --accept <file>...`
-   with the accepted files only. Keep the default-permissions flag from step 5.
-   The command writes only those files. Do not write any other file.
-8. End with a last message that tells the operator these steps:
+   for accepted files outside `.codex/` only. Keep the default-permissions flag from
+   step 5. The operator applies accepted `.codex/` changes outside Codex because the
+   session keeps `.codex/` read-only. Skip the command when no other file is accepted.
+8. End with a message that lists the next steps:
+   - Apply accepted `.codex/` changes outside Codex.
+   - Start a new `codex` session after applying `.codex/config.toml`. Codex reads the
+     profile at session start.
    - Run `/hooks` and trust the issue-flow hooks. Codex skips plugin hooks that the operator has not trusted.
-   - Start a new `codex` session. Codex reads `.codex/` only for a trusted project.
+   - Start another `codex` session to load the trusted project hooks.
 
 ## Check mode
 

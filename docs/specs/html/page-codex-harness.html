@@ -231,6 +231,8 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li><strong>Gitea MCP tools appear as <code>mcp__&lt;server&gt;__&lt;tool&gt;</code>.</strong> The PostToolUse matcher <code>^mcp__.+__list_(issues|pull_requests)$</code> selects the list calls. The gate run had no MCP server, so this name shape is not yet recorded from a live run.
 </li>
+<li><strong>A spawned worker's <code>apply_patch</code> payload names the PM's project root as <code>cwd</code>.</strong> The payload has no <code>workdir</code> and no <code>task_name</code>, only <code>agent_id</code> and <code>agent_type</code>. A relative path in the patch resolves against that <code>cwd</code>, so it lands in the PM's checkout. A role guard can enforce the <code>.worktrees/</code> boundary, but it cannot tell a worker's own tree from a sibling's. Evidence: the #111 gate run (Codex 0.166.0, <code>gpt-6-luna</code>); payloads in <code>tests/fixtures/hooks/apply_patch_outside_worktree.json</code> and <code>apply_patch_inside_worktree.json</code>.
+</li>
 </ol>
 <p>The profile used in facts 8 and 9:</p>
 <pre class="code"><code>default_permissions = "gitw"
@@ -241,6 +243,7 @@ extends = ":workspace"
 [permissions.gitw.filesystem.":workspace_roots"]
 "." = "write"
 ".git" = "write"
+".agents" = "write"
 
 [permissions.gitw.network]
 enabled = true</code></pre>

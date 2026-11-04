@@ -9,7 +9,7 @@ Workers must create worktrees, commit, and push. The default `workspace-write` s
 
 ## Decision
 
-The setup skill writes the permission profile `issue_flow`. It extends `:workspace`, makes the project root and `.git` writable, and enables network access. The loop never asks for `danger-full-access`.
+The setup skill writes the permission profile `issue_flow`. It extends `:workspace`, makes the project root, `.git`, and `.agents/` writable, and enables network access. The profile keeps `.codex/` read-only, so the operator applies changes there. The loop never asks for `danger-full-access`.
 
 ## Consequences
 

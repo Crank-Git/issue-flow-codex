@@ -1015,3 +1015,15 @@ path = "tests/test_project_review_skill.py"
 mode = "new"
 upstream_sha256 = ""
 notes = "Port-only Playwright preflight test."
+
+[[file]]
+path = "tests/fixtures/hooks/apply_patch_outside_worktree.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: live worker apply_patch payload outside the worktrees (#108, gate #111)"
+
+[[file]]
+path = "tests/fixtures/hooks/apply_patch_inside_worktree.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: live worker apply_patch payload inside a worktree (#108, gate #111)"

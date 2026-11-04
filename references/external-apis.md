@@ -33,10 +33,11 @@ Use the most authoritative source available, in this order:
 
 1. **The tool's own machine-readable interface.** `aws <service> <command> help`,
    `<cli> --help`, `forge.api.raw` (`gh api --help` / `tea api --help`), an OpenAPI or GraphQL schema, TypeScript types shipped
-   with the package, the MCP server's own tool schema (load it with `ToolSearch` and read
+   with the package, the MCP server's own tool schema (read
    the parameters).
-2. **The official documentation**, fetched now with `WebFetch` — the vendor's own docs
-   site, the package's README or reference docs at the **version the project pins**.
+2. **The official documentation**, retrieved from the vendor's own docs
+   site, the package's README or reference docs at the **version the project pins**. Codex
+   CLI `--help` documents `--search`, which makes the native `web_search` tool available.
 3. **The vendor's own examples** in that documentation.
 
 Not authoritative: a blog post, a forum answer, a model's recollection, another project's
@@ -47,26 +48,26 @@ code, or an older version's docs.
 A connected documentation MCP server is the best version of step 1 and step 2 above: it
 serves current, version-correct reference material without a web round trip.
 
-At preflight, the issue-flow PM works out which external services the project depends on,
-searches the marketplaces the user has configured, and offers what it found. It may also
-offer to **add a marketplace** when the server it needs lives in one the user has not
-added yet. Three constraints on that offer:
+At preflight, the issue-flow PM works out which external services the project depends on
+and checks which MCP servers and plugin marketplaces are configured. Codex CLI lists and
+adds plugin marketplaces with `codex plugin marketplace list` and
+`codex plugin marketplace add <source>`. The PM offers a setup path only when the project
+or user gives a known source. Follow these constraints:
 
 - **Only offer what you actually found**, or what `codex mcp list` shows is already
-  connected. A marketplace may be offered only from a **concrete source** — one the user
-  supplied, or one named in the repository (README, `CLAUDE.md`, the spec,
-  `.claude/settings.json`). Never invent a marketplace URL, a plugin name, a server name,
-  or an install command, and never present a guess as though it were available.
-- **The user runs the command, or explicitly approves it.** Adding a marketplace and
-  installing an MCP server both run third-party code and change their configuration.
-  Never do either silently.
-- **Say that a restart is usually needed.** A marketplace added, a plugin installed, or a
-  server connected mid-session generally does not appear until the session restarts;
-  `/mcp` shows what is live now. Work continues on the `WebFetch` fallback until then —
-  never hold the loop waiting for a restart.
+  connected. Offer a marketplace only from a **concrete source** — one the user supplied, or one
+  named in the repository (README, `AGENTS.md`, the spec, `.codex/config.toml`, or
+  `CLAUDE.md` in a dual-harness project). For MCP,
+  verify its URL or launch command in that source. Never invent a source, plugin name,
+  server name, or install command.
+- **The user runs the command, or explicitly approves it.** Adding a marketplace or
+  installing an MCP server changes configuration. Never make these changes silently.
+- **Say when a new session may be needed.** `codex mcp list` shows configured servers, but
+  the current session may not have loaded a new server. Work continues with vendor
+  documentation until then. Never hold the loop waiting for a new session.
 
 A declined offer is recorded and not repeated. It changes nothing about the rule below —
-without a doc server, verification happens through `WebFetch` against the vendor's own
+without a doc server, verification happens against the vendor's own
 documentation. Slower, still mandatory.
 
 ## The rule, per stage

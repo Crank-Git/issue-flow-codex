@@ -2,7 +2,7 @@
 id: project-review
 feature: Project review
 epic: "Epic 5: Project review"
-status: issued
+status: built
 issues: [35, 36, 37, 38]
 mockups: []
 ---
@@ -27,8 +27,8 @@ configured once for all threads, and the role guard limits each role.
 - FR-project-review-1 — The plugin ships role files for `ux_explorer`, `deploy_verifier`, `review_scribe`, and `code_auditor` in `roles/`.
 - FR-project-review-2 — Each role file holds the upstream agent instructions in `developer_instructions`, with each Claude Code tool name replaced by its Codex tool name.
 - FR-project-review-3 — Each role file sets `model` per the table in Behaviour rules.
-- FR-project-review-4 — The review PM checks with `codex mcp list` that a server named `playwright` exists before it spawns a browser role.
-- FR-project-review-5 — When the `playwright` server is missing, the review PM shows the operator the command `codex mcp add playwright -- npx -y @playwright/mcp@<pinned version>` and stops.
+- FR-project-review-4 — Before it spawns a browser role, the review PM checks with `codex mcp get playwright` that the server exists and sets `default_tools_approval_mode` to `approve`.
+- FR-project-review-5 — When the check fails, the review PM shows the operator the command `codex mcp add playwright -- npx -y @playwright/mcp@<pinned version> --output-dir .worktrees/review/playwright-mcp` and the `default_tools_approval_mode = "approve"` key, and stops.
 - FR-project-review-6 — The review PM never runs `codex mcp add` itself.
 - FR-project-review-7 — Browser roles call the Playwright tools by their Codex names `mcp__playwright__<tool>`.
 - FR-project-review-8 — The role guard applies the role policy of Feature 01 to the four roles.
@@ -58,7 +58,7 @@ flowchart TD
 ```
 
 1. The operator starts `$issue-flow:project-review`.
-2. If the `playwright` server is missing, the review PM shows the command and stops.
+2. If the `playwright` server is missing or has no approval key, the review PM shows the fix and stops.
 3. The review PM starts the app in a sandbox with the project's `run` skill.
 4. The review PM spawns one `ux_explorer` per flow and one `code_auditor`.
 5. The review PM waits for all verdicts.
@@ -90,7 +90,7 @@ The feature has no screens of its own. The reviewed project's screens are the su
 
 ## Interfaces
 
-- **MCP configuration:** `codex mcp add <NAME> -- <COMMAND>...`, `codex mcp list`. Verified against: `codex mcp --help` (codex-cli 0.166.0).
+- **MCP configuration:** `codex mcp add <NAME> -- <COMMAND>...`, `codex mcp list`, `codex mcp get <NAME>`. Verified against: `codex mcp --help` and `codex mcp get --help` (codex-cli 0.166.0). The approval key is `codex-harness.md` fact 22.
 - **MCP tool names in hooks:** `mcp__<server>__<tool>`. Verified against: source `codex-rs/core/src/tools/handlers/mcp.rs:139-140` (commit `dbaead01`).
 - **Roles and MCP:** a role file cannot set `mcp_servers`. Subagents inherit the parent's servers. Verified against: source `codex-rs/core/src/agent/role.rs:79-117`; https://learn.chatgpt.com/docs/agent-configuration/subagents (retrieved 2026-11-03).
 - **Playwright MCP:** `@playwright/mcp`, pinned in the role files at the version the worker confirms from the package's README. The worker records the version and URL in the PR.

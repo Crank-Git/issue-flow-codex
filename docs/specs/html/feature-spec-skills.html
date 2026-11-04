@@ -153,7 +153,7 @@ body.rv-open .layout { padding-right:21rem; }
 </ul></aside>
 <main>
 <h1>Feature: Spec skills</h1>
-<p class="meta">Epic 4: Spec skills &nbsp; <span class="badge">issued</span></p>
+<p class="meta">Epic 4: Spec skills &nbsp; <span class="badge">built</span></p>
 <h3 id="spec-skills-purpose">Purpose</h3>
 <p>This feature ports the four skills that make and change a spec: <code>project-planner</code>, <code>project-inherit</code>, <code>spec-update</code>, and <code>spec-to-issues</code>. The spec package format does not change, and <code>render-spec.py</code> stays byte-equal to upstream. The project scaffold changes, because Codex reads <code>AGENTS.md</code> and <code>.codex/</code>, not <code>CLAUDE.md</code> and <code>.claude/</code>. Codex has no path-scoped rule files, so the rules move to <code>docs/rules/</code> and the brief carries their paths.</p>
 <h3 id="spec-skills-user-stories">User stories</h3>
@@ -195,7 +195,7 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li>FR-spec-skills-12 — The planner writes the project skills <code>run</code> and <code>test</code> at <code>.agents/skills/&lt;name&gt;/SKILL.md</code>.
 </li>
-<li>FR-spec-skills-13 — The planner writes project hooks to <code>.codex/hooks.json</code>, with the upstream hook safety rules.
+<li>FR-spec-skills-13 — The planner prints project hooks as <code>.codex/hooks.json</code> content for the operator to apply, with the upstream hook safety rules.
 </li>
 <li>FR-spec-skills-14 — The planner does not write a permission allow-list. The <code>issue_flow</code> permission profile from the setup skill replaces it.
 </li>
@@ -237,10 +237,10 @@ body.rv-open .layout { padding-right:21rem; }
     D --&gt; E{"Enough to write the spec?"}
     E -- "no" --&gt; C
     E -- "yes" --&gt; F["Write docs/specs/ and render spec.html"]
-    F --&gt; G["Propose the scaffold: AGENTS.md, docs/rules, .agents/skills, .codex/hooks.json, dual-harness option"]
+    F --&gt; G["Propose the scaffold: AGENTS.md, docs/rules, .agents/skills, printed hooks for .codex/hooks.json, dual-harness option"]
     G --&gt; H{"Operator approves?"}
     H -- "revise" --&gt; F
-    H -- "approve" --&gt; I["Write the scaffold, set status: approved"]
+    H -- "approve" --&gt; I["Write approved scaffold files, print hooks for operator application, set status: approved"]
     I --&gt; J["Hand off: $issue-flow:spec-to-issues"]</pre></div>
 <ol>
 <li>The operator starts <code>$issue-flow:project-planner</code>.
@@ -257,7 +257,7 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li>If the operator asks for changes, the planner revises and renders again.
 </li>
-<li>When the operator approves, the planner writes the scaffold and sets <code>status: approved</code>.
+<li>When the operator approves, the planner writes approved scaffold files, prints hooks for operator application, and sets <code>status: approved</code>.
 </li>
 <li>The planner names the next skill: <code>$issue-flow:spec-to-issues</code>.
 </li>
@@ -309,6 +309,8 @@ body.rv-open .layout { padding-right:21rem; }
 <li>[ ] <code>$issue-flow:project-planner</code> on an empty test project produces a spec package that <code>render-spec.py</code> renders with no error. (FR-spec-skills-1 to 6, 22)
 </li>
 <li>[ ] The scaffold holds <code>AGENTS.md</code>, three <code>docs/rules/</code> files, and two <code>.agents/skills/</code> skills. (FR-spec-skills-7 to 12)
+</li>
+<li>[ ] The planner prints the approved hooks as <code>.codex/hooks.json</code> content for the operator to apply. (FR-spec-skills-13)
 </li>
 <li>[ ] All <code>AGENTS.md</code> files together are under 24 KiB. (FR-spec-skills-9)
 </li>

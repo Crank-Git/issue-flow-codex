@@ -162,7 +162,7 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li>As the operator, I want one skill that configures my project, so that the roles, the thread limit, and the permission profile are correct before the first run.
 </li>
-<li>As the operator, I want the setup skill to show each change before it writes it, so that I control my Codex configuration.
+<li>As the operator, I want the setup skill to show each change before it is applied, so that I control my Codex configuration.
 </li>
 <li>As the operator, I want the PM to stop when its hooks did not run, so that the loop never runs without its guards.
 </li>
@@ -195,9 +195,9 @@ body.rv-open .layout { padding-right:21rem; }
 <ul>
 <li>FR-plugin-packaging-10 — The plugin ships the skill <code>setup</code>, started as <code>$issue-flow:setup</code>.
 </li>
-<li>FR-plugin-packaging-11 — The setup skill copies each file in <code>&lt;pluginRoot&gt;/roles/</code> to <code>&lt;project&gt;/.codex/agents/</code>.
+<li>FR-plugin-packaging-11 — The setup skill prints each file in <code>&lt;pluginRoot&gt;/roles/</code> as a role file for <code>&lt;project&gt;/.codex/agents/</code>. The operator applies the files with <code>python3 scripts/setup_project.py apply</code> from a shell outside the Codex sandbox. Nothing writes <code>.codex/</code> from inside a Codex session.
 </li>
-<li>FR-plugin-packaging-12 — The setup skill writes the config block in <code>&lt;project&gt;/.codex/config.toml</code> between the lines <code># issue-flow:begin</code> and <code># issue-flow:end</code>.
+<li>FR-plugin-packaging-12 — The setup skill prints the config block for <code>&lt;project&gt;/.codex/config.toml</code> between the lines <code># issue-flow:begin</code> and <code># issue-flow:end</code>. The operator applies the block with <code>python3 scripts/setup_project.py apply</code> from a shell outside the Codex sandbox. Nothing writes <code>.codex/</code> from inside a Codex session.
 </li>
 <li>FR-plugin-packaging-13 — The setup skill changes no text outside the config block.
 </li>
@@ -207,9 +207,9 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li>FR-plugin-packaging-16 — The config block sets <code>default_permissions = "issue_flow"</code> only when the operator accepts that line.
 </li>
-<li>FR-plugin-packaging-17 — The setup skill shows the full diff of each file before it writes the file.
+<li>FR-plugin-packaging-17 — The setup skill shows the full diff of each file before the file is applied.
 </li>
-<li>FR-plugin-packaging-18 — The setup skill writes a file only after the operator accepts its diff.
+<li>FR-plugin-packaging-18 — The setup skill writes only files outside <code>.codex/</code>, and only after the operator accepts the diff. For a <code>.codex/</code> file, the operator applies the accepted diff outside Codex.
 </li>
 <li>FR-plugin-packaging-19 — The setup skill adds <code>.worktrees/</code> to <code>&lt;project&gt;/.gitignore</code> when the line is not present.
 </li>
@@ -268,8 +268,8 @@ body.rv-open .layout { padding-right:21rem; }
     E --&gt; F["Operator runs $issue-flow:setup"]
     F --&gt; G["Setup shows the diff for .codex/agents, .codex/config.toml, .gitignore"]
     G --&gt; H{"Operator accepts?"}
-    H -- "no" --&gt; I["Setup writes nothing for that file"]
-    H -- "yes" --&gt; J["Setup writes the file"]
+    H -- "no" --&gt; I["Nothing is applied for that file"]
+    H -- "yes" --&gt; J["Setup writes .gitignore; the operator applies .codex/ files outside Codex"]
     J --&gt; K["Setup tells the operator to run /hooks and trust the issue-flow hooks"]
     K --&gt; L["Operator restarts codex"]
     L --&gt; M["SessionStart hook runs: 'issue-flow preflight: ran'"]</pre></div>
@@ -286,7 +286,7 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li>The setup skill shows the diff for each file.
 </li>
-<li>If the operator accepts a diff, the setup skill writes that file.
+<li>If the operator accepts a diff, the setup skill writes <code>.gitignore</code>. For the <code>.codex/</code> files, the operator runs <code>python3 scripts/setup_project.py apply</code> from a shell outside Codex, because the session keeps <code>.codex/</code> read-only.
 </li>
 <li>The setup skill tells the operator to run <code>/hooks</code> and trust the issue-flow hooks.
 </li>
@@ -352,6 +352,7 @@ extends = ":workspace"
 [permissions.issue_flow.filesystem.":workspace_roots"]
 "." = "write"
 ".git" = "write"
+".agents" = "write"
 
 [permissions.issue_flow.network]
 enabled = true
@@ -424,9 +425,9 @@ enabled = true
 </li>
 <li>[ ] <code>validate_manifests.py</code> fails a test fixture for each rule in FR-plugin-packaging-7 to 9.
 </li>
-<li>[ ] The setup skill on an empty project writes six role files, the block, and the <code>.gitignore</code> line, and nothing else. (FR-plugin-packaging-11 to 19)
+<li>[ ] The setup plan on an empty project covers six role files, the block, and the <code>.gitignore</code> line, and nothing else. <code>apply</code> writes exactly those files. (FR-plugin-packaging-11 to 19)
 </li>
-<li>[ ] The setup skill on a project with a user <code>config.toml</code> keeps every user line. (FR-plugin-packaging-13)
+<li>[ ] Setup on a project with a user <code>config.toml</code> keeps every user line. (FR-plugin-packaging-13)
 </li>
 <li>[ ] <code>$issue-flow:setup check</code> reports <code>stale</code> after one byte changes in a role file, and writes no file. (FR-plugin-packaging-21, 22)
 </li>
@@ -448,7 +449,11 @@ enabled = true
 <li>The setup skill does not install MCP servers. Feature 05 covers the browser server.
 </li>
 </ul>
-<h3 id="plugin-packaging-open-questions" class="callout-h">Open questions</h3><nav class="pager">
+<h3 id="plugin-packaging-open-questions" class="callout-h">Open questions</h3>
+<ul>
+<li>Resolved (#109, operator ruling): agents never write <code>.codex/</code>. The setup skill prints the <code>.codex/</code> changes, and the operator applies them outside Codex.
+</li>
+</ul><nav class="pager">
 <a href="feature-foundation.html">&larr; Feature: Foundation</a>
 <a href="feature-worker-dispatch.html">Feature: Worker dispatch &rarr;</a>
 </nav>

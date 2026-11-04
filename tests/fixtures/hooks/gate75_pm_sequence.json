@@ -1,0 +1,670 @@
+[
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "agent_id": "00000000-0000-7000-8000-0000000000a1",
+  "agent_type": "issue_worker",
+  "cwd": "/tmp/testbed/.worktrees/worker",
+  "hook_event_name": "PreToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "Bash",
+  "tool_input": {
+   "command": "sleep 30"
+  },
+  "tool_use_id": "call_030"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PreToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "collaborationwait_agent",
+  "tool_input": {
+   "timeout_ms": 10000
+  },
+  "tool_use_id": "call_033"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PostToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "collaborationwait_agent",
+  "tool_input": {
+   "timeout_ms": 10000
+  },
+  "tool_response": "{\"message\":\"Wait timed out.\",\"timed_out\":true}",
+  "tool_use_id": "call_034"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PreToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "collaborationwait_agent",
+  "tool_input": {
+   "timeout_ms": 10000
+  },
+  "tool_use_id": "call_035"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PostToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "collaborationwait_agent",
+  "tool_input": {
+   "timeout_ms": 10000
+  },
+  "tool_response": "{\"message\":\"Wait timed out.\",\"timed_out\":true}",
+  "tool_use_id": "call_036"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "agent_id": "00000000-0000-7000-8000-0000000000a1",
+  "agent_type": "issue_worker",
+  "cwd": "/tmp/testbed/.worktrees/worker",
+  "hook_event_name": "PostToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "Bash",
+  "tool_input": {
+   "command": "sleep 30"
+  },
+  "tool_response": "",
+  "tool_use_id": "call_037"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "agent_id": "00000000-0000-7000-8000-0000000000a1",
+  "agent_type": "issue_worker",
+  "cwd": "/tmp/testbed/.worktrees/worker",
+  "hook_event_name": "PreToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "Bash",
+  "tool_input": {
+   "command": "sleep 30"
+  },
+  "tool_use_id": "call_038"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PreToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "Bash",
+  "tool_input": {
+   "command": "gh issue list --repo owner/testbed --state all --search 'updated:>=2026-11-03T00:00:00Z' --json number,title,updatedAt,labels,assignees && gh pr list --repo owner/testbed --state all --search 'updated:>=2026-11-03T00:00:00Z' --json number,title,updatedAt,state,headRefName,baseRefName"
+  },
+  "tool_use_id": "call_040"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PostToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "Bash",
+  "tool_input": {
+   "command": "gh issue list --repo owner/testbed --state all --search 'updated:>=2026-11-03T00:00:00Z' --json number,title,updatedAt,labels,assignees && gh pr list --repo owner/testbed --state all --search 'updated:>=2026-11-03T00:00:00Z' --json number,title,updatedAt,state,headRefName,baseRefName"
+  },
+  "tool_response": "[{\"assignees\":[],\"labels\":[{\"id\":\"LA_kwDOVhmbsc8AAAADA5LaeA\",\"name\":\"flow:status\",\"description\":\"Session status issue; n",
+  "tool_use_id": "call_042"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PreToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "collaborationwait_agent",
+  "tool_input": {
+   "timeout_ms": 10000
+  },
+  "tool_use_id": "call_043"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PostToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "collaborationwait_agent",
+  "tool_input": {
+   "timeout_ms": 10000
+  },
+  "tool_response": "{\"message\":\"Wait timed out.\",\"timed_out\":true}",
+  "tool_use_id": "call_044"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PreToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "Bash",
+  "tool_input": {
+   "command": "gh issue list --repo owner/testbed --state all --search 'updated:>=2026-11-03T23:27:50Z' --json number,title,updatedAt,labels,assignees && gh pr list --repo owner/testbed --state all --search 'updated:>=2026-11-03T23:27:50Z' --json number,title,updatedAt,state,headRefName,baseRefName"
+  },
+  "tool_use_id": "call_045"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PostToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "Bash",
+  "tool_input": {
+   "command": "gh issue list --repo owner/testbed --state all --search 'updated:>=2026-11-03T23:27:50Z' --json number,title,updatedAt,labels,assignees && gh pr list --repo owner/testbed --state all --search 'updated:>=2026-11-03T23:27:50Z' --json number,title,updatedAt,state,headRefName,baseRefName"
+  },
+  "tool_response": "[{\"assignees\":[],\"labels\":[{\"id\":\"LA_kwDOVhmbsc8AAAADA5LaeA\",\"name\":\"flow:status\",\"description\":\"Session status issue; n",
+  "tool_use_id": "call_046"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PreToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "collaborationwait_agent",
+  "tool_input": {
+   "timeout_ms": 10000
+  },
+  "tool_use_id": "call_047"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "agent_id": "00000000-0000-7000-8000-0000000000a1",
+  "agent_type": "issue_worker",
+  "cwd": "/tmp/testbed/.worktrees/worker",
+  "hook_event_name": "PostToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "Bash",
+  "tool_input": {
+   "command": "sleep 30"
+  },
+  "tool_response": "",
+  "tool_use_id": "call_048"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "agent_id": "00000000-0000-7000-8000-0000000000a1",
+  "agent_type": "issue_worker",
+  "cwd": "/tmp/testbed/.worktrees/worker",
+  "hook_event_name": "PreToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "Bash",
+  "tool_input": {
+   "command": "sleep 30"
+  },
+  "tool_use_id": "call_049"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PostToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "collaborationwait_agent",
+  "tool_input": {
+   "timeout_ms": 10000
+  },
+  "tool_response": "{\"message\":\"Wait timed out.\",\"timed_out\":true}",
+  "tool_use_id": "call_050"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PreToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "Bash",
+  "tool_input": {
+   "command": "gh issue list --repo owner/testbed --state all --search 'updated:>=2026-11-03T23:27:50Z' --json number,title,updatedAt,labels,assignees && gh pr list --repo owner/testbed --state all --search 'updated:>=2026-11-03T23:27:50Z' --json number,title,updatedAt,state,headRefName,baseRefName && gh issue view 27 --repo owner/testbed --json comments"
+  },
+  "tool_use_id": "call_051"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PostToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "Bash",
+  "tool_input": {
+   "command": "gh issue list --repo owner/testbed --state all --search 'updated:>=2026-11-03T23:27:50Z' --json number,title,updatedAt,labels,assignees && gh pr list --repo owner/testbed --state all --search 'updated:>=2026-11-03T23:27:50Z' --json number,title,updatedAt,state,headRefName,baseRefName && gh issue view 27 --repo owner/testbed --json comments"
+  },
+  "tool_response": "[{\"assignees\":[],\"labels\":[{\"id\":\"LA_kwDOVhmbsc8AAAADA5LaeA\",\"name\":\"flow:status\",\"description\":\"Session status issue; n",
+  "tool_use_id": "call_052"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PreToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "collaborationwait_agent",
+  "tool_input": {
+   "timeout_ms": 10000
+  },
+  "tool_use_id": "call_053"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PostToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "collaborationwait_agent",
+  "tool_input": {
+   "timeout_ms": 10000
+  },
+  "tool_response": "{\"message\":\"Wait timed out.\",\"timed_out\":true}",
+  "tool_use_id": "call_054"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PreToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "Bash",
+  "tool_input": {
+   "command": "gh issue list --repo owner/testbed --state all --search 'updated:>=2026-11-03T23:27:50Z' --json number,title,updatedAt,labels,assignees && gh pr list --repo owner/testbed --state all --search 'updated:>=2026-11-03T23:27:50Z' --json number,title,updatedAt,state,headRefName,baseRefName"
+  },
+  "tool_use_id": "call_055"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PostToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "Bash",
+  "tool_input": {
+   "command": "gh issue list --repo owner/testbed --state all --search 'updated:>=2026-11-03T23:27:50Z' --json number,title,updatedAt,labels,assignees && gh pr list --repo owner/testbed --state all --search 'updated:>=2026-11-03T23:27:50Z' --json number,title,updatedAt,state,headRefName,baseRefName"
+  },
+  "tool_response": "[{\"assignees\":[],\"labels\":[{\"id\":\"LA_kwDOVhmbsc8AAAADA5LaeA\",\"name\":\"flow:status\",\"description\":\"Session status issue; n",
+  "tool_use_id": "call_056"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "agent_id": "00000000-0000-7000-8000-0000000000a1",
+  "agent_type": "issue_worker",
+  "cwd": "/tmp/testbed/.worktrees/worker",
+  "hook_event_name": "PostToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "Bash",
+  "tool_input": {
+   "command": "sleep 30"
+  },
+  "tool_response": "",
+  "tool_use_id": "call_057"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PreToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "collaborationwait_agent",
+  "tool_input": {
+   "timeout_ms": 10000
+  },
+  "tool_use_id": "call_058"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "agent_id": "00000000-0000-7000-8000-0000000000a1",
+  "agent_type": "issue_worker",
+  "cwd": "/tmp/testbed/.worktrees/worker",
+  "hook_event_name": "PreToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "Bash",
+  "tool_input": {
+   "command": "sleep 30"
+  },
+  "tool_use_id": "call_059"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PostToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "collaborationwait_agent",
+  "tool_input": {
+   "timeout_ms": 10000
+  },
+  "tool_response": "{\"message\":\"Wait timed out.\",\"timed_out\":true}",
+  "tool_use_id": "call_060"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PreToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "Bash",
+  "tool_input": {
+   "command": "gh issue list --repo owner/testbed --state all --search 'updated:>=2026-11-03T23:27:50Z' --json number,title,updatedAt,labels,assignees && gh pr list --repo owner/testbed --state all --search 'updated:>=2026-11-03T23:27:50Z' --json number,title,updatedAt,state,headRefName,baseRefName"
+  },
+  "tool_use_id": "call_061"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PostToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "Bash",
+  "tool_input": {
+   "command": "gh issue list --repo owner/testbed --state all --search 'updated:>=2026-11-03T23:27:50Z' --json number,title,updatedAt,labels,assignees && gh pr list --repo owner/testbed --state all --search 'updated:>=2026-11-03T23:27:50Z' --json number,title,updatedAt,state,headRefName,baseRefName"
+  },
+  "tool_response": "[{\"assignees\":[],\"labels\":[{\"id\":\"LA_kwDOVhmbsc8AAAADA5LaeA\",\"name\":\"flow:status\",\"description\":\"Session status issue; n",
+  "tool_use_id": "call_062"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PreToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "collaborationwait_agent",
+  "tool_input": {
+   "timeout_ms": 10000
+  },
+  "tool_use_id": "call_063"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PostToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "collaborationwait_agent",
+  "tool_input": {
+   "timeout_ms": 10000
+  },
+  "tool_response": "{\"message\":\"Wait timed out.\",\"timed_out\":true}",
+  "tool_use_id": "call_064"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PreToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "Bash",
+  "tool_input": {
+   "command": "gh issue list --repo owner/testbed --state all --search 'updated:>=2026-11-03T23:27:50Z' --json number,title,updatedAt,labels,assignees && gh pr list --repo owner/testbed --state all --search 'updated:>=2026-11-03T23:27:50Z' --json number,title,updatedAt,state,headRefName,baseRefName"
+  },
+  "tool_use_id": "call_065"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PostToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "Bash",
+  "tool_input": {
+   "command": "gh issue list --repo owner/testbed --state all --search 'updated:>=2026-11-03T23:27:50Z' --json number,title,updatedAt,labels,assignees && gh pr list --repo owner/testbed --state all --search 'updated:>=2026-11-03T23:27:50Z' --json number,title,updatedAt,state,headRefName,baseRefName"
+  },
+  "tool_response": "[{\"assignees\":[],\"labels\":[{\"id\":\"LA_kwDOVhmbsc8AAAADA5LaeA\",\"name\":\"flow:status\",\"description\":\"Session status issue; n",
+  "tool_use_id": "call_066"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PreToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "collaborationwait_agent",
+  "tool_input": {
+   "timeout_ms": 10000
+  },
+  "tool_use_id": "call_067"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "agent_id": "00000000-0000-7000-8000-0000000000a1",
+  "agent_type": "issue_worker",
+  "cwd": "/tmp/testbed/.worktrees/worker",
+  "hook_event_name": "PostToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "Bash",
+  "tool_input": {
+   "command": "sleep 30"
+  },
+  "tool_response": "",
+  "tool_use_id": "call_068"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "agent_id": "00000000-0000-7000-8000-0000000000a1",
+  "agent_type": "issue_worker",
+  "cwd": "/tmp/testbed/.worktrees/worker",
+  "hook_event_name": "PreToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "Bash",
+  "tool_input": {
+   "command": "sleep 30"
+  },
+  "tool_use_id": "call_069"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PostToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "collaborationwait_agent",
+  "tool_input": {
+   "timeout_ms": 10000
+  },
+  "tool_response": "{\"message\":\"Wait timed out.\",\"timed_out\":true}",
+  "tool_use_id": "call_070"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PreToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "Bash",
+  "tool_input": {
+   "command": "gh issue list --repo owner/testbed --state all --search 'updated:>=2026-11-03T23:27:50Z' --json number,title,updatedAt,labels,assignees && gh pr list --repo owner/testbed --state all --search 'updated:>=2026-11-03T23:27:50Z' --json number,title,updatedAt,state"
+  },
+  "tool_use_id": "call_071"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PostToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "Bash",
+  "tool_input": {
+   "command": "gh issue list --repo owner/testbed --state all --search 'updated:>=2026-11-03T23:27:50Z' --json number,title,updatedAt,labels,assignees && gh pr list --repo owner/testbed --state all --search 'updated:>=2026-11-03T23:27:50Z' --json number,title,updatedAt,state"
+  },
+  "tool_response": "[{\"assignees\":[],\"labels\":[{\"id\":\"LA_kwDOVhmbsc8AAAADA5LaeA\",\"name\":\"flow:status\",\"description\":\"Session status issue; n",
+  "tool_use_id": "call_072"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PreToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "collaborationwait_agent",
+  "tool_input": {
+   "timeout_ms": 10000
+  },
+  "tool_use_id": "call_073"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PostToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "collaborationwait_agent",
+  "tool_input": {
+   "timeout_ms": 10000
+  },
+  "tool_response": "{\"message\":\"Wait timed out.\",\"timed_out\":true}",
+  "tool_use_id": "call_074"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PreToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "Bash",
+  "tool_input": {
+   "command": "gh issue list --repo owner/testbed --state all --search 'updated:>=2026-11-03T23:27:50Z' --json number,title,updatedAt,labels,assignees && gh pr list --repo owner/testbed --state all --search 'updated:>=2026-11-03T23:27:50Z' --json number,title,updatedAt,state && gh issue view 27 --repo owner/testbed --json labels,comments"
+  },
+  "tool_use_id": "call_075"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PostToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "Bash",
+  "tool_input": {
+   "command": "gh issue list --repo owner/testbed --state all --search 'updated:>=2026-11-03T23:27:50Z' --json number,title,updatedAt,labels,assignees && gh pr list --repo owner/testbed --state all --search 'updated:>=2026-11-03T23:27:50Z' --json number,title,updatedAt,state && gh issue view 27 --repo owner/testbed --json labels,comments"
+  },
+  "tool_response": "[{\"assignees\":[],\"labels\":[{\"id\":\"LA_kwDOVhmbsc8AAAADA5LaeA\",\"name\":\"flow:status\",\"description\":\"Session status issue; n",
+  "tool_use_id": "call_076"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "agent_id": "00000000-0000-7000-8000-0000000000a1",
+  "agent_type": "issue_worker",
+  "cwd": "/tmp/testbed/.worktrees/worker",
+  "hook_event_name": "PostToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "Bash",
+  "tool_input": {
+   "command": "sleep 30"
+  },
+  "tool_response": "",
+  "tool_use_id": "call_077"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PreToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "collaborationwait_agent",
+  "tool_input": {
+   "timeout_ms": 10000
+  },
+  "tool_use_id": "call_078"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "agent_id": "00000000-0000-7000-8000-0000000000a1",
+  "agent_type": "issue_worker",
+  "cwd": "/tmp/testbed/.worktrees/worker",
+  "hook_event_name": "PreToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "Bash",
+  "tool_input": {
+   "command": "sleep 30"
+  },
+  "tool_use_id": "call_079"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PostToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "collaborationwait_agent",
+  "tool_input": {
+   "timeout_ms": 10000
+  },
+  "tool_response": "{\"message\":\"Wait timed out.\",\"timed_out\":true}",
+  "tool_use_id": "call_080"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PreToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "Bash",
+  "tool_input": {
+   "command": "gh issue list --repo owner/testbed --state all --search 'updated:>=2026-11-03T23:27:50Z' --json number,title,updatedAt,labels,assignees && gh pr list --repo owner/testbed --state all --search 'updated:>=2026-11-03T23:27:50Z' --json number,title,updatedAt,state"
+  },
+  "tool_use_id": "call_081"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PostToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "Bash",
+  "tool_input": {
+   "command": "gh issue list --repo owner/testbed --state all --search 'updated:>=2026-11-03T23:27:50Z' --json number,title,updatedAt,labels,assignees && gh pr list --repo owner/testbed --state all --search 'updated:>=2026-11-03T23:27:50Z' --json number,title,updatedAt,state"
+  },
+  "tool_response": "[{\"assignees\":[],\"labels\":[{\"id\":\"LA_kwDOVhmbsc8AAAADA5LaeA\",\"name\":\"flow:status\",\"description\":\"Session status issue; n",
+  "tool_use_id": "call_082"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PreToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "collaborationwait_agent",
+  "tool_input": {
+   "timeout_ms": 10000
+  },
+  "tool_use_id": "call_083"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PostToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "collaborationwait_agent",
+  "tool_input": {
+   "timeout_ms": 10000
+  },
+  "tool_response": "{\"message\":\"Wait timed out.\",\"timed_out\":true}",
+  "tool_use_id": "call_084"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PreToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "Bash",
+  "tool_input": {
+   "command": "gh issue list --repo owner/testbed --state all --search 'updated:>=2026-11-03T23:27:50Z' --json number,title,updatedAt,labels,assignees && gh pr list --repo owner/testbed --state all --search 'updated:>=2026-11-03T23:27:50Z' --json number,title,updatedAt,state"
+  },
+  "tool_use_id": "call_085"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "agent_id": "00000000-0000-7000-8000-0000000000a1",
+  "agent_type": "issue_worker",
+  "cwd": "/tmp/testbed/.worktrees/worker",
+  "hook_event_name": "PostToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "Bash",
+  "tool_input": {
+   "command": "sleep 30"
+  },
+  "tool_response": "",
+  "tool_use_id": "call_086"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PostToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "Bash",
+  "tool_input": {
+   "command": "gh issue list --repo owner/testbed --state all --search 'updated:>=2026-11-03T23:27:50Z' --json number,title,updatedAt,labels,assignees && gh pr list --repo owner/testbed --state all --search 'updated:>=2026-11-03T23:27:50Z' --json number,title,updatedAt,state"
+  },
+  "tool_response": "[{\"assignees\":[],\"labels\":[{\"id\":\"LA_kwDOVhmbsc8AAAADA5LaeA\",\"name\":\"flow:status\",\"description\":\"Session status issue; n",
+  "tool_use_id": "call_087"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PreToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "collaborationwait_agent",
+  "tool_input": {
+   "timeout_ms": 10000
+  },
+  "tool_use_id": "call_088"
+ },
+ {
+  "session_id": "00000000-0000-7000-8000-000000000075",
+  "cwd": "/tmp/testbed",
+  "hook_event_name": "PostToolUse",
+  "permission_mode": "bypassPermissions",
+  "tool_name": "collaborationwait_agent",
+  "tool_input": {
+   "timeout_ms": 10000
+  },
+  "tool_response": "{\"message\":\"Wait completed.\",\"timed_out\":false}",
+  "tool_use_id": "call_091"
+ }
+]

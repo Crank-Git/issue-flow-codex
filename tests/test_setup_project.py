@@ -10,7 +10,7 @@ import sys
 import tempfile
 import tomllib
 import unittest
-from contextlib import redirect_stdout
+from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
@@ -18,8 +18,8 @@ sys.path.insert(0, str(ROOT / "scripts"))
 
 import setup_project  # noqa: E402
 
-ROLE_NAMES = ["code_auditor", "deploy_verifier", "issue_worker",
-              "review_scribe", "ux_explorer", "ci_watcher"]
+ROLE_NAMES = ["code-auditor", "deploy-verifier", "issue-worker",
+              "review-scribe", "ux-explorer", "ci-watcher"]
 
 
 class SetupProjectTest(unittest.TestCase):
@@ -32,7 +32,10 @@ class SetupProjectTest(unittest.TestCase):
         self.plugin = base / "plugin"
         (self.plugin / "roles").mkdir(parents=True)
         for name in ROLE_NAMES:
+            role_name = name.replace("-", "_")
             (self.plugin / "roles" / f"{name}.toml").write_text(
+                f'name = "{role_name}"\ndescription = "{name}"\nmodel = "plugin-model"\n'
+                f'model_reasoning_effort = "medium"\n'
                 f'developer_instructions = "{name}"\n', encoding="utf-8")
         (self.plugin / ".codex-plugin").mkdir()
         (self.plugin / ".codex-plugin" / "plugin.json").write_text(
@@ -48,6 +51,13 @@ class SetupProjectTest(unittest.TestCase):
     def config(self):
         return (self.project / ".codex" / "config.toml").read_text(encoding="utf-8")
 
+    def test_setup_skill_routes_codex_changes_to_the_operator(self):
+        skill = (ROOT / "skills" / "setup" / "SKILL.md").read_text(encoding="utf-8")
+
+        self.assertIn("Prints `.codex/` changes for operator application", skill)
+        self.assertIn("The operator applies accepted `.codex/` changes outside Codex", skill)
+        self.assertIn("Start a new `codex` session after applying `.codex/config.toml`", skill)
+
     def test_writes_the_block_into_a_missing_config_file(self):
         self.apply()
         text = self.config()
@@ -56,6 +66,11 @@ class SetupProjectTest(unittest.TestCase):
         parsed = tomllib.loads(text)
         self.assertEqual(parsed["features"]["multi_agent_v2"]["max_concurrent_threads_per_session"], 7)
         self.assertEqual(parsed["permissions"]["issue_flow"]["extends"], ":workspace")
+        filesystem = parsed["permissions"]["issue_flow"]["filesystem"][":workspace_roots"]
+        self.assertEqual(filesystem["."], "write")
+        self.assertEqual(filesystem[".git"], "write")
+        self.assertEqual(filesystem[".agents"], "write")
+        self.assertNotIn(".codex", filesystem)
 
     def test_writes_six_role_files_the_block_and_the_gitignore_line_and_nothing_else(self):
         self.apply()
@@ -114,7 +129,80 @@ class SetupProjectTest(unittest.TestCase):
         self.apply()
         for name in ROLE_NAMES:
             self.assertEqual((self.project / ".codex" / "agents" / f"{name}.toml").read_text(encoding="utf-8"),
-                             f'developer_instructions = "{name}"\n')
+                             f'name = "{name.replace("-", "_")}"\ndescription = "{name}"\n'
+                             f'model = "plugin-model"\n'
+                             f'model_reasoning_effort = "medium"\n'
+                             f"developer_instructions = '''\n{name}\n'''\n")
+
+    def test_applies_configured_worker_model_and_effort_to_worker_role(self):
+        (self.project / ".issue-flow.codex.json").write_text(
+            json.dumps({"workerModel": "gpt-6-luna", "workerEffort": "low",
+                        "helperModel": "gpt-6.1-sol"}), encoding="utf-8")
+        self.apply()
+        role = tomllib.loads((self.project / ".codex" / "agents" / "issue-worker.toml").read_text())
+        self.assertEqual(role["model"], "gpt-6-luna")
+        self.assertEqual(role["model_reasoning_effort"], "low")
+        watcher = tomllib.loads((self.project / ".codex" / "agents" / "ci-watcher.toml").read_text())
+        self.assertEqual(watcher["model"], "gpt-6.1-sol")
+        self.assertEqual(watcher["model_reasoning_effort"], "medium")
+        helper = tomllib.loads((self.project / ".codex" / "agents" / "code-auditor.toml").read_text())
+        self.assertEqual(helper["model"], "gpt-6.1-sol")
+        self.apply("--with-default-permissions")
+        code, text = self.run_check()
+        self.assertEqual(code, 0)
+        self.assertIn("roles        ok", text)
+
+    def test_applies_helper_model_only_to_helper_roles(self):
+        (self.project / ".issue-flow.codex.json").write_text(
+            json.dumps({"helperModel": "gpt-6.1-sol"}), encoding="utf-8")
+        self.apply()
+        for name in ("code-auditor", "deploy-verifier", "review-scribe", "ux-explorer"):
+            role = tomllib.loads((self.project / ".codex" / "agents" / f"{name}.toml").read_text())
+            self.assertEqual(role["model"], "gpt-6.1-sol")
+        for name in ("issue-worker", "ci-watcher"):
+            role = tomllib.loads((self.project / ".codex" / "agents" / f"{name}.toml").read_text())
+            self.assertEqual(role["model"], "gpt-6.1-sol" if name == "ci-watcher" else "plugin-model")
+
+    def test_preserves_model_like_text_in_developer_instructions(self):
+        role = self.plugin / "roles" / "issue-worker.toml"
+        role.write_text(
+            'name = "issue_worker"\n'
+            'description = "Issue worker"\n'
+            "developer_instructions = '''Use this example:\nmodel = x\n'''\n"
+            'model = "plugin-model"\n'
+            'model_reasoning_effort = "medium"\n', encoding="utf-8")
+        self.apply()
+        rendered = (self.project / ".codex" / "agents" / "issue-worker.toml").read_text()
+        parsed = tomllib.loads(rendered)
+        self.assertEqual(parsed["developer_instructions"], "Use this example:\nmodel = x\n")
+
+    def test_writes_configured_models_at_document_root(self):
+        (self.project / ".issue-flow.codex.json").write_text(
+            json.dumps({"workerModel": "gpt-6-luna", "workerEffort": "low"}), encoding="utf-8")
+        self.apply()
+        rendered = (self.project / ".codex" / "agents" / "issue-worker.toml").read_text()
+        parsed = tomllib.loads(rendered)
+        self.assertEqual(parsed["model"], "gpt-6-luna")
+        self.assertEqual(parsed["model_reasoning_effort"], "low")
+
+    def test_applies_helper_model_to_watcher_role(self):
+        (self.project / ".issue-flow.codex.json").write_text(
+            json.dumps({"helperModel": "gpt-6-luna"}), encoding="utf-8")
+
+        self.apply()
+
+        watcher = tomllib.loads((self.project / ".codex" / "agents" / "ci-watcher.toml").read_text())
+        self.assertEqual(watcher["model"], "gpt-6-luna")
+
+    def test_applies_only_the_config_file_after_concurrency_changes(self):
+        self.apply("--with-default-permissions")
+        (self.project / ".issue-flow.json").write_text(json.dumps({"concurrency": 5}), encoding="utf-8")
+        files = setup_project.plan_files(self.project, self.plugin, None)
+        written = setup_project.apply_files(self.project, files, [".codex/config.toml"])
+        self.assertEqual(written, [".codex/config.toml"])
+        code, text = self.run_check()
+        self.assertEqual(code, 0)
+        self.assertIn("threads      ok       max_concurrent_threads_per_session = 9", text)
 
     def test_adds_worktrees_to_gitignore_once(self):
         (self.project / ".gitignore").write_text("node_modules", encoding="utf-8")
@@ -209,11 +297,51 @@ class SetupProjectTest(unittest.TestCase):
 
     def test_check_reports_stale_after_one_byte_changes_in_a_role_file(self):
         self.apply("--with-default-permissions")
-        role = self.project / ".codex" / "agents" / "issue_worker.toml"
+        role = self.project / ".codex" / "agents" / "issue-worker.toml"
         role.write_bytes(role.read_bytes() + b" ")
         code, text = self.run_check()
         self.assertEqual(code, 1)
         self.assertIn("roles        stale    5 of 6 match plugin 0.1.0", text)
+
+    def test_check_reports_stale_when_a_role_model_differs_from_config(self):
+        (self.project / ".issue-flow.codex.json").write_text(
+            json.dumps({"workerModel": "gpt-6-luna"}), encoding="utf-8")
+        self.apply("--with-default-permissions")
+        role = self.project / ".codex" / "agents" / "issue-worker.toml"
+        role.write_text(role.read_text().replace('model = "gpt-6-luna"', 'model = "wrong-model"'))
+
+        code, text = self.run_check()
+
+        self.assertEqual(code, 1)
+        self.assertIn("roles        stale", text)
+
+    def test_check_reports_malformed_role_as_stale(self):
+        self.apply("--with-default-permissions")
+        role = self.project / ".codex" / "agents" / "issue-worker.toml"
+        role.write_text("model = [invalid")
+        code, text = self.run_check()
+        self.assertEqual(code, 1)
+        self.assertIn("roles        stale", text)
+
+    def test_check_writes_one_stderr_line_for_a_malformed_role(self):
+        self.apply("--with-default-permissions")
+        role = self.project / ".codex" / "agents" / "issue-worker.toml"
+        role.write_text("model = [invalid")
+        err = io.StringIO()
+        with redirect_stderr(err):
+            self.run_check()
+        self.assertEqual(len(err.getvalue().splitlines()), 1)
+
+    def test_plan_reports_malformed_plugin_role_toml_on_one_stderr_line(self):
+        role = self.plugin / "roles" / "issue-worker.toml"
+        role.write_text("model = [invalid", encoding="utf-8")
+        err = io.StringIO()
+        with redirect_stderr(err):
+            code = setup_project.main(["plan", "--project", str(self.project),
+                                       "--plugin-root", str(self.plugin)])
+        self.assertEqual(code, 1)
+        self.assertEqual(len(err.getvalue().splitlines()), 1)
+        self.assertIn("setup_project:", err.getvalue())
 
     def test_check_reports_missing_roles_on_an_empty_project(self):
         code, text = self.run_check()
@@ -230,6 +358,16 @@ class SetupProjectTest(unittest.TestCase):
         code, text = self.run_check()
         self.assertEqual(code, 1)
         self.assertIn("threads      stale    max_concurrent_threads_per_session = 7, expected 9", text)
+        self.assertIn("config block stale", text)
+
+    def test_check_reports_stale_block_for_a_config_written_before_the_agents_rule(self):
+        self.apply("--with-default-permissions")
+        config = self.project / ".codex" / "config.toml"
+        old = config.read_text(encoding="utf-8")
+        self.assertIn('".agents" = "write"\n', old)
+        config.write_text(old.replace('".agents" = "write"\n', ""), encoding="utf-8")
+        code, text = self.run_check()
+        self.assertEqual(code, 1)
         self.assertIn("config block stale", text)
 
     def test_check_writes_no_file(self):

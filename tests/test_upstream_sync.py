@@ -44,6 +44,15 @@ class CheckTest(unittest.TestCase):
     def check(self):
         return run_main(["--check", "--root", str(self.tree)])
 
+    def test_check_reports_a_missing_lock_as_one_line(self):
+        (self.tree / "upstream.lock").unlink()
+
+        code, err = self.check()
+
+        self.assertEqual(code, 1)
+        self.assertTrue(err.startswith("upstream_sync: "))
+        self.assertEqual(len(err.splitlines()), 1)
+
     def test_check_passes_when_verbatim_files_match_the_lock(self):
         self.assertEqual(self.check(), (0, ""))
 
@@ -123,6 +132,98 @@ class ImportTest(unittest.TestCase):
         self.assertIn("sub/b.py", err)
         self.assertFalse((self.root / "upstream.lock").exists())
         self.assertFalse((self.root / "a.md").exists())
+
+
+class SyncTest(unittest.TestCase):
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.tmp)
+        self.upstream = self.tmp / "upstream"
+        source = self.upstream / "issue-flow"
+        source.mkdir(parents=True)
+        (source / "verbatim.txt").write_text("old verbatim\n")
+        (source / "rewritten.txt").write_text("old rewritten\n")
+        (source / "deleted.txt").write_text("old deleted\n")
+        (source / "dropped.txt").write_text("old dropped\n")
+        (source / "old-name.txt").write_text("rename me\n")
+        self.commit_tag("v1")
+        (source / "verbatim.txt").write_text("new verbatim\n")
+        (source / "rewritten.txt").write_text("new rewritten\n")
+        (source / "deleted.txt").unlink()
+        (source / "dropped.txt").write_text("new dropped\n")
+        (source / "old-name.txt").rename(source / "new-name.txt")
+        (source / "untracked-upstream.txt").write_text("new file\n")
+        (source / "already-locked.txt").write_text("new upstream file with an existing lock entry\n")
+        self.commit_tag("v2")
+        self.root = self.tmp / "port"
+        self.root.mkdir()
+        (self.root / "verbatim.txt").write_text("old verbatim\n")
+        (self.root / "rewritten.txt").write_text("port version\n")
+        (self.root / "already-locked.txt").write_text("port-managed file\n")
+        lock = upstream_sync.serialize_lock(str(self.upstream), "v1", self.old_commit, [
+            {"path": "verbatim.txt", "mode": "verbatim", "upstream_sha256": upstream_sync.sha256(source / "verbatim.txt"), "notes": ""},
+            {"path": "rewritten.txt", "mode": "rewritten", "upstream_sha256": "old", "notes": ""},
+            {"path": "deleted.txt", "mode": "dropped", "upstream_sha256": "old", "notes": ""},
+            {"path": "dropped.txt", "mode": "dropped", "upstream_sha256": "old", "notes": ""},
+            {"path": "old-name.txt", "mode": "patched", "upstream_sha256": "old", "notes": ""},
+            {"path": "already-locked.txt", "mode": "patched", "upstream_sha256": "", "notes": ""},
+        ])
+        (self.root / "upstream.lock").write_text(lock)
+        self.commit_port()
+
+    def commit_tag(self, tag):
+        for args in (["init", "-q"], ["add", "."] if tag == "v1" else ["add", "-A"],
+                     ["commit", "-q", "-m", tag], ["tag", tag]):
+            subprocess.run(GIT + args, cwd=self.upstream, check=True)
+        commit = subprocess.run(["git", "rev-parse", "HEAD"], cwd=self.upstream,
+                                check=True, capture_output=True, text=True).stdout.strip()
+        if tag == "v1":
+            self.old_commit = commit
+        else:
+            self.new_commit = commit
+
+    def commit_port(self):
+        for args in (["init", "-q"], ["add", "."], ["commit", "-q", "-m", "port"]):
+            subprocess.run(GIT + args, cwd=self.root, check=True)
+
+    def run_sync(self, *options):
+        return run_main([*options, "--root", str(self.root), "--repository", str(self.upstream)])
+
+    def test_sync_copies_verbatim_and_reports_other_file_changes(self):
+        self.assertEqual(self.run_sync("--to", "v2"), (0, ""))
+        self.assertEqual((self.root / "verbatim.txt").read_text(), "new verbatim\n")
+        report = (self.root / "sync-report.md").read_text()
+        self.assertIn("rewritten.txt", report)
+        self.assertIn("new rewritten", report)
+        self.assertIn("new dropped", report)
+        self.assertIn("untracked-upstream.txt", report)
+        self.assertNotIn("already-locked.txt", report.split("## Deleted upstream files")[0])
+        self.assertIn("deleted.txt", report)
+        self.assertIn("old-name.txt", report)
+        self.assertIn("new-name.txt", report)
+        lock = tomllib.loads((self.root / "upstream.lock").read_text())
+        self.assertEqual((lock["tag"], lock["commit"]), ("v2", self.new_commit))
+        for entry in lock["file"]:
+            path = self.upstream / "issue-flow" / entry["path"]
+            if path.exists():
+                self.assertEqual(entry["upstream_sha256"], upstream_sync.sha256(path))
+        self.assertEqual((self.root / "rewritten.txt").read_text(), "port version\n")
+        self.assertFalse((self.root / "deleted.txt").exists())
+
+    def test_report_only_does_not_change_the_port_or_lock(self):
+        old_lock = (self.root / "upstream.lock").read_bytes()
+        self.assertEqual(self.run_sync("--to", "v2", "--report-only"), (0, ""))
+        self.assertEqual((self.root / "upstream.lock").read_bytes(), old_lock)
+        self.assertEqual((self.root / "verbatim.txt").read_text(), "old verbatim\n")
+        self.assertTrue((self.root / "sync-report.md").exists())
+
+    def test_sync_refuses_a_dirty_tree_without_writing_files(self):
+        (self.root / "verbatim.txt").write_text("local edit\n")
+        old_lock = (self.root / "upstream.lock").read_bytes()
+        self.assertEqual(self.run_sync("--to", "v2"), (1, "upstream_sync: working tree has uncommitted changes\n"))
+        self.assertEqual((self.root / "verbatim.txt").read_text(), "local edit\n")
+        self.assertEqual((self.root / "upstream.lock").read_bytes(), old_lock)
+        self.assertFalse((self.root / "sync-report.md").exists())
 
 
 class SerializeTest(unittest.TestCase):

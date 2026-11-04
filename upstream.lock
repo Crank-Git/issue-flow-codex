@@ -75,6 +75,12 @@ upstream_sha256 = ""
 notes = "Port-only file."
 
 [[file]]
+path = ".github/workflows/upstream-check.yml"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
 path = ".gitignore"
 mode = "new"
 upstream_sha256 = ""
@@ -108,7 +114,7 @@ notes = "MIT text with the upstream and port copyright lines."
 path = "README.md"
 mode = "patched"
 upstream_sha256 = "6f5cf3ddd736fba8e560324c4bf141d28ce77dfd655b7a1e361ad9b678bfd384"
-notes = "Port header credits upstream and the license; Codex install steps follow in a later issue."
+notes = "Port header credits upstream and the license; adds the Codex install steps."
 
 [[file]]
 path = "agents/code-auditor.md"
@@ -435,6 +441,12 @@ upstream_sha256 = ""
 notes = "Port-only. Returns a test bed to seed state."
 
 [[file]]
+path = "scripts/upstream_check.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
 path = "scripts/upstream_sync.py"
 mode = "new"
 upstream_sha256 = ""
@@ -462,7 +474,7 @@ notes = "Docstring paths."
 path = "skills/issue-flow/SKILL.md"
 mode = "rewritten"
 upstream_sha256 = "c9481ee53f4c2ce6717a3ecf41170c05785a03dc03cc5b2be379d22dc5a1a3d8"
-notes = "Two roles (31-56), core invariants (88-122), Phase 0 (123-321), Stage B launch (about 590-620), Stage C notification and messaging (621-786), Stage E status (870-897), hard rules (995-1023)."
+notes = "Two roles (31-56), core invariants (88-122), Phase 0 (123-321), Stage B launch (about 590-620), Stage C notification and messaging (621-786), Stage D deployment verification, Stage E status (870-897), hard rules (995-1023)."
 
 [[file]]
 path = "skills/issue-flow/references/batching.md"
@@ -480,7 +492,7 @@ notes = "`followup_task` for worker messages."
 path = "skills/issue-flow/references/deploy.md"
 mode = "patched"
 upstream_sha256 = "de765b063ec88e254a5969728630e60bb56922af93efa6a04a03c532016c40e9"
-notes = "Watcher subagent; `codex mcp`."
+notes = "Watcher and verifier subagents; serialized Playwright MCP dispatch."
 
 [[file]]
 path = "skills/issue-flow/references/issue-worker.md"
@@ -825,6 +837,12 @@ upstream_sha256 = ""
 notes = "Port-only. Tests the reset script with faked forge calls."
 
 [[file]]
+path = "tests/test_upstream_check.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
 path = "tests/test_upstream_sync.py"
 mode = "new"
 upstream_sha256 = ""
@@ -925,3 +943,123 @@ path = "docs/adr/0004-codex-settings-file.md"
 mode = "new"
 upstream_sha256 = ""
 notes = "port-only: ADR 0004"
+
+[[file]]
+path = "tests/test_planner_scaffold.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: project-planner scaffold contract tests (#31)"
+
+[[file]]
+path = "docs/e2e/2026-11-03-issue-75-timeout-sweep.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: issue #75 live probe evidence"
+
+[[file]]
+path = "hooks/record-wait-state.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: record wait timeout and Stage A0 hook state (#75)"
+
+[[file]]
+path = "hooks/wait_state.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: store per-session wait timeout state (#75)"
+
+[[file]]
+path = "tests/fixtures/hooks/post_tool_use_bash_stage_a0_denied.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: recorded denied Stage A0 Bash payload (#75)"
+
+[[file]]
+path = "tests/fixtures/hooks/post_tool_use_wait_complete.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: recorded completed wait payload (#75)"
+
+[[file]]
+path = "tests/fixtures/hooks/post_tool_use_wait_timeout.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: recorded timed-out wait payload (#75)"
+
+[[file]]
+path = "tests/test_post_tool_use_wait.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: tests for PostToolUse wait state (#75)"
+
+[[file]]
+path = "tests/fixtures/hooks/gate75_pm_sequence.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: sanitized PM hook payloads from the #75 gate run (#75)"
+
+[[file]]
+path = "tests/test_wait_replay.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: replay the recorded PM hook sequence (#75)"
+
+[[file]]
+path = "roles/code-auditor.toml"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only role generated from agents/code-auditor.md."
+
+[[file]]
+path = "roles/deploy-verifier.toml"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only role generated from agents/deploy-verifier.md."
+
+[[file]]
+path = "roles/review-scribe.toml"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only role generated from agents/review-scribe.md."
+
+[[file]]
+path = "roles/ux-explorer.toml"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only role generated from agents/ux-explorer.md."
+
+[[file]]
+path = "tests/test_project_review_skill.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only Playwright preflight test."
+
+[[file]]
+path = ".github/workflows/tag-release.yml"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: tag an untagged manifest version on main (#42)"
+
+[[file]]
+path = "scripts/release_tag.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: select a release tag for an untagged manifest version (#42)"
+
+[[file]]
+path = "tests/test_release_tag.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: test release tag selection and documentation (#42)"
+
+[[file]]
+path = "tests/fixtures/hooks/apply_patch_outside_worktree.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: live worker apply_patch payload outside the worktrees (#108, gate #111)"
+
+[[file]]
+path = "tests/fixtures/hooks/apply_patch_inside_worktree.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: live worker apply_patch payload inside a worktree (#108, gate #111)"

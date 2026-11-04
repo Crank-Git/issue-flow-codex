@@ -219,6 +219,26 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li><strong><code>updatedInput</code> from a PreToolUse hook changes a <code>wait_agent</code> call.</strong> PreToolUse got <code>tool_name: "collaborationwait_agent"</code> and <code>tool_input: {"timeout_ms": 10000}</code>. The hook answered <code>permissionDecision: "allow"</code> with <code>updatedInput: {"timeout_ms": 40000}</code>. A subagent that ran <code>sleep 20</code> finished inside that one wait: the call returned <code>timed_out: false</code> about 22 s after it started, and the model's recorded arguments still read 10000. Evidence: one <code>gpt-6-luna</code> run, codex-cli 0.166.0, 2026-11-03, isolated <code>CODEX_HOME</code>; payload in <code>tests/fixtures/hooks/pre_tool_use_wait.json</code>.
 </li>
+<li><strong>PostToolUse reports wait timeouts.</strong> The hook payload has <code>tool_name: "collaborationwait_agent"</code>, and <code>tool_response</code> is a JSON string with <code>timed_out</code>. The hook environment includes <code>PLUGIN_DATA</code>. Evidence: one <code>gpt-6-luna</code> run, codex-cli 0.166.0, 2026-11-03, isolated <code>CODEX_HOME</code>; payloads in <code>tests/fixtures/hooks/post_tool_use_wait_timeout.json</code> and <code>post_tool_use_wait_complete.json</code>. Source: <code>hooks/src/engine/discovery.rs:312-320</code>.
+</li>
+<li><strong>A worker cannot run nested <code>codex exec</code> probes.</strong> In the first dogfood run (2026-11-03), a <code>gpt-6-luna</code> worker inside the <code>issue_flow</code> permission profile ran a nested <code>codex exec</code> probe. The PostToolUse payload capture worked, but macOS denied the nested sandbox's shell commands. Live Codex proofs therefore run from the gate harness (<code>tests/e2e/run_loop.py</code>) outside the worker sandbox.
+</li>
+<li><strong><code>PLUGIN_DATA</code> is not pre-created.</strong> Codex sets the variable for plugin hooks and does not create the directory (<code>codex-rs core-plugins/src/store.rs:27,122</code>). A hook that writes there creates it first.
+</li>
+<li><strong>The Bash PostToolUse <code>tool_response</code> is the raw command output.</strong> It is a string with no exit-code header and no exit-code field. A failed command has no marker. A command that never ran shows <code>sandbox-exec: sandbox_apply: Operation not permitted</code>. Evidence: 98 payloads from the #75 gate run (Codex 0.166.0, <code>gpt-6-luna</code>), sanitized in <code>tests/fixtures/hooks/gate75_pm_sequence.json</code>. Source: <code>codex-rs core/src/tools/context.rs:483-490</code>.
+</li>
+<li><strong>Subagent hook payloads share the PM's <code>session_id</code>.</strong> They differ by <code>agent_id</code> and <code>agent_type</code>. A hook that keeps per-session state must ignore every payload with an <code>agent_id</code>, or a worker's calls change the PM's state. Same evidence as item 18.
+</li>
+<li><strong>Gitea MCP tools appear as <code>mcp__&lt;server&gt;__&lt;tool&gt;</code>.</strong> The PostToolUse matcher <code>^mcp__.+__list_(issues|pull_requests)$</code> selects the list calls. The gate run had no MCP server, so this name shape is not yet recorded from a live run.
+</li>
+<li><strong>A spawned worker's <code>apply_patch</code> payload names the PM's project root as <code>cwd</code>.</strong> The payload has no <code>workdir</code> and no <code>task_name</code>, only <code>agent_id</code> and <code>agent_type</code>. A relative path in the patch resolves against that <code>cwd</code>, so it lands in the PM's checkout. A role guard can enforce the <code>.worktrees/</code> boundary, but it cannot tell a worker's own tree from a sibling's. Evidence: the #111 gate run (Codex 0.166.0, <code>gpt-6-luna</code>); payloads in <code>tests/fixtures/hooks/apply_patch_outside_worktree.json</code> and <code>apply_patch_inside_worktree.json</code>.
+</li>
+<li><strong>An MCP tool call needs <code>default_tools_approval_mode = "approve"</code> in <code>codex exec</code>.</strong> In the #120 gate run (Codex 0.166.0, <code>gpt-6-luna</code>, isolated <code>CODEX_HOME</code>, 2026-11-03), the <code>ux_explorer</code>'s first Playwright call failed with <code>MCP tool call requires approval, but approval policy is never</code>. After the operator added <code>default_tools_approval_mode = "approve"</code> under <code>[mcp_servers.playwright]</code>, a second run drove Playwright and saved 4 screenshots. <code>codex mcp get playwright</code> prints <code>default_tools_approval_mode: approve</code> only when the key is set. Source (commit <code>f2b94ef8</code>): <code>codex-rs/config/src/mcp_types.rs:287-289</code> (the key on <code>McpServerConfig</code>), <code>codex-rs/core/src/mcp_tool_call.rs:1768-1771</code> (the denial), <code>codex-rs/cli/src/mcp_cmd.rs:1115-1122</code> (the <code>get</code> output).
+</li>
+<li><strong>The Playwright MCP server writes into its working directory.</strong> In the same run, the server wrote <code>.playwright-mcp/</code> in the project root, and a <code>deploy_verifier</code> screenshot with a bare file name landed in the project root. <code>@playwright/mcp</code> v0.0.84 sends automatically named files to <code>--output-dir</code> and resolves an explicit file name against the workspace root. Source: https://github.com/microsoft/playwright-mcp/blob/v0.0.84/README.md (<code>--output-dir</code>, <code>browser_take_screenshot</code>).
+</li>
+<li><strong>Chromium cannot start for an E2E test inside the <code>issue_flow</code> profile on macOS.</strong> The <code>review_scribe</code>'s Playwright E2E run failed with <code>MachPortRendezvous</code> and <code>Permission denied</code>. The same test passed outside Codex. Same evidence as item 22.
+</li>
 </ol>
 <p>The profile used in facts 8 and 9:</p>
 <pre class="code"><code>default_permissions = "gitw"
@@ -229,6 +249,7 @@ extends = ":workspace"
 [permissions.gitw.filesystem.":workspace_roots"]
 "." = "write"
 ".git" = "write"
+".agents" = "write"
 
 [permissions.gitw.network]
 enabled = true</code></pre>

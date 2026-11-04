@@ -318,7 +318,7 @@ body.rv-open .layout { padding-right:21rem; }
 </ul>
 <h3 id="sandbox">Sandbox</h3>
 <ul>
-<li>The setup skill writes a permission profile <code>issue_flow</code> that extends <code>:workspace</code>, makes <code>.git</code> writable, and enables network access. Verified against: live test (worktree add, commit, and <code>git ls-remote</code> all exit 0 under this profile, and all fail under the default <code>workspace-write</code>).
+<li>The setup skill writes a permission profile <code>issue_flow</code> that extends <code>:workspace</code>, makes <code>.git</code> and <code>.agents/</code> writable, and enables network access. The profile keeps <code>.codex/</code> read-only. The operator applies <code>.codex/</code> changes and starts a new session. Verified against: the operator ruling on #109 and the profile pattern in <code>codex-harness.md</code>, fact 8.
 </li>
 <li>Subagents inherit the profile from the PM. Verified against: live test (a <code>git_worker</code> subagent created a worktree and committed).
 </li>
@@ -532,6 +532,20 @@ body.rv-open .layout { padding-right:21rem; }
 <li>2026-11-03 — Epic 2 batch gate (PR #67). The consolidated end-to-end run on the GitHub test bed (operator go-ahead: <code>gpt-6.1-sol</code> PM, <code>gpt-6-luna</code> workers) proved all 12 live criteria in attempt 1 of 3. <code>worktree.py remove</code> gained <code>--merged</code> for squash-merged branches. The run found that the PM does not always pass <code>codex.waitMs</code> or sweep after each timeout; #66 enforces both in Epic 3.
 </li>
 <li>2026-11-03 — Epic 3 batch gate (PR #80). The consolidated end-to-end run proved 10 of 11 live criteria (attempt 3 of 3). The Codex-only settings moved to <code>.issue-flow.codex.json</code> (ADR 0004). Ship-partial: #66's hook shipped, and its unmet sweep criterion moved to #75; #66 and the epic stay open. The run's other findings are #76, #77, #78, #79 and #81.
+</li>
+</ul>
+<ul>
+<li>2026-11-03 — Batch #84 gate: include #78 only. #75 remains outside the batch because its five-timeout live criterion is unmet. The host denies nested sandbox application. Draft PR #92 holds the implementation for a later gate.
+</li>
+<li>2026-11-03 — Dogfood runs 1 and 2: the Codex PM built #75-#79, #81, #94 and #95 in this repository (batch PRs #91, #93, #100), gated and merged by the Claude Code session. The live gate proof for #75 first failed (the hooks enforced nothing: <code>PLUGIN_DATA</code> not created, no <code>Exit code:</code> header in the live Bash result, subagent payloads share the PM <code>session_id</code>), then passed after the fix. #66 and Epic 3 closed. The operator ruled that Epic 4's live checks run at the batch gate.
+</li>
+<li>2026-11-03 — Epic 7 release decision: the workflow tags the current manifest version when no matching tag exists, then skips versions that already have a tag. The first main run must publish v0.1.0 because <code>origin/main</code> already contains that version before the workflow lands.
+</li>
+<li>2026-11-03 — Epic 4 batch gate (PR #107). The Codex PM built #30-#34 (dogfood run 2). The operator ruled that Epic 4's live checks run at the gate; they passed for the planner, the dual-harness scaffold (Claude Code loads <code>AGENTS.md</code> through <code>CLAUDE.md</code>), <code>spec-to-issues</code> format and <code>project-inherit</code>. Carried: #109 (the <code>issue_flow</code> profile cannot write <code>.agents/</code> or <code>.codex/</code>; operator ruling) and #110 (<code>spec-update refresh</code> live proof).
+</li>
+<li>2026-11-03 — Epic 7 batch gate (PR #124): FR-mirror-and-sync-9 named an upstream issue body format that does not exist. The sync issue body is the report itself, without its diff blocks when it is too long. The README installs at the release tag, because the default branch is <code>dev</code>.
+</li>
+<li>2026-11-03 — Epic 5 and Epic 6 batch gates (PRs #120, #124). The Codex PM built #35-#42 (dogfood run 3). The live gate passed the Epic 5 criteria on the test bed after four port repairs; browser calls need <code>default_tools_approval_mode = "approve"</code> (codex-harness facts 22-24). Project review is built. Mirror and sync stays issued until #42's release install passes after the promotion that tags v0.1.0.
 </li>
 </ul><nav class="pager">
 <span></span>

@@ -243,6 +243,11 @@ source of your worktree rules.
   outside is fine. The hooks check tool names and command prefixes (`hooks/role-policy.json`).
   They cannot see the target path inside a script or a redirect, so the discipline is
   yours. Your subagents keep the same rule (see the rules above).
+- **Give `apply_patch` an absolute path.** `apply_patch` has no working directory. Every
+  path in a patch must be an absolute path inside your own worktree, or inside your scratch
+  directory. A relative path lands in the PM's checkout, and the role guard denies it.
+  The guard checks the `.worktrees/` boundary only. Writing only in your own worktree
+  stays your rule.
 - **Never reset or force-push a branch that has a PR.** If the PM sent this issue back for
   rework, the branch already holds commits. Continue them. If `origin/<branch>` and the
   worktree disagree, return `blocked`.

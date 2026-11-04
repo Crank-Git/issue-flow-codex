@@ -27,6 +27,8 @@ import sys
 import tomllib
 from pathlib import Path
 
+from build_roles import LITERAL_DELIMITER, toml_basic
+
 DEFAULT_CONCURRENCY = 3
 # The thread limit holds one slot per worker, one watcher, two worker subagents, and the PM.
 THREAD_OVERHEAD = 4
@@ -46,6 +48,7 @@ extends = ":workspace"
 [permissions.issue_flow.filesystem.":workspace_roots"]
 "." = "write"
 ".git" = "write"
+".agents" = "write"
 
 [permissions.issue_flow.network]
 enabled = true
@@ -97,6 +100,21 @@ def render_block(concurrency, with_default_permissions):
     return BLOCK_TEMPLATE.format(permissions_line=line, threads=concurrency + THREAD_OVERHEAD)
 
 
+def render_role(role):
+    """Return role TOML with model fields at the document root."""
+    instructions = role["developer_instructions"]
+    if LITERAL_DELIMITER in instructions:
+        raise SetupError("role developer_instructions contains the TOML literal delimiter")
+    return "\n".join([
+        f"name = {toml_basic(role['name'])}",
+        f"description = {toml_basic(role['description'])}",
+        f"model = {toml_basic(role['model'])}",
+        f"model_reasoning_effort = {toml_basic(role['model_reasoning_effort'])}",
+        f"developer_instructions = {LITERAL_DELIMITER}",
+        instructions.rstrip("\n") + "\n" + LITERAL_DELIMITER,
+    ]) + "\n"
+
+
 def merge_config(existing, block):
     """Return the config text with the block in place of the old block, or inserted.
 
@@ -125,8 +143,29 @@ def merge_config(existing, block):
 def plan_files(project, plugin_root, with_default_permissions):
     """Return {relative path: new text} for each file that setup changes."""
     wanted = {}
+    codex_path = project / ".issue-flow.codex.json"
+    try:
+        codex = json.loads(codex_path.read_text(encoding="utf-8")) if codex_path.is_file() else {}
+    except json.JSONDecodeError as exc:
+        raise SetupError(f".issue-flow.codex.json is not valid JSON: {exc}") from exc
+    if not isinstance(codex, dict):
+        raise SetupError(".issue-flow.codex.json must contain an object")
+    for key in ("workerModel", "workerEffort", "helperModel"):
+        if key in codex and not isinstance(codex[key], str):
+            raise SetupError(f".issue-flow.codex.json: {key} must be a string")
     for role in sorted((plugin_root / "roles").glob("*.toml")):
-        wanted[f".codex/agents/{role.name}"] = role.read_text(encoding="utf-8")
+        text = role.read_text(encoding="utf-8")
+        try:
+            parsed = tomllib.loads(text)
+        except tomllib.TOMLDecodeError as exc:
+            raise SetupError(f"role source is not valid TOML: {role}: {exc}") from exc
+        if role.stem == "issue-worker":
+            parsed["model"] = codex.get("workerModel", parsed["model"])
+            parsed["model_reasoning_effort"] = codex.get("workerEffort", parsed["model_reasoning_effort"])
+        elif role.stem in ("code-auditor", "deploy-verifier", "review-scribe", "ux-explorer", "ci-watcher"):
+            parsed["model"] = codex.get("helperModel", parsed["model"])
+        text = render_role(parsed)
+        wanted[f".codex/agents/{role.name}"] = text
 
     config = project / ".codex" / "config.toml"
     existing = config.read_text(encoding="utf-8") if config.is_file() else ""
@@ -185,7 +224,25 @@ def check_report(project, plugin_root):
 
     wanted = sorted((plugin_root / "roles").glob("*.toml"))
     copies = [project / ".codex" / "agents" / r.name for r in wanted]
-    matching = sum(c.is_file() and c.read_bytes() == r.read_bytes() for r, c in zip(wanted, copies))
+    codex_path = project / ".issue-flow.codex.json"
+    codex = json.loads(codex_path.read_text(encoding="utf-8")) if codex_path.is_file() else {}
+    matching = 0
+    for source, copy in zip(wanted, copies):
+        if not copy.is_file():
+            continue
+        try:
+            source_role = tomllib.loads(source.read_text(encoding="utf-8"))
+            tomllib.loads(copy.read_text(encoding="utf-8"))
+        except tomllib.TOMLDecodeError:
+            print(f"setup_project: malformed role copy: {copy}", file=sys.stderr)
+            continue
+        if source.stem == "issue-worker":
+            source_role["model"] = codex.get("workerModel", source_role["model"])
+            source_role["model_reasoning_effort"] = codex.get(
+                "workerEffort", source_role["model_reasoning_effort"])
+        elif source.stem in ("code-auditor", "deploy-verifier", "review-scribe", "ux-explorer", "ci-watcher"):
+            source_role["model"] = codex.get("helperModel", source_role["model"])
+        matching += render_role(source_role) == copy.read_text(encoding="utf-8")
     absent = not all(c.is_file() for c in copies)
     rows.append(("roles", "missing" if absent else "ok" if matching == len(wanted) else "stale",
                  f"{matching} of {len(wanted)} match plugin {version}"))

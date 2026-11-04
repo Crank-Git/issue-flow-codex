@@ -37,9 +37,10 @@ class FakeForge:
         self.calls = []
         self.git_commands = []
 
-    def add_issue(self, title, state="open"):
+    def add_issue(self, title, state="open", body="", labels=None):
         number = len(self.issues) + 1
-        self.issues[number] = {"number": number, "title": title, "state": state}
+        self.issues[number] = {"number": number, "title": title, "state": state,
+                               "body": body, "labels": labels or []}
         return number
 
     def __call__(self, args, input=None, cwd=None, env=None):
@@ -102,8 +103,12 @@ class FakeForge:
             number = self.add_issue(body["title"])
             self.issues[number]["body"] = body
             return done(json.dumps({"number": number}))
+        if path.startswith(repo + "/issues/") and path.endswith("/labels") and method == "PUT":
+            number = int(path.split("/")[-2])
+            self.issues[number]["labels"] = body["labels"]
+            return done("[]")
         if path.startswith(repo + "/issues/") and method == "PATCH":
-            self.issues[int(path.rsplit("/", 1)[1])]["state"] = body["state"]
+            self.issues[int(path.rsplit("/", 1)[1])].update(body)
             return done("{}")
         raise AssertionError(f"unexpected call {method} {path}")
 
@@ -209,6 +214,39 @@ class ResetTest(unittest.TestCase):
         forge.reset("github")
         self.assertEqual(forge.issues[closed]["state"], "open")
         self.assertEqual([i["title"] for i in forge.issues.values()].count(SEED_TITLES[0]), 1)
+
+    def test_reopens_a_closed_github_seed_issue_with_changed_fields(self):
+        self.assert_reopens_changed_seed_issue("github")
+
+    def test_reopens_a_closed_gitea_seed_issue_with_changed_fields(self):
+        self.assert_reopens_changed_seed_issue("gitea")
+
+    def assert_reopens_changed_seed_issue(self, forge_name):
+        forge = FakeForge(forge_name)
+        forge.reset(forge_name)
+        issue = next(item for item in forge.issues.values() if item["title"] == SEED_TITLES[0])
+        issue.update(body="Changed body", labels=["status:batched"])
+        issue["state"] = "closed"
+        self.assertEqual(issue["state"], "closed")
+        forge.reset(forge_name)
+        seed = json.loads((ROOT / "testbed" / "seed" / "issues.json").read_text())
+        expected = seed["issues"][0]
+        restored = forge.issues[issue["number"]]
+        self.assertEqual(restored["title"], expected["title"])
+        self.assertEqual(restored["body"], expected["body"])
+        self.assertEqual(restored["state"], "open")
+        if forge_name == "github":
+            update = next(call[3] for call in forge.calls if call[1] == "PATCH" and
+                          call[2].endswith(f"/issues/{issue['number']}"))
+            self.assertEqual(update["labels"], expected["labels"])
+        else:
+            expected_ids = [next(label["id"] for label in forge.labels if label["name"] == name)
+                            for name in expected["labels"]]
+            update = next(call[3] for call in forge.calls if call[1] == "PUT" and
+                          call[2].endswith(f"/issues/{issue['number']}/labels"))
+            self.assertEqual(update["labels"], expected_ids)
+        self.assertEqual(restored["labels"], expected["labels"] if forge_name == "github"
+                         else expected_ids)
 
     def test_opens_the_seed_issues_once_across_two_runs(self):
         forge = FakeForge("github")

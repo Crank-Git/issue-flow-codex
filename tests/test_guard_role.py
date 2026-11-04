@@ -10,6 +10,7 @@ import json
 import os
 import subprocess
 import sys
+import tempfile
 import unittest
 from pathlib import Path
 
@@ -17,6 +18,8 @@ ROOT = Path(__file__).resolve().parent.parent
 HOOK = ROOT / "hooks" / "guard-role.py"
 FIXTURES = ROOT / "tests" / "fixtures" / "hooks"
 APPLY_PATCH = json.loads((FIXTURES / "pre_tool_use_apply_patch.json").read_text())
+OUTSIDE = json.loads((FIXTURES / "apply_patch_outside_worktree.json").read_text())
+INSIDE = json.loads((FIXTURES / "apply_patch_inside_worktree.json").read_text())
 BASH = json.loads((FIXTURES / "pre_tool_use_bash.json").read_text())
 
 
@@ -38,6 +41,12 @@ def bash(role, command):
 def patch(role, *paths):
     text = "*** Begin Patch\n" + "".join(f"*** Add File: {p}\n+x\n" for p in paths) + "*** End Patch"
     return payload(APPLY_PATCH, role, tool_input={"command": text})
+
+
+def worker_patch(*directives, **changes):
+    """Build a worker apply_patch payload. A spawned worker's cwd is the PM's project root."""
+    text = "*** Begin Patch\n" + "\n".join(directives) + "\n*** End Patch"
+    return payload(OUTSIDE, "issue_worker", tool_input={"command": text}, **changes)
 
 
 def spawn(role, spawned):
@@ -80,8 +89,56 @@ class RoleGuardTest(unittest.TestCase):
     def test_denies_apply_patch_for_code_auditor(self):
         self.assertDenied(patch("code_auditor", "note.txt"), "code_auditor", "apply_patch")
 
-    def test_allows_apply_patch_for_issue_worker(self):
-        self.assertAllowed(patch("issue_worker", "note.txt"))
+    def test_denies_issue_worker_patch_outside_the_worktrees_by_absolute_path(self):
+        self.assertDenied(OUTSIDE, "worktree", "/home/user/project/README.md")
+
+    def test_allows_issue_worker_patch_inside_a_worktree_by_absolute_path(self):
+        self.assertAllowed(INSIDE)
+
+    def test_denies_issue_worker_patch_by_relative_path_into_the_project_checkout(self):
+        self.assertDenied(worker_patch("*** Update File: README.md"),
+                          "worktree", "README.md", ".worktrees/")
+
+    def test_allows_issue_worker_patch_by_relative_path_under_worktrees(self):
+        self.assertAllowed(worker_patch("*** Update File: .worktrees/worker_1/README.md"))
+
+    def test_allows_issue_worker_patch_into_the_system_temp_directory(self):
+        for root in (tempfile.gettempdir(), "/tmp", "/private/tmp", "/var/folders/ab/cd"):
+            with self.subTest(root=root):
+                self.assertAllowed(worker_patch(f"*** Add File: {root}/pr-body.md"))
+
+    def test_denies_a_patch_to_the_project_checkout_when_the_project_lives_under_a_temp_dir(self):
+        # On macOS, /tmp is a link to /private/tmp. On Linux, it is not.
+        project = os.path.realpath("/tmp/proj")
+        for path in (f"{project}/README.md", "/tmp/proj/README.md", "README.md"):
+            with self.subTest(path=path):
+                self.assertDenied(worker_patch(f"*** Update File: {path}", cwd=project),
+                                  "worktree", "README.md")
+
+    def test_allows_a_patch_to_a_worktree_when_the_project_lives_under_a_temp_dir(self):
+        self.assertAllowed(worker_patch(
+            "*** Update File: /private/tmp/proj/.worktrees/worker_1/README.md",
+            cwd="/private/tmp/proj"))
+
+    def test_allows_a_scratch_patch_in_a_temp_dir_outside_the_project(self):
+        self.assertAllowed(worker_patch("*** Add File: /private/tmp/scratch/pr-body.md",
+                                        cwd="/private/tmp/proj"))
+
+    def test_denies_a_scratch_looking_path_that_is_inside_the_project(self):
+        self.assertDenied(worker_patch("*** Add File: /private/tmp/proj/scratch/pr-body.md",
+                                       cwd="/private/tmp/proj"), "worktree", "pr-body.md")
+
+    def test_denies_issue_worker_patch_that_climbs_out_of_the_worktrees(self):
+        for directive in ("Add File", "Update File", "Delete File", "Move to"):
+            with self.subTest(directive=directive):
+                self.assertDenied(worker_patch(
+                    f"*** {directive}: /home/user/project/.worktrees/worker_1/../../README.md"),
+                    "worktree", "README.md")
+
+    def test_denies_issue_worker_move_out_of_the_worktrees(self):
+        self.assertDenied(worker_patch(
+            "*** Update File: .worktrees/worker_1/a.md", "*** Move to: skills/a.md"),
+            "skills/a.md")
 
     def test_denies_spawn_of_issue_worker_from_issue_worker(self):
         self.assertDenied(spawn("issue_worker", "issue_worker"), "issue_worker", "spawn")
@@ -105,6 +162,16 @@ class RoleGuardTest(unittest.TestCase):
     def test_denies_playwright_tools_for_code_auditor(self):
         self.assertDenied(payload(BASH, "code_auditor", tool_name="mcp__playwright__browser_click"),
                           "code_auditor", "mcp__playwright__")
+
+    def test_denies_playwright_tools_for_review_scribe(self):
+        self.assertDenied(payload(BASH, "review_scribe",
+                                  tool_name="mcp__playwright__browser_click"),
+                          "review_scribe", "mcp__playwright__")
+
+    def test_denies_apply_patch_for_each_read_only_review_role(self):
+        for role in ("code_auditor", "deploy_verifier"):
+            with self.subTest(role=role):
+                self.assertDenied(patch(role, "note.txt"), role, "apply_patch")
 
     def test_allows_playwright_tools_for_ux_explorer(self):
         self.assertAllowed(payload(BASH, "ux_explorer", tool_name="mcp__playwright__browser_click"))

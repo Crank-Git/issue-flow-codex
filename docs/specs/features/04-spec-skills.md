@@ -2,7 +2,7 @@
 id: spec-skills
 feature: Spec skills
 epic: "Epic 4: Spec skills"
-status: issued
+status: built
 issues: [30, 31, 32, 33, 34]
 mockups: []
 ---
@@ -41,7 +41,7 @@ and the brief carries their paths.
 - FR-spec-skills-10 — The planner writes `docs/rules/ste.md`, `docs/rules/quality.md`, and `docs/rules/external-apis.md` with the upstream rule content.
 - FR-spec-skills-11 — `AGENTS.md` lists each file in `docs/rules/` and states when a reader must read it.
 - FR-spec-skills-12 — The planner writes the project skills `run` and `test` at `.agents/skills/<name>/SKILL.md`.
-- FR-spec-skills-13 — The planner writes project hooks to `.codex/hooks.json`, with the upstream hook safety rules.
+- FR-spec-skills-13 — The planner prints project hooks as `.codex/hooks.json` content for the operator to apply, with the upstream hook safety rules.
 - FR-spec-skills-14 — The planner does not write a permission allow-list. The `issue_flow` permission profile from the setup skill replaces it.
 - FR-spec-skills-15 — When the operator selects dual-harness mode, the planner also writes `CLAUDE.md` with the single line `@AGENTS.md`.
 - FR-spec-skills-16 — When the operator selects dual-harness mode, the planner also writes `.claude/rules/<name>.md` files that hold the upstream `paths:` front-matter and a pointer to `docs/rules/<name>.md`.
@@ -73,10 +73,10 @@ flowchart TD
     D --> E{"Enough to write the spec?"}
     E -- "no" --> C
     E -- "yes" --> F["Write docs/specs/ and render spec.html"]
-    F --> G["Propose the scaffold: AGENTS.md, docs/rules, .agents/skills, .codex/hooks.json, dual-harness option"]
+    F --> G["Propose the scaffold: AGENTS.md, docs/rules, .agents/skills, printed hooks for .codex/hooks.json, dual-harness option"]
     G --> H{"Operator approves?"}
     H -- "revise" --> F
-    H -- "approve" --> I["Write the scaffold, set status: approved"]
+    H -- "approve" --> I["Write approved scaffold files, print hooks for operator application, set status: approved"]
     I --> J["Hand off: $issue-flow:spec-to-issues"]
 ```
 
@@ -87,7 +87,7 @@ flowchart TD
 5. The planner writes the spec package and renders it.
 6. The planner proposes the scaffold, including the dual-harness option.
 7. If the operator asks for changes, the planner revises and renders again.
-8. When the operator approves, the planner writes the scaffold and sets `status: approved`.
+8. When the operator approves, the planner writes approved scaffold files, prints hooks for operator application, and sets `status: approved`.
 9. The planner names the next skill: `$issue-flow:spec-to-issues`.
 
 ## Screens & states
@@ -124,6 +124,7 @@ The feature has no screens. `spec.html` is the upstream renderer output and does
 
 - [ ] `$issue-flow:project-planner` on an empty test project produces a spec package that `render-spec.py` renders with no error. (FR-spec-skills-1 to 6, 22)
 - [ ] The scaffold holds `AGENTS.md`, three `docs/rules/` files, and two `.agents/skills/` skills. (FR-spec-skills-7 to 12)
+- [ ] The planner prints the approved hooks as `.codex/hooks.json` content for the operator to apply. (FR-spec-skills-13)
 - [ ] All `AGENTS.md` files together are under 24 KiB. (FR-spec-skills-9)
 - [ ] In dual-harness mode, Claude Code started in the project loads `AGENTS.md` through `CLAUDE.md`. (FR-spec-skills-15)
 - [ ] The planner on a project with an existing `AGENTS.md` changes no line of it without approval. (FR-spec-skills-18)

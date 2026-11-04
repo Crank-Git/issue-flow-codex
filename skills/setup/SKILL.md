@@ -1,6 +1,6 @@
 ---
 name: setup
-description: Configure one project for the issue-flow loop. Use when the operator says "$issue-flow:setup", "set up issue-flow", or "configure this project for issue-flow". Copies the role files into .codex/agents/, writes the issue-flow block in .codex/config.toml, and adds .worktrees/ to .gitignore. Shows the diff of each file and writes a file only after the operator accepts it. Also checks an existing setup when the operator asks.
+description: Configure one project for the issue-flow loop. Use when the operator says "$issue-flow:setup". Prints `.codex/` changes for operator application, writes accepted files outside `.codex/`, and checks existing setup.
 ---
 
 # Setup — configure a project for the issue-flow loop
@@ -34,23 +34,28 @@ directory two levels above it. Call it `<pluginRoot>`. The script is
    flag, a line that the file holds stays. If you add a flag, run `plan` again and
    show the new diff of `.codex/config.toml`.
 6. Ask about each file, one question per file, in plain text. Name the path as the plan
-   shows it, for example `.codex/agents/issue_worker.toml`, `.codex/config.toml`, or
-   `.gitignore`, and ask "Write this file?". Then end your turn and wait for the
-   answers. Codex has no question tool in default mode, so the operator answers in the
-   next message. Accept a file only when the operator accepts its diff.
+   shows it, for example `.codex/agents/issue-worker.toml`, `.codex/config.toml`, or
+   `.gitignore`, and ask whether the operator will apply the change. Then end your turn
+   and wait for the answers. Codex has no question tool in default mode. The operator
+   answers in the next message. Accept a file only when the operator accepts its diff.
 7. Run `python3 <pluginRoot>/scripts/setup_project.py apply --project <project> --accept <file>...`
-   with the accepted files only. Keep the default-permissions flag from step 5.
-   The command writes only those files. Do not write any other file.
-8. End with a last message that tells the operator these steps:
+   for accepted files outside `.codex/` only. Keep the default-permissions flag from
+   step 5. The operator applies accepted `.codex/` changes outside Codex because the
+   session keeps `.codex/` read-only. Skip the command when no other file is accepted.
+8. End with a message that lists the next steps:
+   - Apply accepted `.codex/` changes outside Codex.
+   - Start a new `codex` session after applying `.codex/config.toml`. Codex reads the
+     profile at session start.
    - Run `/hooks` and trust the issue-flow hooks. Codex skips plugin hooks that the operator has not trusted.
-   - Start a new `codex` session. Codex reads `.codex/` only for a trusted project.
+   - Start another `codex` session to load the trusted plugin hooks.
 
 ## Check mode
 
 When the operator asks to check the setup, run
 `python3 <pluginRoot>/scripts/setup_project.py check --project <project>` and show the
 output. The command writes nothing. Each item is `ok`, `missing`, or `stale`. A role
-file is `stale` when its bytes differ from the plugin copy. The `hooks` item is always
+file is `stale` when its keys other than `model` and `model_reasoning_effort` differ from
+the plugin copy. The `hooks` item is always
 `unknown`: tell the operator to run `/hooks` to see the trust state. Exit code 1 means
 an item is `missing` or `stale`. Offer to run the setup procedure to repair it.
 
@@ -60,6 +65,10 @@ an item is `missing` or `stale`. Offer to run the setup procedure to repair it.
   `# issue-flow:end`. The script changes no text outside those lines.
 - The thread limit is the run concurrency plus 4. The script reads the concurrency from
   `<project>/.issue-flow.json` and uses 3 when the file has none.
+- Setup reads `workerModel`, `workerEffort`, and `helperModel` from
+  `<project>/.issue-flow.codex.json`. It uses each plugin role value when a key is absent.
+- If the operator changes concurrency, rerun `plan` and show its full diff. Ask about
+  `.codex/config.toml` only, then apply only that file with `--accept .codex/config.toml`.
 - A rerun of `apply` keeps a `default_permissions` line that the block holds, unless
   the operator rejects it.
 - If the script exits with an error, show the operator the message. Do not edit the files by hand.

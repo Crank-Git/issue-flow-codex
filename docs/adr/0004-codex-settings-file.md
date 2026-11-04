@@ -15,4 +15,4 @@ The Codex-only settings live in `.issue-flow.codex.json` at the repository root,
 
 - An upstream PM cannot lose a Codex setting, because it never opens the file.
 - Both harnesses can share `.issue-flow.json` unchanged (Goal 4).
-- Values that both harnesses own, such as `pluginVersion`, still sit in the shared file; #77 moves the Codex plugin version out of it.
+- The shared file keeps the upstream `pluginVersion`; the Codex version lives in `.issue-flow.codex.json`.

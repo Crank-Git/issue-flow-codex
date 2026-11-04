@@ -25,7 +25,7 @@ sub-merges. When the PM has no other step, it calls `wait_agent` (`SKILL.md`, th
 verdict section, owns the rules).
 
 The worker is an **independent engineer** on `gpt-6.1-sol`: it may research (web), use the
-MCP servers that the session configures (there is no `ToolSearch`), and spawn its own subagents when a thread slot is free — all
+MCP servers that the session configures, and spawn its own subagents when a thread slot is free — all
 **confined to that issue's worktree** and its own scratch directory,
 and all finished before it returns its verdict. The PM sets none of this;
 it lives in the worker's agent definition. A worker may also **file new untriaged issues**
@@ -71,10 +71,10 @@ practices:    tdd: true|false            (tests land with or before the implemen
               coverage: <n>|null         (threshold to report in localChecks)
               commitStyle: <e.g. conventional>
               docs: none|public-api|all
-steRule:      <path to the writing standard, absolute: docs/rules/ste.md when the project
-               has it, else .claude/rules/ste.md when that exists, else
-               <pluginRoot>/references/ste.md>
-qualityRule:  <path to the quality rules, set the same way as steRule>
+steRule:      <absolute path to the writing standard: <project>/docs/rules/ste.md when it exists,
+               else <pluginRoot>/references/ste.md>
+qualityRule:  <absolute path to the quality rules: <project>/docs/rules/quality.md when it exists;
+               omit this field otherwise>
 pluginRoot:   <absolute path of the plugin directory: two levels above this skill's
                `SKILL.md`, e.g. …/issue-flow when the skill is at
                …/issue-flow/skills/issue-flow>
@@ -82,7 +82,7 @@ pluginRoot:   <absolute path of the plugin directory: two levels above this skil
 
 `pluginRoot` is not optional either. A worker is not told where its own definition lives,
 and Codex gives a role no plugin root, so every `../references/…` link in its runbook — forge operations, the writing standard,
-the finding policy — and the Gitea CI-watch script (`scripts/gitea-ci-watch.sh`) are
+the finding policy — and the CI watcher script are
 reachable only through it. The PM knows the path: Codex shows the absolute path of
 `SKILL.md` when the skill loads.
 

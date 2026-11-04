@@ -1,14 +1,15 @@
 ---
 name: repo-mirror
-description: Keep a project's specs, issues and PRs private while publishing its code to a public mirror. Use when the user says "/repo-mirror", "make the specs private", "set up a public mirror", "mirror this repo", "convert this repo to private + public mirror", "clean the specs out of the public repo", or "import a PR from the mirror". Three modes - setup (a new private repo plus a filtered public mirror kept in sync by a GitHub Actions job), convert (move an existing public repo to that model and remove the specs from its history - either the existing repo becomes the mirror, or, for a repo with no forks and few stars, it is renamed and made private and a new public repo takes its name; always behind a full dry run and an explicit go-ahead), and import (bring an outside contributor's PR from the public mirror into the private repo). GitHub only.
+description: Keep a project's specs, issues and PRs private while publishing its code to a public mirror. Use when the user starts `$issue-flow:repo-mirror`, "make the specs private", "set up a public mirror", "mirror this repo", "convert this repo to private + public mirror", "clean the specs out of the public repo", or "import a PR from the mirror". Three modes - setup (a new private repo plus a filtered public mirror kept in sync by a GitHub Actions job), convert (move an existing public repo to that model and remove the specs from its history - either the existing repo becomes the mirror, or, for a repo with no forks and few stars, it is renamed and made private and a new public repo takes its name; always behind a full dry run and an explicit go-ahead), and import (bring an outside contributor's PR from the public mirror into the private repo). GitHub only.
 ---
 
 # Repo mirror — private source of truth, filtered public mirror
 
-The private repo holds everything: code, `docs/specs/`, `CLAUDE.md`, `.claude/`, the
-issue-flow issues and PRs. A GitHub Actions job in the private repo publishes a filtered
-copy of chosen branches and all tags to the public repo. issue-flow runs against the
-private repo and does not change.
+The private repo holds everything: code, `docs/specs/`, `AGENTS.md`, `.codex/`,
+`.agents/`, `docs/rules/`, `CLAUDE.md`, `.claude/`, the issue-flow issues and PRs.
+
+A GitHub Actions job in the private repo publishes a filtered copy of chosen branches and
+all tags to the public repo. issue-flow runs against the private repo and does not change.
 
 The filter is [`scripts/mirror_filter.py`](scripts/mirror_filter.py): git filter-repo
 with a fixed exclude list. It is **deterministic** — the same history gives the same
@@ -28,7 +29,8 @@ later sync produce the same commits. Never filter with anything else, and pin
   "private": "owner/name-private",
   "public": "owner/name",
   "branches": ["main"],
-  "exclude": ["docs/specs/", "docs/adr/", "CLAUDE.md", "glob:*/CLAUDE.md", ".claude/",
+  "exclude": ["docs/specs/", "docs/adr/", "docs/rules/", "AGENTS.md", "glob:*/AGENTS.md",
+              ".codex/", ".agents/", "CLAUDE.md", "glob:*/CLAUDE.md", ".claude/",
               ".issue-flow.json", ".github/mirror/", ".github/workflows/mirror.yml"],
   "cutover": 0
 }
@@ -39,6 +41,8 @@ later sync produce the same commits. Never filter with anything else, and pin
   itself out of the mirror. Always keep them. Once the mirror is live, a changed list
   rewrites every commit that touches the affected paths, so every sync after it is
   rejected until the one-time repair in Rules runs. Say so before you change it.
+  A config with its own `exclude` list replaces the default list. That list must name
+  the Codex private paths (`AGENTS.md`, `.codex/`, `.agents/`) itself.
 - **`branches`** — the live branch, plus `dev` under the dev-and-live model. Never the
   `issue/`, `batch/`, `epic/`, `review/` or `spec/` branches. Only tags that one of
   these branches contains are mirrored; a tag on any other branch is skipped.
@@ -130,7 +134,7 @@ Work in the scratch directory. Change nothing on GitHub.
    and the branches the user names.
 2. **History.** `mirror_filter.py stats` on the clone. Also list every path in history
    that looks private but is not excluded — `docs/*.md` design notes, investigation
-   write-ups, other agent files (`AGENTS.md`, `.cursor/`) — and ask about each.
+   write-ups, and agent files such as `.cursor/` — and ask about each.
 3. **Rehearse the filter.** Run `filter` twice into two directories, then `check`.
    Report: both runs give the same hashes for every mirrored ref; commits before and
    after; commits pruned; old → new hash of every tag; how many signed commits lose

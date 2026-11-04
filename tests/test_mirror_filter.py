@@ -72,6 +72,28 @@ def build(root):
     return source, config
 
 
+def build_private_paths(root):
+    source = os.path.join(root, "private-paths")
+    os.makedirs(source)
+    git(source, "init", "-q", "-b", "main")
+    commit(source, {
+        "main.go": "public\n",
+        "AGENTS.md": "private\n",
+        "nested/AGENTS.md": "private\n",
+        ".codex/config.toml": "private\n",
+        ".agents/skills/private/SKILL.md": "private\n",
+        "docs/rules/quality.md": "private\n",
+    }, "Add source files", CUTOVER)
+    config = os.path.join(root, "default-config.json")
+    with open(config, "w") as handle:
+        json.dump({
+            "private": "owner/repo-private",
+            "public": "owner/repo",
+            "branches": ["main"],
+        }, handle)
+    return source, config
+
+
 class MirrorFilterTest(unittest.TestCase):
     def setUp(self):
         self.root = tempfile.mkdtemp()
@@ -89,6 +111,20 @@ class MirrorFilterTest(unittest.TestCase):
         first = self.run_filter("first")
         files = set(git(first, "log", "--all", "--format=", "--name-only").split())
         self.assertEqual(files, {"main.go"})
+
+    def test_default_exclusions_drop_codex_private_paths(self):
+        source, config = build_private_paths(self.root)
+        out = self.run_filter("private-paths-mirror", config=config, source=source)
+        files = set(git(out, "log", "--all", "--format=", "--name-only").split())
+        self.assertEqual(files, {"main.go"})
+
+    def test_check_finds_codex_private_paths_in_source_history(self):
+        source, config = build_private_paths(self.root)
+        check = mirror("check", "--config", config, "--repo", source)
+        self.assertEqual(check.returncode, 1)
+        for path in ("AGENTS.md", "nested/AGENTS.md", ".codex/config.toml",
+                     ".agents/skills/private/SKILL.md", "docs/rules/quality.md"):
+            self.assertIn(f"LEAK {path}", check.stdout)
 
     def test_prunes_a_commit_that_touches_only_excluded_paths(self):
         first = self.run_filter("first")

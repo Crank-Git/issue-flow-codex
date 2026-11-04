@@ -219,7 +219,7 @@ Batch complete = every member `status:batched` or terminally parked.
    before pushing — `git log -1 --format='%s%n%b' | grep -ciE 'skip|no ci' || true` must
    print `0` (the alternation covers `[no ci]`, which a bare `skip` match misses; the
    `|| true` absorbs `grep -c`'s exit 1 on a zero count, which is the *passing* case) —
-   then poll `ci-watch` to a terminal verdict, anchored to the SHA you just pushed.
+   then wait for the CI watcher to return to a terminal verdict, anchored to the SHA you just pushed.
    `no-run-registered` means the trigger did not take; it is never a pass. Grep the
    commit to tell the two causes apart (`… | grep -niE '\[(skip[ -]?ci|ci skip|no ci|skip actions|actions skip)\]' || true`, the `|| true` keeping the no-token
    branch reachable under `set -e`; fetch the SHA first, or `git log` exits 128 and the

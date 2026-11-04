@@ -153,7 +153,7 @@ body.rv-open .layout { padding-right:21rem; }
 </ul></aside>
 <main>
 <h1>Feature: Loop operations</h1>
-<p class="meta">Epic 3: Loop operations &nbsp; <span class="badge">issued</span></p>
+<p class="meta">Epic 3: Loop operations &nbsp; <span class="badge">built</span></p>
 <h3 id="loop-operations-purpose">Purpose</h3>
 <p>This feature ports the rest of the upstream PM loop to Codex: Phase 0 preflight, the run configuration, the batch gate's CI run, the deployment watch, the digest, and the recovery after compaction. It also keeps the tracker compatible with an upstream PM that works the same tracker. Upstream waits for CI and deployments in a background shell that notifies on exit. Codex has no such shell, so a watcher subagent does the wait and returns a verdict.</p>
 <h3 id="loop-operations-user-stories">User stories</h3>

@@ -57,6 +57,12 @@ Evidence tags:
 12. **A root TOML key after a table header fails.** `default_permissions` placed after `[permissions.gitw]` gave: "config defines `[permissions]` profiles but does not set `default_permissions`".
 13. **The spawn message is encrypted in the hook payload.** PreToolUse for a V2 spawn had `tool_input` keys `task_name`, `fork_turns`, and `message`, plus `agent_type` only when the model set a role. `message` was a token that starts `gAAAAA`, also when the model sent a plain multi-line text. The session rollout file holds the same token. Evidence: two `gpt-6-luna` runs, codex-cli 0.166.0, 2026-11-03; payload in `tests/fixtures/hooks/pre_tool_use_spawn.json`.
 14. **`updatedInput` from a PreToolUse hook changes a `wait_agent` call.** PreToolUse got `tool_name: "collaborationwait_agent"` and `tool_input: {"timeout_ms": 10000}`. The hook answered `permissionDecision: "allow"` with `updatedInput: {"timeout_ms": 40000}`. A subagent that ran `sleep 20` finished inside that one wait: the call returned `timed_out: false` about 22 s after it started, and the model's recorded arguments still read 10000. Evidence: one `gpt-6-luna` run, codex-cli 0.166.0, 2026-11-03, isolated `CODEX_HOME`; payload in `tests/fixtures/hooks/pre_tool_use_wait.json`.
+15. **PostToolUse reports wait timeouts.** The hook payload has `tool_name: "collaborationwait_agent"`, and `tool_response` is a JSON string with `timed_out`. The hook environment includes `PLUGIN_DATA`. Evidence: one `gpt-6-luna` run, codex-cli 0.166.0, 2026-11-03, isolated `CODEX_HOME`; payloads in `tests/fixtures/hooks/post_tool_use_wait_timeout.json` and `post_tool_use_wait_complete.json`. Source: `hooks/src/engine/discovery.rs:312-320`.
+16. **A worker cannot run nested `codex exec` probes.** In the first dogfood run (2026-11-03), a `gpt-6-luna` worker inside the `issue_flow` permission profile ran a nested `codex exec` probe. The PostToolUse payload capture worked, but macOS denied the nested sandbox's shell commands. Live Codex proofs therefore run from the gate harness (`tests/e2e/run_loop.py`) outside the worker sandbox.
+17. **`PLUGIN_DATA` is not pre-created.** Codex sets the variable for plugin hooks and does not create the directory (`codex-rs core-plugins/src/store.rs:27,122`). A hook that writes there creates it first.
+18. **The Bash PostToolUse `tool_response` is the raw command output.** It is a string with no exit-code header and no exit-code field. A failed command has no marker. A command that never ran shows `sandbox-exec: sandbox_apply: Operation not permitted`. Evidence: 98 payloads from the #75 gate run (Codex 0.166.0, `gpt-6-luna`), sanitized in `tests/fixtures/hooks/gate75_pm_sequence.json`. Source: `codex-rs core/src/tools/context.rs:483-490`.
+19. **Subagent hook payloads share the PM's `session_id`.** They differ by `agent_id` and `agent_type`. A hook that keeps per-session state must ignore every payload with an `agent_id`, or a worker's calls change the PM's state. Same evidence as item 18.
+20. **Gitea MCP tools appear as `mcp__<server>__<tool>`.** The PostToolUse matcher `^mcp__.+__list_(issues|pull_requests)$` selects the list calls. The gate run had no MCP server, so this name shape is not yet recorded from a live run.
 
 The profile used in facts 8 and 9:
 
@@ -73,8 +79,6 @@ extends = ":workspace"
 [permissions.gitw.network]
 enabled = true
 ```
-
-- **A worker cannot run nested `codex exec` probes.** In the first dogfood run (2026-11-03), a `gpt-6-luna` worker inside the `issue_flow` permission profile ran a nested `codex exec` probe. The PostToolUse payload capture worked, but macOS denied the nested sandbox's shell commands. Live Codex proofs therefore run from the gate harness (`tests/e2e/run_loop.py`) outside the worker sandbox.
 
 ## Facts from source, not yet measured
 

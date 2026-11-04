@@ -27,6 +27,8 @@ import sys
 import tomllib
 from pathlib import Path
 
+from build_roles import LITERAL_DELIMITER, toml_basic
+
 DEFAULT_CONCURRENCY = 3
 # The thread limit holds one slot per worker, one watcher, two worker subagents, and the PM.
 THREAD_OVERHEAD = 4
@@ -97,6 +99,21 @@ def render_block(concurrency, with_default_permissions):
     return BLOCK_TEMPLATE.format(permissions_line=line, threads=concurrency + THREAD_OVERHEAD)
 
 
+def render_role(role):
+    """Return role TOML with model fields at the document root."""
+    instructions = role["developer_instructions"]
+    if LITERAL_DELIMITER in instructions:
+        raise SetupError("role developer_instructions contains the TOML literal delimiter")
+    return "\n".join([
+        f"name = {toml_basic(role['name'])}",
+        f"description = {toml_basic(role['description'])}",
+        f"model = {toml_basic(role['model'])}",
+        f"model_reasoning_effort = {toml_basic(role['model_reasoning_effort'])}",
+        f"developer_instructions = {LITERAL_DELIMITER}",
+        instructions.rstrip("\n") + "\n" + LITERAL_DELIMITER,
+    ]) + "\n"
+
+
 def merge_config(existing, block):
     """Return the config text with the block in place of the old block, or inserted.
 
@@ -137,24 +154,16 @@ def plan_files(project, plugin_root, with_default_permissions):
             raise SetupError(f".issue-flow.codex.json: {key} must be a string")
     for role in sorted((plugin_root / "roles").glob("*.toml")):
         text = role.read_text(encoding="utf-8")
-        updates = ({"model": codex.get("workerModel"),
-                    "model_reasoning_effort": codex.get("workerEffort")}
-                   if role.stem == "issue-worker" else
-                   {"model": codex["helperModel"]}
-                   if role.stem in ("code-auditor", "deploy-verifier", "review-scribe", "ux-explorer")
-                   and "helperModel" in codex else {})
-        lines = text.splitlines()
-        for key, value in updates.items():
-            if value is None:
-                continue
-            line = f"{key} = {json.dumps(value)}"
-            match = next((i for i, item in enumerate(lines) if item.startswith(f"{key} =")), None)
-            if match is None:
-                lines.append(line)
-            else:
-                lines[match] = line
-        if updates:
-            text = "\n".join(lines) + ("\n" if text.endswith("\n") or lines else "")
+        try:
+            parsed = tomllib.loads(text)
+        except tomllib.TOMLDecodeError as exc:
+            raise SetupError(f"role source is not valid TOML: {role}: {exc}") from exc
+        if role.stem == "issue-worker":
+            parsed["model"] = codex.get("workerModel", parsed["model"])
+            parsed["model_reasoning_effort"] = codex.get("workerEffort", parsed["model_reasoning_effort"])
+        elif role.stem in ("code-auditor", "deploy-verifier", "review-scribe", "ux-explorer", "ci-watcher"):
+            parsed["model"] = codex.get("helperModel", parsed["model"])
+        text = render_role(parsed)
         wanted[f".codex/agents/{role.name}"] = text
 
     config = project / ".codex" / "config.toml"
@@ -214,16 +223,25 @@ def check_report(project, plugin_root):
 
     wanted = sorted((plugin_root / "roles").glob("*.toml"))
     copies = [project / ".codex" / "agents" / r.name for r in wanted]
+    codex_path = project / ".issue-flow.codex.json"
+    codex = json.loads(codex_path.read_text(encoding="utf-8")) if codex_path.is_file() else {}
     matching = 0
     for source, copy in zip(wanted, copies):
         if not copy.is_file():
             continue
-        source_text = source.read_text(encoding="utf-8")
-        copy_text = copy.read_text(encoding="utf-8")
-        tomllib.loads(source_text)
-        tomllib.loads(copy_text)
-        key_line = re.compile(r"^(?:model|model_reasoning_effort)\s*=.*(?:\n|$)", re.M)
-        matching += key_line.sub("", source_text) == key_line.sub("", copy_text)
+        try:
+            source_role = tomllib.loads(source.read_text(encoding="utf-8"))
+            tomllib.loads(copy.read_text(encoding="utf-8"))
+        except tomllib.TOMLDecodeError:
+            print(f"setup_project: malformed role copy: {copy}", file=sys.stderr)
+            continue
+        if source.stem == "issue-worker":
+            source_role["model"] = codex.get("workerModel", source_role["model"])
+            source_role["model_reasoning_effort"] = codex.get(
+                "workerEffort", source_role["model_reasoning_effort"])
+        elif source.stem in ("code-auditor", "deploy-verifier", "review-scribe", "ux-explorer", "ci-watcher"):
+            source_role["model"] = codex.get("helperModel", source_role["model"])
+        matching += render_role(source_role) == copy.read_text(encoding="utf-8")
     absent = not all(c.is_file() for c in copies)
     rows.append(("roles", "missing" if absent else "ok" if matching == len(wanted) else "stale",
                  f"{matching} of {len(wanted)} match plugin {version}"))

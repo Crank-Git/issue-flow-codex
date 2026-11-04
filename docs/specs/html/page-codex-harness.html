@@ -219,6 +219,18 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li><strong><code>updatedInput</code> from a PreToolUse hook changes a <code>wait_agent</code> call.</strong> PreToolUse got <code>tool_name: "collaborationwait_agent"</code> and <code>tool_input: {"timeout_ms": 10000}</code>. The hook answered <code>permissionDecision: "allow"</code> with <code>updatedInput: {"timeout_ms": 40000}</code>. A subagent that ran <code>sleep 20</code> finished inside that one wait: the call returned <code>timed_out: false</code> about 22 s after it started, and the model's recorded arguments still read 10000. Evidence: one <code>gpt-6-luna</code> run, codex-cli 0.166.0, 2026-11-03, isolated <code>CODEX_HOME</code>; payload in <code>tests/fixtures/hooks/pre_tool_use_wait.json</code>.
 </li>
+<li><strong>PostToolUse reports wait timeouts.</strong> The hook payload has <code>tool_name: "collaborationwait_agent"</code>, and <code>tool_response</code> is a JSON string with <code>timed_out</code>. The hook environment includes <code>PLUGIN_DATA</code>. Evidence: one <code>gpt-6-luna</code> run, codex-cli 0.166.0, 2026-11-03, isolated <code>CODEX_HOME</code>; payloads in <code>tests/fixtures/hooks/post_tool_use_wait_timeout.json</code> and <code>post_tool_use_wait_complete.json</code>. Source: <code>hooks/src/engine/discovery.rs:312-320</code>.
+</li>
+<li><strong>A worker cannot run nested <code>codex exec</code> probes.</strong> In the first dogfood run (2026-11-03), a <code>gpt-6-luna</code> worker inside the <code>issue_flow</code> permission profile ran a nested <code>codex exec</code> probe. The PostToolUse payload capture worked, but macOS denied the nested sandbox's shell commands. Live Codex proofs therefore run from the gate harness (<code>tests/e2e/run_loop.py</code>) outside the worker sandbox.
+</li>
+<li><strong><code>PLUGIN_DATA</code> is not pre-created.</strong> Codex sets the variable for plugin hooks and does not create the directory (<code>codex-rs core-plugins/src/store.rs:27,122</code>). A hook that writes there creates it first.
+</li>
+<li><strong>The Bash PostToolUse <code>tool_response</code> is the raw command output.</strong> It is a string with no exit-code header and no exit-code field. A failed command has no marker. A command that never ran shows <code>sandbox-exec: sandbox_apply: Operation not permitted</code>. Evidence: 98 payloads from the #75 gate run (Codex 0.166.0, <code>gpt-6-luna</code>), sanitized in <code>tests/fixtures/hooks/gate75_pm_sequence.json</code>. Source: <code>codex-rs core/src/tools/context.rs:483-490</code>.
+</li>
+<li><strong>Subagent hook payloads share the PM's <code>session_id</code>.</strong> They differ by <code>agent_id</code> and <code>agent_type</code>. A hook that keeps per-session state must ignore every payload with an <code>agent_id</code>, or a worker's calls change the PM's state. Same evidence as item 18.
+</li>
+<li><strong>Gitea MCP tools appear as <code>mcp__&lt;server&gt;__&lt;tool&gt;</code>.</strong> The PostToolUse matcher <code>^mcp__.+__list_(issues|pull_requests)$</code> selects the list calls. The gate run had no MCP server, so this name shape is not yet recorded from a live run.
+</li>
 </ol>
 <p>The profile used in facts 8 and 9:</p>
 <pre class="code"><code>default_permissions = "gitw"
@@ -232,10 +244,6 @@ extends = ":workspace"
 
 [permissions.gitw.network]
 enabled = true</code></pre>
-<ul>
-<li><strong>A worker cannot run nested <code>codex exec</code> probes.</strong> In the first dogfood run (2026-11-03), a <code>gpt-6-luna</code> worker inside the <code>issue_flow</code> permission profile ran a nested <code>codex exec</code> probe. The PostToolUse payload capture worked, but macOS denied the nested sandbox's shell commands. Live Codex proofs therefore run from the gate harness (<code>tests/e2e/run_loop.py</code>) outside the worker sandbox.
-</li>
-</ul>
 <h2 id="codex-harness-facts-from-source-not-yet-measured">Facts from source, not yet measured</h2>
 <ul>
 <li><strong>No wake on idle.</strong> When the PM's turn has ended, a subagent's result is only queued. A new PM turn starts only when <code>features.wake_on_agent_messages</code> is on, and that feature is under development. Source: <code>core/src/session/handlers.rs:89-99</code>, <code>features/src/lib.rs:1671-1675</code>. Port rule: the PM ends its turn only when the loop stops.

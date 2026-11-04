@@ -931,3 +931,57 @@ path = "tests/test_planner_scaffold.py"
 mode = "new"
 upstream_sha256 = ""
 notes = "port-only: project-planner scaffold contract tests (#31)"
+
+[[file]]
+path = "docs/e2e/2026-11-03-issue-75-timeout-sweep.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: issue #75 live probe evidence"
+
+[[file]]
+path = "hooks/record-wait-state.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: record wait timeout and Stage A0 hook state (#75)"
+
+[[file]]
+path = "hooks/wait_state.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: store per-session wait timeout state (#75)"
+
+[[file]]
+path = "tests/fixtures/hooks/post_tool_use_bash_stage_a0_denied.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: recorded denied Stage A0 Bash payload (#75)"
+
+[[file]]
+path = "tests/fixtures/hooks/post_tool_use_wait_complete.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: recorded completed wait payload (#75)"
+
+[[file]]
+path = "tests/fixtures/hooks/post_tool_use_wait_timeout.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: recorded timed-out wait payload (#75)"
+
+[[file]]
+path = "tests/test_post_tool_use_wait.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: tests for PostToolUse wait state (#75)"
+
+[[file]]
+path = "tests/fixtures/hooks/gate75_pm_sequence.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: sanitized PM hook payloads from the #75 gate run (#75)"
+
+[[file]]
+path = "tests/test_wait_replay.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: replay the recorded PM hook sequence (#75)"

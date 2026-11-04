@@ -1,6 +1,6 @@
 # Project scaffold format (project-planner reference)
 
-How to generate `spec.html`, `AGENTS.md`, `docs/rules/`, project skills, and
+How to generate `spec.html`, `AGENTS.md`, `docs/rules/`, project skills, hooks, and
 `.gitignore`. `SKILL.md` Phase 3 points here. The planner shows every proposed change
 in the Phase 4 review round. It writes nothing before the operator approves it.
 
@@ -134,6 +134,40 @@ description: Run the project test suites. Use when asked to test a change or ver
 4. Report each command and its result.
 ```
 
+### `.codex/hooks.json`
+
+Write project hooks to `.codex/hooks.json`. Codex loads project hooks only when the
+operator trusts the project's `.codex/` layer. Tell the operator this before approval.
+Use the current hook format from `https://learn.chatgpt.com/docs/hooks`.
+
+Scaffold only hooks that the spec justifies and the operator approves. Show each hook's
+event, matcher, and exact command in the Phase 4 review. Keep each hook fast, idempotent,
+and non-interactive. A test suite belongs in the `test` skill because it can take too
+long for each edit.
+
+Generated hooks must be safe to run unattended:
+
+- Never delete data or change a remote service.
+- Never run `git push` or `git commit`.
+- Keep file changes inside the project root.
+- If a hook needs a tool that may not be installed, check it with `command -v` and exit
+  successfully when it is absent.
+- Do not write a permission allow-list. The setup skill's `issue_flow` permission profile
+  sets session access.
+
+### Dual-harness files
+
+Dual-harness mode is the default. When the operator selects it, write `CLAUDE.md` with
+the single line `@AGENTS.md`. This lets Claude Code load the shared project instructions.
+
+For each upstream path-scoped rule, write a `.claude/rules/<name>.md` file. Keep the
+upstream `paths:` front-matter and its path patterns. Keep the rule content in
+`docs/rules/<name>.md` and make the `.claude/rules/` file point to that file. Do not
+duplicate the rule content.
+
+Show these files in the Phase 4 proposal. Preserve an existing `CLAUDE.md` and each
+existing rule file until the operator approves the additions.
+
 ### `docs/adr/` and `docs/external.md`
 
 Create `docs/adr/0000-template.md` for future architecture decisions. Include the title,
@@ -146,6 +180,25 @@ secrets, tokens, or credentials.
 
 ### `.gitignore`
 
-Keep generated HTML and the spec package in version control. Add only project-specific
-ignores for dependencies, build output, environment files, coverage, and editor files.
-If `.gitignore` exists, show proposed additions and merge them only after approval.
+Keep generated HTML and the spec package in version control. Append this block to the
+project root `.gitignore`. Skip lines that already exist. Show the additions for approval
+and preserve every existing line.
+
+```gitignore
+.worktrees/
+.issue-flow.local.json
+```
+
+When the operator selects dual-harness mode, append these upstream Claude Code lines too:
+
+```gitignore
+# Claude Code
+.claude/settings.local.json
+.claude/worktrees/
+.claude/agent-memory-local/
+CLAUDE.local.md
+.claude.local.md
+```
+
+Keep the project-specific ignores for dependencies, build output, environment files,
+coverage, and editor files in a separate block. Do not ignore files under `docs/specs/`.

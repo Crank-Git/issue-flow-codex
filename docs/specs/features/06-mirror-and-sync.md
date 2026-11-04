@@ -2,7 +2,7 @@
 id: mirror-and-sync
 feature: Mirror and sync
 epic: "Epic 6: Mirror and sync"
-status: issued
+status: built
 issues: [39, 40, 41, 42]
 mockups: []
 ---

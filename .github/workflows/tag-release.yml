@@ -4,9 +4,14 @@ on:
   push:
     branches:
       - main
+  workflow_dispatch:
 
 permissions:
   contents: write
+
+concurrency:
+  group: tag-release
+  cancel-in-progress: false
 
 jobs:
   tag:
@@ -16,6 +21,9 @@ jobs:
         uses: actions/checkout@v4
         with:
           fetch-depth: 0
+
+      - name: Validate the manifests
+        run: python3 scripts/validate_manifests.py
 
       - name: Tag a changed plugin version
         run: |

@@ -48,6 +48,7 @@ extends = ":workspace"
 [permissions.issue_flow.filesystem.":workspace_roots"]
 "." = "write"
 ".git" = "write"
+".agents" = "write"
 
 [permissions.issue_flow.network]
 enabled = true

@@ -136,9 +136,10 @@ description: Run the project test suites. Use when asked to test a change or ver
 
 ### `.codex/hooks.json`
 
-Write project hooks to `.codex/hooks.json`. Codex loads project hooks only when the
-operator trusts the project's `.codex/` layer. Tell the operator this before approval.
-Use the current hook format from `https://learn.chatgpt.com/docs/hooks`.
+Print the proposed `.codex/hooks.json` for the operator to apply. Codex keeps `.codex/`
+read-only for the agent. Codex loads project hooks only when the operator trusts the
+project's `.codex/` layer. Tell the operator this before approval. Use the current hook
+format from `https://learn.chatgpt.com/docs/hooks`.
 
 Scaffold only hooks that the spec justifies and the operator approves. Show each hook's
 event, matcher, and exact command in the Phase 4 review. Keep each hook fast, idempotent,

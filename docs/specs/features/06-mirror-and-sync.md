@@ -41,7 +41,7 @@ manual checks, and the port's own releases reach the marketplace.
 
 ### Release
 
-- FR-mirror-and-sync-13 — The release workflow tags `issue-flow-codex--v<version>` on a merge to `main` that changes the manifest `version`.
+- FR-mirror-and-sync-13 — The release workflow tags `issue-flow-codex--v<version>` on a merge to `main` that changes the manifest `version`. It creates the initial tag when no tag exists for the version already on `main`.
 - FR-mirror-and-sync-14 — `README.md` documents install, setup, hook trust, the run command, and the known limits.
 - FR-mirror-and-sync-15 — `README.md` holds a table that maps each upstream skill to its Codex invocation.
 
@@ -78,6 +78,7 @@ The feature has no screens.
 
 - The sync never edits a `patched` or `rewritten` file. A person or a worker ports those changes.
 - The port version is independent of the upstream version. `README.md` states the upstream tag that each port release tracks.
+- The release workflow creates a missing tag for the current manifest version once. This bootstraps the first port release when the manifest predates the workflow.
 
 ## Data touched
 

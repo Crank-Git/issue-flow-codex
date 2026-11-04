@@ -11,8 +11,10 @@ A role rule can use these keys:
   bash_prefixes     command prefixes denied for the `Bash` tool
   patch_only_under  `apply_patch` may write only below this directory (relative to `cwd`)
   spawn_roles       roles that the `spawn_agent` tool may not start
-  patch_only_under_project_worktrees  `apply_patch` may write only below `<cwd>/.worktrees/`
-                    or below the system temp directory (the worker's scratch directory)
+  patch_only_under_project_worktrees  `apply_patch` may write below `<cwd>/.worktrees/`.
+                    It may not write anywhere else in `<cwd>`, also when `<cwd>` is
+                    below a temp directory. Outside `<cwd>`, it may write only below a
+                    system temp directory (the worker's scratch directory).
 
 The worktree rule enforces the `.worktrees/` boundary only. It cannot tell a worker's own
 tree from a sibling's tree, because the payload of a spawned worker carries no `task_name`:

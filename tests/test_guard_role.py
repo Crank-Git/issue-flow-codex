@@ -106,6 +106,16 @@ class RoleGuardTest(unittest.TestCase):
         self.assertDenied(payload(BASH, "code_auditor", tool_name="mcp__playwright__browser_click"),
                           "code_auditor", "mcp__playwright__")
 
+    def test_denies_playwright_tools_for_review_scribe(self):
+        self.assertDenied(payload(BASH, "review_scribe",
+                                  tool_name="mcp__playwright__browser_click"),
+                          "review_scribe", "mcp__playwright__")
+
+    def test_denies_apply_patch_for_each_read_only_review_role(self):
+        for role in ("code_auditor", "deploy_verifier"):
+            with self.subTest(role=role):
+                self.assertDenied(patch(role, "note.txt"), role, "apply_patch")
+
     def test_allows_playwright_tools_for_ux_explorer(self):
         self.assertAllowed(payload(BASH, "ux_explorer", tool_name="mcp__playwright__browser_click"))
 

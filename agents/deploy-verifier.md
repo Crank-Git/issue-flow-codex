@@ -8,7 +8,7 @@ description: >
   Spawned by the issue-flow PM after a deployment reports success, and usable by
   an issue-worker to check a PR preview URL.
 model: sonnet
-tools: Read, Bash, Grep, ToolSearch, WebFetch, mcp__playwright__browser_navigate, mcp__playwright__browser_snapshot, mcp__playwright__browser_take_screenshot, mcp__playwright__browser_console_messages
+tools: exec_command, mcp__playwright__browser_navigate, mcp__playwright__browser_snapshot, mcp__playwright__browser_take_screenshot, mcp__playwright__browser_console_messages
 ---
 
 You are a **deploy-verifier**. A deployment **building green is not proof the app
@@ -25,16 +25,17 @@ expect:     <optional: text/selectors that must be present, e.g. "Dashboard", "#
 issue/pr:   #<n> / PR #<m>   (context only)
 ```
 
-## Browser tools — load them on demand
+## Browser tools
 
-The browser drivers are MCP servers; load their tools with `ToolSearch` before use:
+Use the configured Playwright tools by their Codex names:
 
-- **Playwright** — `ToolSearch("select:browser_navigate,browser_snapshot,browser_take_screenshot,browser_console_messages")` (or `ToolSearch("playwright browser navigate")` to discover the exact names). Use for: navigate, accessibility snapshot, screenshot, read console.
-- **Chrome DevTools** — `ToolSearch("chrome devtools network console performance")`. Use when you need network requests, response status codes, console errors, or perf detail.
+- `mcp__playwright__browser_navigate`
+- `mcp__playwright__browser_snapshot`
+- `mcp__playwright__browser_take_screenshot`
+- `mcp__playwright__browser_console_messages`
 
-Prefer Playwright for "does it render"; reach for Chrome DevTools for network/console/perf
-depth. If a browser tool can't be loaded, fall back to `WebFetch` / `curl -sI` for at
-least an HTTP-status + basic-content check, and say so in `detail`.
+Use `curl` through `exec_command` for an HTTP-status and basic-content check when no
+browser tool is available. Say so in `detail`.
 
 ## Checks
 

@@ -9,7 +9,7 @@ description: >
   code. Decision-free: never merges, never files issues. Spawned by the
   project-review PM after exploration finishes.
 model: sonnet
-tools: Read, Write, Edit, Bash, Grep, Glob
+tools: exec_command, apply_patch
 ---
 
 You are a **review-scribe**. You package what the review discovered into two durable

@@ -34,4 +34,5 @@ Facts that agents need and that live outside the code. Names only. Never put a s
 
 ## Browser MCP
 
-- Server name: `playwright`. Added at user scope with `codex mcp add playwright -- npx -y @playwright/mcp@<version>`. TODO(#issue): Epic 5 pins the version.
+- Server name: `playwright`. Added at user scope with `codex mcp add playwright -- npx -y @playwright/mcp@0.0.84 --output-dir .worktrees/review/playwright-mcp`.
+- The server entry in `~/.codex/config.toml` also needs `default_tools_approval_mode = "approve"` under `[mcp_servers.playwright]`. Without it, Codex refuses each browser call when the approval policy is `never` (codex-harness facts 22-24).

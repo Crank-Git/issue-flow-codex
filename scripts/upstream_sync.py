@@ -197,8 +197,12 @@ def cmd_sync(root, repository, tag, report_only):
             updated = dict(entry)
             path = entry["path"]
             if path in new_paths:
-                content = subprocess.run(["git", "show", f"{new_commit}:{UPSTREAM_PREFIX}/{path}"],
-                                         cwd=clone, capture_output=True, check=True).stdout
+                result = subprocess.run(
+                    ["git", "show", f"{new_commit}:{UPSTREAM_PREFIX}/{path}"],
+                    cwd=clone, capture_output=True)
+                if result.returncode:
+                    raise SyncError(f"cannot read {path} at {new_commit}")
+                content = result.stdout
                 updated["upstream_sha256"] = hashlib.sha256(content).hexdigest()
                 if entry["mode"] == "verbatim":
                     target = root / path

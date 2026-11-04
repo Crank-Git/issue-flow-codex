@@ -43,13 +43,14 @@ class ReleaseTagTest(unittest.TestCase):
 
 
 class ReleaseDocsTest(unittest.TestCase):
-    def test_workflow_limits_tagging_to_main_manifest_changes(self):
+    def test_workflow_tags_missing_versions_on_main_pushes(self):
         workflow = (ROOT / ".github" / "workflows" / "tag-release.yml").read_text()
 
         self.assertIn("branches:\n      - main", workflow)
         self.assertNotIn("paths:", workflow)
         self.assertIn("permissions:\n  contents: write", workflow)
         self.assertIn("git tag --list", workflow)
+        self.assertIn("scripts/release_tag.py .codex-plugin/plugin.json", workflow)
         self.assertIn("git tag \"$tag\"", workflow)
         self.assertIn("git push origin \"$tag\"", workflow)
         self.assertNotIn("gh release create", workflow)

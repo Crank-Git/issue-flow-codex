@@ -2,7 +2,7 @@
 id: project-review
 feature: Project review
 epic: "Epic 5: Project review"
-status: issued
+status: built
 issues: [35, 36, 37, 38]
 mockups: []
 ---

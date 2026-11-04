@@ -38,23 +38,15 @@ how a review ends.
   reviewers, **gathers every report, dedups, and files all issues itself**, lands the
   deliverables PR, reports, and hands off to issue-flow. The PM never explores inline
   and never lets a sub-agent file issues.
-- **Sub-agents (background, self-contained prompts).** `issue-flow:ux-explorer` walks
-  one flow as a user via the browser MCP; `issue-flow:code-auditor` sweeps the code
-  read-only; `issue-flow:review-scribe` writes the manual + E2E tests. All are
-  decision-free and **none of them files issues or fixes anything**. Each declares its
-  own model tier in its agent definition — spawn them without an `opts.model` override.
-  (Fallback if an agent type won't resolve: spawn `general-purpose` on Sonnet and
-  prepend its brief with the corresponding contract — "you are a decision-free
-  <role>; never edit product code; never file issues; return the verdict JSON".)
+- **Subagents use Codex roles.** Spawn `ux_explorer` for a user flow, `code_auditor` for
+  the source review, and `review_scribe` for the deliverables. Each role declares its
+  model in `.codex/agents/`. The PM does not override that model. Each role is
+  decision-free. Only the PM files issues, and no role changes product code.
 
-**Spawn every sub-agent unnamed — never pass `name:`.** This covers every spawn in this
-skill: the Phase 1 E2E-baseline child, the Phase 2 explorers and auditor, and the Phase 4
-scribe. The spawn guard denies a named agent without worktree isolation, and none of these
-agents needs a name: when you do message one (the scribe, Phase 4), address it by the
-`agentId` from its spawn result. A verdict-shaped label belongs in the brief or your own
-tracking, not the spawn call. Use `description` for a readable label instead.
-The scribe alone takes `isolation: "worktree"` (Phase 4) — that is for its checkout, not
-for a name.
+Use a unique lowercase `task_name` for each spawn. Set `agent_type` to the role name and
+`fork_turns` to `"none"`. Call `list_agents` before each `spawn_agent` call. If no thread slot is free,
+call `wait_agent` until one frees. Use `followup_task` by `task_name` to request rework.
+Call `wait_agent` and read each verdict from the queued `FINAL_ANSWER` message.
 
 This skill runs on **GitHub or Gitea**. All tracker interaction goes through the forge's
 CLI — `gh` or `tea` — falling back to that forge's MCP server when the CLI is
@@ -113,56 +105,63 @@ have damaged.
    On Gitea, `forge.label.create` is not idempotent on its own — check
    `forge.label.list` first and create only what is missing, exactly as `labels.md`
    documents.
-6. **Review workspace.** `RUN_ID = <YYYY-MM-DD>-<short-slug>`. The deliverables branch
-   is `review/<RUN_ID>`, cut from dev by the scribe in its own harness worktree at
-   Phase 4 — you create **no** worktree yourself (the same model as issue-flow's workers:
-   [../issue-flow/references/worktrees.md](../issue-flow/references/worktrees.md)).
-   Create only a scratch dir for explorer output:
-   `<scratch>/review-<RUN_ID>/{screenshots,notes}`. Write `<scratch>` as an **absolute**
-   path in every brief — the explorers and the scribe run in other directories, and the
-   scribe in another tree.
+6. **Review workspace.** Set `RUN_ID` to `<YYYY-MM-DD>-<short-slug>`. Set the branch
+   to `review/<RUN_ID>`. Create one scratch directory for each subagent at
+   `.worktrees/review/<task_name>/`. Give its absolute path in the subagent brief.
+   The scribe uses a separate worktree that you create in Phase 4.
+
+If the sandbox app does not start, stop the run and file nothing. If the browser role
+cannot reach the app, record its `unreachable` verdict and report it without a finding.
 
 # Phase 1 — E2E baseline (existing suite)
 
 Detect an existing E2E suite (`playwright.config.*`, `cypress.config.*`, `e2e/`,
-`tests/e2e/`, a `test:e2e` script). If one exists, delegate a Sonnet child to run it
-**against `SANDBOX_URL`** and return a pass/fail summary with failing-test excerpts —
-don't run it inline (token-heavy output). Each real failure is a **finding** for
-Phase 3 (type `bug`, evidence = the test name + failure excerpt). If none exists, note
-it — the review-scribe creates one in Phase 4.
+`tests/e2e/`, a `test:e2e` script). Record its framework, directory, and run command.
+Run it against `SANDBOX_URL` from the PM thread. Save output under
+`.worktrees/review/e2e_baseline/`. Each real failure is a finding for Phase 3 (type
+`bug`, evidence = the test name + failure excerpt). If no suite exists, note it for the
+scribe.
 
 # Phase 2 — Fan out the reviewers
 
-**The browser is a singleton.** The browser MCP (Playwright / Chrome DevTools) is one
-shared browser session — every agent's `browser_*` calls hit the same tabs. Two
-browser-driving agents in flight at once stomp each other's navigation and screenshots.
-Therefore: **ux-explorers run strictly one at a time, sequentially** — launch the next
-only after the previous one's verdict returns. Parallelism comes from everything that
-*doesn't* touch the browser: while an explorer runs, the code-auditor sweeps, the PM
-dedups/files issues from already-returned verdicts, and the E2E baseline child (which
-uses the repo's own Playwright install, not the MCP) can run.
+**The browser MCP is one shared session.** Run only one browser-driving subagent at a
+time, even when more thread slots are free. Before every spawn, call `list_agents` and
+count free thread slots. If no slot is free, call `wait_agent` until one frees.
+Before an explorer `spawn_agent` call, inspect active roles for `ux_explorer` or
+`deploy_verifier`. If either role is active, wait until it returns before you spawn the
+explorer. Spawn each subagent with `fork_turns: "none"`. Run the code auditor while an
+explorer uses the browser.
 
-- **One `issue-flow:ux-explorer` per flow** from Phase 0 scope — **sequential, one in
-  flight at any moment**. Brief per flow:
+- **One `ux_explorer` per flow** from Phase 0 scope. Spawn it after the prior explorer
+  returns. Use a distinct lowercase `task_name` for each flow. Its brief contains:
   ```
+  task_name:    ux_<flow_slug_with_underscores>
+  agent_type:   ux_explorer
+  fork_turns:   none
   url:           <SANDBOX_URL>
   flow:          <flow goal, phrased as a user goal>
   persona:       new user, no development knowledge of this app, laptop browser
   expectations:  <acceptance criteria quoted from the flow's recent issues>
-  screenshotDir: <scratch>/review-<RUN_ID>/screenshots/<flow-slug>/
-  notesFile:     <scratch>/review-<RUN_ID>/notes/<flow-slug>.md
+  screenshotDir: <project>/.worktrees/review/ux_<flow_slug_with_underscores>/screenshots/
+  notesFile:     <project>/.worktrees/review/ux_<flow_slug_with_underscores>/walkthrough.md
   logCmd:        <the sandbox log command>
   testData:      <seeded accounts/records, if any>
   ```
-- **One `issue-flow:code-auditor`** over the checkout — launch it in parallel with the
-  explorer chain (it never touches the browser). Brief: repo path, scope (default
-  whole source tree; focus paths touched by recent PRs first), `recentWork` = the
-  recent issues with acceptance criteria quoted, conventions (generated dirs to skip).
+  Create the screenshot and notes directories before spawn. The role writes only
+  screenshots and its walkthrough under
+  `.worktrees/review/ux_<flow_slug_with_underscores>/`.
+- **One `code_auditor`** over the checkout. Use `task_name: "code_auditor"`,
+  `agent_type: "code_auditor"`, and `fork_turns: "none"`. Its brief gives the repo path,
+  scope (default whole source tree; focus paths touched by recent PRs first),
+  `recentWork` with recent issue acceptance criteria, generated dirs to skip, and the
+  E2E framework, directory, and run command from Phase 1. It does not use the browser.
 
-The PM does not sit and wait — between explorer completions, process verdicts already
-in hand (Phase 3 dedup/filing can start immediately). An explorer returning `blocked`
-(app down, login impossible) is itself a high-severity finding; check the sandbox is
-still up before launching the next explorer.
+Call `list_agents` before spawning the auditor and confirm a free thread slot. Call
+`wait_agent` for each role and read its verdict from the queued `FINAL_ANSWER` message.
+Start the next explorer only after the current explorer returns. If an explorer returns
+`blocked` or `partial` because it cannot reach `SANDBOX_URL`, report `unreachable` and do
+not add a finding. Check that the sandbox is still up before the next explorer. Keep the
+PM active with `wait_agent` while a subagent runs.
 
 # Phase 3 — Gather & file (PM only — this is the gate)
 
@@ -212,14 +211,20 @@ Sub-agents **report**; only the PM files. On all verdicts collected:
 
 # Phase 4 — Deliverables PR (manual + E2E tests)
 
-1. Spawn **`issue-flow:review-scribe`** with **`isolation: "worktree"`** and no `name:`.
-   The harness gives it its own worktree, cut from the default branch; the scribe points
-   it at the review branch itself. Brief: branch `review/<RUN_ID>`, `base:
-   <remote>/<dev>` (a re-run for a CI failure passes `<remote>/review/<RUN_ID>` instead,
-   once the branch is pushed), `remote`, the explorers' `walkthrough` files, `screenshotDir` =
-   `<scratch>/review-<RUN_ID>/screenshots/` (the **root** — it holds one `<flow-slug>/`
-   subdir per flow, and those subdirs are preserved in the manual so identically
-   numbered screenshots from different flows can't overwrite each other), flow outcomes,
+1. Set `scribe_task` to `review_scribe_<RUN_ID_with_underscores>`. Create the scribe
+   worktree with `python3 scripts/worktree.py create --project <project> --task
+   <scribe_task> --branch review/<RUN_ID> --base <remote>/<dev>
+   --remote <remote>`. For a CI re-run, use `<remote>/review/<RUN_ID>` as the base.
+   Read the printed path. Call `list_agents` and confirm a free thread slot. Spawn the
+   `review_scribe` role with `task_name: <scribe_task>`, `agent_type: "review_scribe"`,
+   and `fork_turns: "none"`. Include the worktree path in its brief. Tell the scribe to
+   use that path as `workdir` for every command. This path replaces the role's harness
+   worktree steps; the scribe must not create or move another worktree.
+   Give it `worktree: <absolute path>`, branch `review/<RUN_ID>`, base, remote, and the
+   explorers' walkthrough files.
+   Set `screenshotDir` to the root containing the flow directories. Preserve those
+   directories in the manual so screenshots from different flows do not overwrite each
+   other. Also give it flow outcomes,
    the Phase 1 E2E detection (`framework/dir/runCmd`), `SANDBOX_URL`, `manualDir`
    (default `docs/manual`), repo conventions, and **`steRule:`** — the path to the
    project's `.claude/rules/ste.md` if it has one, else the plugin's
@@ -227,8 +232,8 @@ Sub-agents **report**; only the PM files. On all verdicts collected:
    and **`routedRepairs:`**, the Phase 3 list of documentation findings routed to this PR
    (each one: file, what is wrong, what it should say). The scribe repairs those in the
    same PR. Omit the list and the ledger claims work nobody did.
-2. On its verdict — keep the notification's `worktreePath` and `worktreeBranch` for
-   teardown — check `notesForPM` (app changes a test needs — e.g. missing
+2. Call `wait_agent` and read the scribe verdict from `FINAL_ANSWER`. Check
+   `notesForPM` (app changes a test needs — e.g. missing
    test-ids — go through the filing gate like any other finding; a missing test-id that
    blocks a test is a dead guard and earns an issue, marker included, not a fix), then push the
    branch from your own checkout (`git push -u <remote> review/<RUN_ID>` — branch refs are
@@ -239,18 +244,17 @@ Sub-agents **report**; only the PM files. On all verdicts collected:
    from the scribe's `repairsMade`), and the filed-issue ledger. A repair the scribe reports
    unmade is stated as unmade with its reason, never dropped from the list. Docs + tests only —
    this PR is standalone, so **CI runs normally** on it.
-3. Gate it like any PM merge — which includes the project's merge authority. Read
-   `prAuthority` from `.issue-flow.json` when it exists: a PR into dev takes the
-   batch-PR column (issue-flow's `references/session-config.md`), so under the default
-   `batch-review` and stricter, request a **human approving review** and do not merge
-   without it. Then: CI green, threads resolved → merge. CI failure caused by the new
-   tests → send it back to a scribe re-run, then **push again** and wait for CI on the new
-   head. Prefer `SendMessage` to the same scribe by its `agentId`. When it is gone (a
-   restart), spawn a fresh scribe with `base: <remote>/review/<RUN_ID>` — but first remove
-   the old scribe's tree, which still has `review/<RUN_ID>` checked out and would make the
-   new scribe's checkout fail (`already used by worktree`): find it by branch with
-   `git worktree list --porcelain` and remove it with `git worktree remove -f -f`.
-   **Never patch product code to make a review test pass.**
+3. Gate the PR like any PM merge. Read `prAuthority` from `.issue-flow.json` when it
+   exists. A PR into dev uses the batch-PR column in `references/session-config.md`.
+   Under the default `batch-review` and stricter settings, request human approval.
+   Merge only after CI passes and all threads resolve. If CI fails because of new tests,
+   send the scribe the failure with `followup_task` by its `task_name`. Wait for its new
+   verdict, push the branch, and wait for CI on the new head. If the scribe is gone,
+   remove its worktree with `worktree.py remove`, then create it again with
+   `worktree.py create` and base it on `<remote>/review/<RUN_ID>`. **Never patch product
+   code to make a review test pass.** Remove the scribe worktree with
+   `python3 scripts/worktree.py remove --project <project> --task <scribe_task>` when
+   the PR merges or the review ends without a merge.
 
 # Phase 5 — Report & hand off to issue-flow
 
@@ -268,20 +272,15 @@ Sub-agents **report**; only the PM files. On all verdicts collected:
 2. **Terminal digest** (≤10 lines): flows walked, findings gathered, issues filed by
    severity, repairs routed to the PR, findings recorded only, PR link, skipped items,
    open questions.
-3. **Hand off.** The review ends by pointing issue-flow at the new backlog. Ask
-   (`AskUserQuestion`): **launch `/issue-flow` now** to work the filed findings, or
-   stop here with the backlog triaged and ready? If the user already told you up front
-   to "review then fix", skip the ask and invoke the `issue-flow:issue-flow` skill
-   directly — the findings are labeled `status:ready`/`status:needs-feedback`, so its
-   Stage A triage picks them straight up.
-4. **Teardown.** Stop any sandbox you launched. Remove the scribe's worktree when the PR
-   merges, and also when the review ends without a merge (a human review still pending,
-   an abandoned run) — the branch is pushed, so the tree holds nothing the remote lacks.
-   Find it by its branch, not by a remembered path (a restart loses the notification):
-   the `git worktree list --porcelain` entry on `refs/heads/review/<RUN_ID>`. Remove it
-   with `git worktree remove -f -f <path>` (a lock can outlive its agent), then delete the
-   scribe's harness branch — `worktreeBranch` from the notification, or, without it, every
-   `worktree-agent-*` branch no worktree has checked out — and `git worktree prune`.
+3. **Hand off.** The review ends by pointing issue-flow at the new backlog. Ask in plain
+   text: **launch `/issue-flow` now** to work the filed findings, or stop with the backlog
+   triaged and ready? End the turn for the user's answer. If the user said "review then
+   fix" up front, skip the question and invoke `$issue-flow:issue-flow` directly. Its
+   Stage A triage picks up findings labeled `status:ready` or `status:needs-feedback`.
+4. **Teardown.** Stop any sandbox you launched. Use the reviewed project's `run` skill
+   stop step to end MCP server processes that remain after a subagent finishes. Remove
+   the scribe worktree when the PR merges or the review ends without a merge. Run
+   `python3 scripts/worktree.py remove --project <project> --task <scribe_task>`.
 
 ---
 

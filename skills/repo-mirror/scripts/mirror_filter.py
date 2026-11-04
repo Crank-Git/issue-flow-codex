@@ -28,7 +28,10 @@ The config file is JSON:
       "private": "owner/repo-private",
       "public": "owner/repo",
       "branches": ["main"],
-      "exclude": ["docs/specs/", "CLAUDE.md", "glob:*/CLAUDE.md"],
+      "exclude": ["docs/specs/", "docs/adr/", "docs/rules/", "AGENTS.md",
+                   "glob:*/AGENTS.md", ".codex/", ".agents/", "CLAUDE.md",
+                   "glob:*/CLAUDE.md", ".claude/", ".issue-flow.json",
+                   ".github/mirror/", ".github/workflows/mirror.yml"],
       "cutover": 1791331200
     }
 
@@ -45,6 +48,12 @@ import subprocess
 import sys
 import tempfile
 
+DEFAULT_EXCLUDES = [
+    "docs/specs/", "docs/adr/", "docs/rules/", "AGENTS.md", "glob:*/AGENTS.md",
+    ".codex/", ".agents/", "CLAUDE.md", "glob:*/CLAUDE.md", ".claude/",
+    ".issue-flow.json", ".github/mirror/", ".github/workflows/mirror.yml",
+]
+
 
 def run(args, cwd=None, check=True):
     result = subprocess.run(args, cwd=cwd, capture_output=True, text=True)
@@ -56,9 +65,10 @@ def run(args, cwd=None, check=True):
 def load_config(path):
     with open(path) as handle:
         config = json.load(handle)
-    for key in ("private", "public", "branches", "exclude"):
+    for key in ("private", "public", "branches"):
         if key not in config:
             sys.exit(f"error: config {path} has no '{key}'")
+    config.setdefault("exclude", DEFAULT_EXCLUDES)
     return config
 
 

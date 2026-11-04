@@ -539,7 +539,11 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li>2026-11-03 — Dogfood runs 1 and 2: the Codex PM built #75-#79, #81, #94 and #95 in this repository (batch PRs #91, #93, #100), gated and merged by the Claude Code session. The live gate proof for #75 first failed (the hooks enforced nothing: <code>PLUGIN_DATA</code> not created, no <code>Exit code:</code> header in the live Bash result, subagent payloads share the PM <code>session_id</code>), then passed after the fix. #66 and Epic 3 closed. The operator ruled that Epic 4's live checks run at the batch gate.
 </li>
+<li>2026-11-03 — Epic 7 release decision: the workflow tags the current manifest version when no matching tag exists, then skips versions that already have a tag. The first main run must publish v0.1.0 because <code>origin/main</code> already contains that version before the workflow lands.
+</li>
 <li>2026-11-03 — Epic 4 batch gate (PR #107). The Codex PM built #30-#34 (dogfood run 2). The operator ruled that Epic 4's live checks run at the gate; they passed for the planner, the dual-harness scaffold (Claude Code loads <code>AGENTS.md</code> through <code>CLAUDE.md</code>), <code>spec-to-issues</code> format and <code>project-inherit</code>. Carried: #109 (the <code>issue_flow</code> profile cannot write <code>.agents/</code> or <code>.codex/</code>; operator ruling) and #110 (<code>spec-update refresh</code> live proof).
+</li>
+<li>2026-11-03 — Epic 7 batch gate (PR #124): FR-mirror-and-sync-9 named an upstream issue body format that does not exist. The sync issue body is the report itself, without its diff blocks when it is too long. The README installs at the release tag, because the default branch is <code>dev</code>.
 </li>
 </ul><nav class="pager">
 <span></span>

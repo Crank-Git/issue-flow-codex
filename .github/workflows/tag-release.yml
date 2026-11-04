@@ -1,0 +1,35 @@
+name: Tag release
+
+on:
+  push:
+    branches:
+      - main
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+concurrency:
+  group: tag-release
+  cancel-in-progress: false
+
+jobs:
+  tag:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out the pushed commit
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Validate the manifests
+        run: python3 scripts/validate_manifests.py
+
+      - name: Tag a changed plugin version
+        run: |
+          git tag --list > "$RUNNER_TEMP/existing-tags.txt"
+          tag="$(python3 scripts/release_tag.py .codex-plugin/plugin.json "$RUNNER_TEMP/existing-tags.txt")"
+          if [[ -n "$tag" ]]; then
+            git tag "$tag"
+            git push origin "$tag"
+          fi

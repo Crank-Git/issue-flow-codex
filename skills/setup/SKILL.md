@@ -34,7 +34,7 @@ directory two levels above it. Call it `<pluginRoot>`. The script is
    flag, a line that the file holds stays. If you add a flag, run `plan` again and
    show the new diff of `.codex/config.toml`.
 6. Ask about each file, one question per file, in plain text. Name the path as the plan
-   shows it, for example `.codex/agents/issue_worker.toml`, `.codex/config.toml`, or
+   shows it, for example `.codex/agents/issue-worker.toml`, `.codex/config.toml`, or
    `.gitignore`, and ask whether the operator will apply the change. Then end your turn
    and wait for the answers. Codex has no question tool in default mode. The operator
    answers in the next message. Accept a file only when the operator accepts its diff.
@@ -47,7 +47,7 @@ directory two levels above it. Call it `<pluginRoot>`. The script is
    - Start a new `codex` session after applying `.codex/config.toml`. Codex reads the
      profile at session start.
    - Run `/hooks` and trust the issue-flow hooks. Codex skips plugin hooks that the operator has not trusted.
-   - Start another `codex` session to load the trusted project hooks.
+   - Start another `codex` session to load the trusted plugin hooks.
 
 ## Check mode
 

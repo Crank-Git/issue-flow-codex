@@ -80,6 +80,26 @@ class PlannerHandoffTextTest(unittest.TestCase):
         self.assertIsNone(claude_rule, "brief points to the Claude-only STE path")
 
 
+class ProjectInheritScaffoldTextTest(unittest.TestCase):
+    def test_inherit_offers_the_codex_scaffold_with_optional_dual_harness(self):
+        path = Path(__file__).resolve().parent.parent / "skills" / "project-inherit" / "SKILL.md"
+        text = path.read_text()
+        handoff = next(line for line in text.splitlines()
+                       if line.startswith("$issue-flow:project-inherit  →"))
+        phase_four = " ".join(text.split("## Phase 4 — Scaffold, render, review", 1)[1].split(
+            "## Phase 5 — Handoff", 1)[0].split())
+
+        self.assertIn("AGENTS.md", handoff)
+        self.assertIn("docs/rules/", handoff)
+        self.assertIn(".agents/skills/", handoff)
+        self.assertIn(".codex/", handoff)
+        self.assertNotIn("CLAUDE.md + .claude/", handoff)
+        self.assertIn("dual-harness mode", phase_four)
+        self.assertIn("AGENTS.md", phase_four)
+        self.assertIn("docs/rules/", phase_four)
+        self.assertNotIn("`.claude/` scaffold", phase_four)
+
+
 class StageBTest(unittest.TestCase):
     def test_stage_b_names_spawn_agent_with_fork_turns_none(self):
         text = stage_b()

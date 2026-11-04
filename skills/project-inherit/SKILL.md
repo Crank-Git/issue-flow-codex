@@ -13,7 +13,7 @@ actually built. Your deliverable is identical to the planner's: an approved
 care which skill produced it:
 
 ```
-$issue-flow:project-inherit  →  docs/specs/ + CLAUDE.md + .claude/ + .gitignore  (review → approved)
+$issue-flow:project-inherit  →  docs/specs/ + Codex scaffold (AGENTS.md, docs/rules/, .agents/skills/, .codex/; optional dual-harness files)  (review → approved)
 $issue-flow:spec-to-issues   →  epics + sub-issues (planned features only)
 $issue-flow:issue-flow       →  built, PR'd, merged, deployed
 ```
@@ -24,12 +24,12 @@ content and backlog material, not something to patch on the way through.
 
 ## Ground rules
 
-All of `project-planner`'s ground rules apply verbatim — STE everywhere
+All of `project-planner`'s ground rules apply — STE everywhere
 ([`../../references/ste.md`](../../references/ste.md), read before Phase 3), external
 interfaces described from fetched docs only
 ([`../../references/external-apis.md`](../../references/external-apis.md)), one project
-per repository, portable relative paths, no Artifacts, never overwrite existing
-`CLAUDE.md` / `.claude/settings.json` / `.gitignore`. Plus three of your own:
+per repository, portable relative paths, no Artifacts, and never overwrite an existing
+`AGENTS.md`, `CLAUDE.md`, `.codex/config.toml`, or `.gitignore`. Plus three of your own:
 
 - **The code is the senior witness.** Where existing documentation and the code
   disagree, the code is the fact and the document is a claim; record the conflict in
@@ -164,14 +164,16 @@ Write the same package to the same contract —
 
 ## Phase 4 — Scaffold, render, review
 
-Identical to `project-planner` Phases 3–4, same reference
+Follow `project-planner` Phases 3–4 and the same reference
 ([`scaffold.md`](../project-planner/references/scaffold.md)): generate `spec.html` with
-the copied `render-spec.py` (vendor the mermaid asset), propose — never impose — the
-`.claude/` scaffold, **merge** with everything that already exists, derive
-`.claude/rules/quality.md` from the conventions the code actually follows (plus the
-default slop list), and run the review cycle to explicit approval. The digest for the
-first review round leads with the three Phase 1 lists — confirmed / contradicted /
-undocumented — because that is what the user cannot get anywhere else.
+the copied `render-spec.py` (vendor the mermaid asset), then propose the Codex scaffold:
+`AGENTS.md`, `docs/rules/`, project skills in `.agents/skills/`, hooks in `.codex/`, and
+the `.gitignore` block. Propose `CLAUDE.md` and `.claude/rules/` only in dual-harness
+mode. **Merge** new files with what already exists. Derive `docs/rules/quality.md` from
+the conventions the code follows and the default slop list. Run the review cycle to
+explicit approval. The digest for the first review round leads with the three Phase 1
+lists — confirmed / contradicted / undocumented — because the user cannot get that
+information anywhere else.
 
 ## Phase 5 — Handoff
 

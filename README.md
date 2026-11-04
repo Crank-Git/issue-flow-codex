@@ -28,9 +28,10 @@ codex plugin marketplace add Crank-Git/issue-flow-codex
 codex plugin add issue-flow@issue-flow-codex
 ```
 
-Start Codex in the project and run `$issue-flow:setup`. The setup skill shows each diff
-before it writes the selected files. Review each diff and accept only the files you want
-the setup skill to write.
+Start Codex in the project and run `$issue-flow:setup`. Review each proposed diff.
+The skill writes accepted files outside `.codex/`. Apply accepted `.codex/` changes
+outside Codex, then start a new session. The profile permits `.agents/` writes and
+keeps `.codex/` read-only.
 
 After setup, run `/hooks` and trust the issue-flow hooks. Codex skips plugin hooks until
 you trust them. Start a new Codex session after you trust the hooks.

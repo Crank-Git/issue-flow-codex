@@ -1,6 +1,6 @@
 {
   "name": "issue-flow",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "description": "Autonomous development loop driven by GitHub or Gitea issues, for Codex: plan a spec, decompose it into epics and sub-issues, build them with worker subagents on batched integration branches, verify the deploy, then user-test the result and file what it finds. Everything it writes follows a Simplified Technical English standard.",
   "keywords": [
     "github",

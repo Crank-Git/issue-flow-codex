@@ -8,7 +8,8 @@
 `create` prints one JSON line: {"path", "branch", "base_sha"}. It reuses the
 branch when the branch exists, and else creates it from --base. It copies each
 file that `.worktreeinclude` names and git ignores, so a tracked file is never
-overwritten.
+overwritten. When no ignore rule covers `.worktrees/`, it adds the line to the
+local git exclude file.
 
 `remove` exits 1 and changes nothing when the worktree has an uncommitted
 change or a commit that no remote-tracking ref holds. Otherwise it removes the
@@ -61,6 +62,15 @@ def cmd_create(args):
     has_branch = subprocess.run(
         ["git", "-C", str(project), "show-ref", "--verify", "--quiet",
          f"refs/heads/{args.branch}"]).returncode == 0
+    # A project set up at the user level has no `.worktrees/` line in `.gitignore`.
+    # The local exclude file hides the worktrees from `git status` without a tracked change.
+    if subprocess.run(["git", "-C", str(project), "check-ignore", "-q", f".worktrees/{args.task}"]
+                      ).returncode != 0:
+        exclude = project / git(project, "rev-parse", "--git-path", "info/exclude")
+        exclude.parent.mkdir(parents=True, exist_ok=True)
+        current = exclude.read_text(encoding="utf-8") if exclude.is_file() else ""
+        sep = "" if not current or current.endswith("\n") else "\n"
+        exclude.write_text(current + sep + ".worktrees/\n", encoding="utf-8")
     if has_branch:
         git(project, "worktree", "add", str(tree), args.branch)
     else:

@@ -57,7 +57,9 @@ class ProjectScaffoldTest(unittest.TestCase):
         text = skill.read_text()
 
         self.assertIn("Before the planner writes `.agents/skills/`, confirm that the active session uses the", text)
-        self.assertIn("If the project has no profile yet, stop and ask the operator to run", text)
+        self.assertIn("If the session has no\nprofile, stop. Ask the operator to run `$issue-flow:setup` once", text)
+        self.assertIn("`codex -p issue-flow -a never`", text)
+        self.assertNotIn("apply the printed `.codex/` changes, start a new Codex session", text)
 
     def test_planner_checklist_names_hooks_for_operator_application(self):
         skill = SCAFFOLD.parent.parent / "SKILL.md"

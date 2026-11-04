@@ -945,6 +945,12 @@ upstream_sha256 = ""
 notes = "port-only: ADR 0004"
 
 [[file]]
+path = "docs/adr/0005-user-level-setup.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: ADR 0005, user-level setup (#126)"
+
+[[file]]
 path = "tests/test_planner_scaffold.py"
 mode = "new"
 upstream_sha256 = ""

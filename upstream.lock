@@ -925,3 +925,9 @@ path = "docs/adr/0004-codex-settings-file.md"
 mode = "new"
 upstream_sha256 = ""
 notes = "port-only: ADR 0004"
+
+[[file]]
+path = "tests/test_planner_scaffold.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: project-planner scaffold contract tests (#31)"

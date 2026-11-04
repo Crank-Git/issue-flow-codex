@@ -75,6 +75,7 @@ extends = ":workspace"
 [permissions.gitw.filesystem.":workspace_roots"]
 "." = "write"
 ".git" = "write"
+".agents" = "write"
 
 [permissions.gitw.network]
 enabled = true

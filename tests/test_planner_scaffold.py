@@ -46,6 +46,19 @@ class ProjectScaffoldTest(unittest.TestCase):
             with self.subTest(token=token):
                 self.assertIn(token, text)
 
+    def test_scaffold_prints_hooks_for_operator_application(self):
+        text = SCAFFOLD.read_text()
+
+        self.assertIn("Print the proposed `.codex/hooks.json` for the operator to apply", text)
+        self.assertNotIn("Write project hooks to `.codex/hooks.json`", text)
+
+    def test_planner_requires_the_profile_before_a_greenfield_run(self):
+        skill = SCAFFOLD.parent.parent / "SKILL.md"
+        text = skill.read_text()
+
+        self.assertIn("Before the planner writes `.agents/skills/`, confirm that the active session uses the", text)
+        self.assertIn("If the project has no profile yet, stop and ask the operator to run", text)
+
     def test_scaffold_defines_dual_harness_files_and_gitignore(self):
         text = SCAFFOLD.read_text()
 

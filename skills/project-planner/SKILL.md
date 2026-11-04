@@ -167,10 +167,16 @@ back.
 
 ## Phase 3 — Generate spec.html and the project scaffold
 
+Before the planner writes `.agents/skills/`, confirm that the active session uses the
+`issue_flow` profile. The profile grants write access to `.agents/` and keeps `.codex/`
+read-only. If the project has no profile yet, stop and ask the operator to run
+`$issue-flow:setup`, apply the printed `.codex/` changes, start a new Codex session, and
+then start the planner again. A greenfield project needs this step before scaffold approval.
+
 Generate `spec.html` from the markdown — copy the skill's `scripts/render-spec.py`
 into `docs/specs/`, vendor the mermaid asset, and run it; the markdown is the spec and
 `spec.html` is its generated website, never a hand-written summary. Then `AGENTS.md`,
-`docs/rules/`, project skills in `.agents/skills/`, hooks in `.codex/hooks.json`,
+`docs/rules/`, project skills in `.agents/skills/`, printed hooks for `.codex/hooks.json`,
 `docs/adr/`, `docs/external.md`, and the `.gitignore` block. In dual-harness mode, also
 propose `CLAUDE.md` and `.claude/rules/` files. The format and rules for each are in
 **[references/scaffold.md](references/scaffold.md)**.

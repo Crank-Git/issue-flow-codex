@@ -178,7 +178,7 @@ Why a native plugin beat an external orchestrator: an external script would dupl
 
 ### Sandbox
 
-- The setup skill writes a permission profile `issue_flow` that extends `:workspace`, makes `.git` writable, and enables network access. Verified against: live test (worktree add, commit, and `git ls-remote` all exit 0 under this profile, and all fail under the default `workspace-write`).
+- The setup skill writes a permission profile `issue_flow` that extends `:workspace`, makes `.git` and `.agents/` writable, and enables network access. The profile keeps `.codex/` read-only. The operator applies `.codex/` changes and starts a new session. Verified against: the operator ruling on #109 and the profile pattern in `codex-harness.md`, fact 8.
 - Subagents inherit the profile from the PM. Verified against: live test (a `git_worker` subagent created a worktree and committed).
 - [ADR 0003](../adr/0003-permission-profile.md) records the decision.
 

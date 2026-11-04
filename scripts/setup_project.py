@@ -14,7 +14,10 @@ Port-only script, the mechanics of the `setup` skill (FR-plugin-packaging-11 to 
 writes `issue-flow.config.toml`, which `codex -p issue-flow` layers on the user config,
 and copies the role files into `agents/`. It never writes `config.toml`.
 `apply --user` writes each missing file. It replaces a file that differs only when
-`--accept` names the file; else it prints the diff and exits 1.
+`--accept` names the file; else it prints the diff and exits 1. In
+`issue-flow.config.toml`, setup owns only `default_permissions`,
+`[features.multi_agent_v2]`, and `[permissions.issue_flow]`. Codex saves its own state
+in the same file, so `check` compares only the owned keys and `apply` keeps every other line.
 
 A rerun keeps a `default_permissions = "issue_flow"` line that the block already holds.
 `--without-default-permissions` drops it. Without either flag, `plan` and `apply` decide
@@ -45,6 +48,8 @@ THREAD_OVERHEAD = 4
 BEGIN = "# issue-flow:begin"
 END = "# issue-flow:end"
 TABLE_HEADER = re.compile(r"^\s*\[")
+# The tables of the user profile that setup owns, with their subtables.
+OWNED_TABLE = re.compile(r"^\s*\[\s*(features\.multi_agent_v2|permissions\.issue_flow)\s*[\].]")
 PROFILE = """\
 [permissions.issue_flow]
 extends = ":workspace"
@@ -298,6 +303,44 @@ def check_report(project, plugin_root):
     return rows
 
 
+def owned_values(data):
+    """Return the values of the profile keys that setup owns, from parsed TOML."""
+    return (data.get("default_permissions"),
+            data.get("features", {}).get("multi_agent_v2"),
+            data.get("permissions", {}).get("issue_flow"))
+
+
+def merge_profile(existing):
+    """Return the user profile text plus each line of `existing` outside the owned keys.
+
+    Codex writes folder trust, hook trust, and other state into the profile file. A
+    replace of the whole file deletes that state, so this keeps it.
+    """
+    root, kept, in_root, owned = [], [], True, False
+    for line in existing.splitlines():
+        if TABLE_HEADER.match(line):
+            in_root = False
+            owned = bool(OWNED_TABLE.match(line))
+        if in_root:
+            if not line.strip().startswith("default_permissions"):
+                root.append(line)
+        elif not owned:
+            kept.append(line)
+    head, rest = USER_PROFILE.split("\n", 1)
+    extra_root = "\n".join(root).strip()
+    text = head + ("\n" + extra_root if extra_root else "") + "\n" + rest
+    tail = "\n".join(kept).strip()
+    if tail:
+        text += "\n" + tail + "\n"
+    try:
+        merged = tomllib.loads(text)
+    except tomllib.TOMLDecodeError as exc:
+        raise SetupError(f"cannot merge {USER_PROFILE_FILE}: {exc}; repair the file, then rerun") from exc
+    if owned_values(merged) != owned_values(tomllib.loads(USER_PROFILE)):
+        raise SetupError(f"cannot merge {USER_PROFILE_FILE}; repair the file, then rerun")
+    return text
+
+
 def user_status(plugin_root):
     """Return (Codex home, {path: wanted text}, {path: ok | missing | stale}) for the user setup.
 
@@ -312,6 +355,18 @@ def user_status(plugin_root):
         path = home / rel
         if not path.is_file():
             status[rel] = "missing"
+        elif rel == USER_PROFILE_FILE:
+            # Codex saves its own state in the active profile file (codex-harness.md, fact 29).
+            existing = path.read_text(encoding="utf-8")
+            try:
+                current = owned_values(tomllib.loads(existing))
+            except tomllib.TOMLDecodeError:
+                current = None
+            if current == owned_values(tomllib.loads(text)):
+                status[rel] = "ok"
+            else:
+                status[rel] = "stale"
+                wanted[rel] = merge_profile(existing)
         else:
             status[rel] = "ok" if path.read_text(encoding="utf-8") == text else "stale"
     return home, wanted, status

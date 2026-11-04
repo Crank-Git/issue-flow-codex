@@ -6,7 +6,7 @@ status: approved
 spec_version: 2
 created: 2026-11-03
 approved: 2026-11-03
-html_generated: 2026-11-03
+html_generated: 2026-11-04
 branch_model: dev-and-live
 visibility: public
 features:

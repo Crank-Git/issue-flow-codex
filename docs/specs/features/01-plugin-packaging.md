@@ -59,10 +59,10 @@ It ports the two upstream hooks and adds the role guard.
 - FR-plugin-packaging-42 — `setup_project.py apply --user` writes `issue-flow.config.toml` in the Codex home. The file holds `default_permissions = "issue_flow"` first, then the `[features.multi_agent_v2]` table of the config block for concurrency 3, then the permission profile `issue_flow` of the config block.
 - FR-plugin-packaging-43 — `setup_project.py apply --user` copies each file in `<pluginRoot>/roles/` into `agents/` in the Codex home.
 - FR-plugin-packaging-44 — The user-level mode never writes `config.toml` and never sets `approval_policy`.
-- FR-plugin-packaging-45 — `apply --user` replaces a file that differs only when `--accept` names that file. Else it prints the diff of that file and exits 1.
+- FR-plugin-packaging-45 — `apply --user` replaces a file that differs only when `--accept` names that file. Else it prints the diff of that file and exits 1. In `issue-flow.config.toml`, it replaces only `default_permissions`, `[features.multi_agent_v2]`, and `[permissions.issue_flow]` with its subtables, and keeps every other line.
 - FR-plugin-packaging-46 — A second `apply --user` writes no file and prints `no changes`.
 - FR-plugin-packaging-47 — The setup skill runs `plan --user` and prints the command `python3 <pluginRoot>/scripts/setup_project.py apply --user` with the absolute plugin root. The operator runs the command outside Codex, because the session cannot write the Codex home.
-- FR-plugin-packaging-48 — `check --user` reports each file of the user-level mode as `ok`, `missing`, or `stale`, and writes no file.
+- FR-plugin-packaging-48 — `check --user` reports each file of the user-level mode as `ok`, `missing`, or `stale`, and writes no file. For `issue-flow.config.toml`, it compares only the keys of FR-plugin-packaging-45, because Codex saves its own state in that file (codex-harness.md, fact 29).
 - FR-plugin-packaging-49 — `check --project` passes when the user-level setup or the project setup is complete. With a complete user-level setup, a missing project item is `not used`. When neither is complete, the output ends with `fix: python3 <pluginRoot>/scripts/setup_project.py apply --user`.
 - FR-plugin-packaging-50 — `scripts/worktree.py create` adds `.worktrees/` to the local git exclude file when no ignore rule covers `.worktrees/`.
 
@@ -309,6 +309,7 @@ without `apply_patch`. The roles' instructions state the same limits.
 - If the payload has a `tool_input` that is a string, not an object, the hooks allow the call.
 - If `config.toml` holds a legacy `[profiles.issue-flow]` table, `codex -p issue-flow` fails. The operator removes the table.
 - If the operator updates the plugin, `check --user` reports changed role files as `stale`. The operator runs `apply --user` again.
+- If `issue-flow.config.toml` is not valid TOML, `apply --user --accept` changes nothing, and tells the operator to repair the file.
 - If a project has no `.worktrees/` line in `.gitignore`, `worktree.py create` adds the line to `.git/info/exclude`. No tracked file changes.
 - If the operator needs a concurrency other than 3, the operator uses per-project setup. The project block sets the thread limit for that project.
 

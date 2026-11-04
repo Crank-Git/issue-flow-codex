@@ -24,7 +24,7 @@ plugin unless the Codex-specific sections below say otherwise. Where behavior di
 Add the marketplace at the release tag and install the plugin:
 
 ```bash
-codex plugin marketplace add Crank-Git/issue-flow-codex --ref issue-flow-codex--v0.1.1
+codex plugin marketplace add Crank-Git/issue-flow-codex --ref issue-flow-codex--v0.1.2
 codex plugin add issue-flow@issue-flow-codex
 ```
 

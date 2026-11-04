@@ -4,8 +4,6 @@ on:
   push:
     branches:
       - main
-    paths:
-      - .codex-plugin/plugin.json
 
 permissions:
   contents: write
@@ -20,18 +18,9 @@ jobs:
           fetch-depth: 0
 
       - name: Tag a changed plugin version
-        env:
-          BEFORE: ${{ github.event.before }}
         run: |
-          if [[ "$BEFORE" =~ ^0+$ ]]; then
-            exit 0
-          fi
-          if git cat-file -e "$BEFORE:.codex-plugin/plugin.json" 2>/dev/null; then
-            git show "$BEFORE:.codex-plugin/plugin.json" > "$RUNNER_TEMP/previous-manifest.json"
-          else
-            : > "$RUNNER_TEMP/previous-manifest.json"
-          fi
-          tag="$(python3 scripts/release_tag.py "$RUNNER_TEMP/previous-manifest.json" .codex-plugin/plugin.json)"
+          git tag --list > "$RUNNER_TEMP/existing-tags.txt"
+          tag="$(python3 scripts/release_tag.py .codex-plugin/plugin.json "$RUNNER_TEMP/existing-tags.txt")"
           if [[ -n "$tag" ]]; then
             git tag "$tag"
             git push origin "$tag"

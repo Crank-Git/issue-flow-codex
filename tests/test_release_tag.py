@@ -11,28 +11,35 @@ import release_tag  # noqa: E402
 
 
 class ReleaseTagTest(unittest.TestCase):
-    def test_returns_a_tag_when_the_manifest_version_changes(self):
-        old = b'{"version":"0.1.0"}'
-        new = b'{"version":"0.1.1"}'
+    def test_returns_a_tag_for_an_untagged_manifest_version(self):
+        manifest = b'{"version":"0.1.1"}'
 
-        self.assertEqual(release_tag.tag_for_change(old, new), "issue-flow-codex--v0.1.1")
+        self.assertEqual(release_tag.tag_for_manifest(
+            manifest, ["issue-flow-codex--v0.1.0"]), "issue-flow-codex--v0.1.1")
 
     def test_returns_no_tag_when_the_manifest_version_is_unchanged(self):
         manifest = b'{"version":"0.1.0"}'
 
-        self.assertIsNone(release_tag.tag_for_change(manifest, manifest))
+        self.assertIsNone(release_tag.tag_for_manifest(
+            manifest, ["issue-flow-codex--v0.1.0"]))
 
-    def test_returns_a_tag_when_the_manifest_is_new_on_main(self):
+    def test_returns_a_tag_when_the_unchanged_version_has_no_release_tag(self):
+        manifest = b'{"version":"0.1.0"}'
+
+        self.assertEqual(release_tag.tag_for_manifest(manifest, []),
+                         "issue-flow-codex--v0.1.0")
+
+    def test_returns_the_initial_release_tag_when_main_has_no_release_tag(self):
         current = b'{"version":"0.1.0"}'
 
-        self.assertEqual(release_tag.tag_for_change(b"", current), "issue-flow-codex--v0.1.0")
+        self.assertEqual(release_tag.tag_for_manifest(current, []), "issue-flow-codex--v0.1.0")
 
     def test_rejects_a_changed_manifest_with_an_invalid_version(self):
-        old = b'{"version":"0.1.0"}'
-        new = b'{"version":"next"}'
-
-        with self.assertRaisesRegex(ValueError, "invalid manifest version"):
-            release_tag.tag_for_change(old, new)
+        for version in ("next", "01.0.0", "1.0.0-01", "1.0.0-"):
+            with self.subTest(version=version):
+                new = f'{{"version":"{version}"}}'.encode()
+                with self.assertRaisesRegex(ValueError, "invalid manifest version"):
+                    release_tag.tag_for_manifest(new, [])
 
 
 class ReleaseDocsTest(unittest.TestCase):
@@ -40,11 +47,11 @@ class ReleaseDocsTest(unittest.TestCase):
         workflow = (ROOT / ".github" / "workflows" / "tag-release.yml").read_text()
 
         self.assertIn("branches:\n      - main", workflow)
-        self.assertIn("paths:\n      - .codex-plugin/plugin.json", workflow)
+        self.assertNotIn("paths:", workflow)
         self.assertIn("permissions:\n  contents: write", workflow)
+        self.assertIn("git tag --list", workflow)
         self.assertIn("git tag \"$tag\"", workflow)
         self.assertIn("git push origin \"$tag\"", workflow)
-        self.assertIn("git cat-file -e", workflow)
         self.assertNotIn("gh release create", workflow)
 
     def test_readme_documents_codex_setup_hook_trust_and_skill_invocations(self):

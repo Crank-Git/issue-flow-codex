@@ -7,31 +7,34 @@ import re
 import sys
 from pathlib import Path
 
-VERSION = re.compile(r"\d+\.\d+\.\d+(?:-[0-9A-Za-z.-]+)?(?:\+[0-9A-Za-z.-]+)?\Z")
+VERSION = re.compile(
+    r"(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)\.(?:0|[1-9][0-9]*)"
+    r"(?:-(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*)"
+    r"(?:\.(?:0|[1-9][0-9]*|[0-9]*[A-Za-z-][0-9A-Za-z-]*))*)?"
+    r"(?:\+[0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*)?\Z")
 
 
-def tag_for_change(previous, current):
-    """Return the release tag when the manifest version changes."""
+def tag_for_manifest(current, existing_tags):
+    """Return the release tag when the current manifest version has no tag."""
     new_version = json.loads(current)["version"]
-    old_version = json.loads(previous)["version"] if previous.strip() else None
-    if old_version is not None and not isinstance(old_version, str):
-        raise ValueError("previous manifest version must be a string")
     if not isinstance(new_version, str):
         raise ValueError("manifest version must be a string")
     if not VERSION.fullmatch(new_version):
         raise ValueError(f"invalid manifest version: {new_version}")
-    if old_version == new_version:
+    tag = f"issue-flow-codex--v{new_version}"
+    if tag in existing_tags:
         return None
-    return f"issue-flow-codex--v{new_version}"
+    return tag
 
 
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("previous", type=Path)
     parser.add_argument("current", type=Path)
+    parser.add_argument("tags", type=Path)
     args = parser.parse_args(argv)
     try:
-        tag = tag_for_change(args.previous.read_bytes(), args.current.read_bytes())
+        existing_tags = args.tags.read_text(encoding="utf-8").splitlines()
+        tag = tag_for_manifest(args.current.read_bytes(), existing_tags)
     except (OSError, KeyError, ValueError) as error:
         print(f"cannot select release tag: {error}", file=sys.stderr)
         return 1

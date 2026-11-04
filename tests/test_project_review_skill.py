@@ -4,6 +4,8 @@ from pathlib import Path
 
 SKILL = Path(__file__).resolve().parent.parent / "skills" / "project-review" / "SKILL.md"
 SCRIBE = Path(__file__).resolve().parent.parent / "agents" / "review-scribe.md"
+VERIFIER = Path(__file__).resolve().parent.parent / "agents" / "deploy-verifier.md"
+DEPLOY = Path(__file__).resolve().parent.parent / "skills" / "issue-flow" / "references" / "deploy.md"
 
 
 class ProjectReviewPlaywrightPreflightTest(unittest.TestCase):
@@ -16,8 +18,35 @@ class ProjectReviewPlaywrightPreflightTest(unittest.TestCase):
         self.assertIn("codex mcp add playwright -- npx -y @playwright/mcp@0.0.84", preflight)
         self.assertIn("stop before you spawn a browser role", preflight)
         self.assertNotIn("runs `codex mcp add`", preflight)
-        self.assertLess(preflight.index("codex mcp list"), preflight.index("spawn"))
+        self.assertLess(preflight.index("codex mcp get playwright"), preflight.index("spawn"))
         self.assertIn("https://github.com/microsoft/playwright-mcp/releases", preflight)
+
+    def test_browser_check_requires_the_approval_key_and_never_edits_the_config(self):
+        preflight = SKILL.read_text().split("# Phase 0 — Preflight", 1)[1].split("# Phase 1", 1)[0]
+
+        self.assertIn("`default_tools_approval_mode: approve`", preflight)
+        self.assertIn('`default_tools_approval_mode = "approve"`', preflight)
+        self.assertIn("`[mcp_servers.playwright]`", preflight)
+        self.assertIn("never edit `config.toml`", preflight)
+
+    def test_deploy_browser_check_requires_the_approval_key(self):
+        text = DEPLOY.read_text()
+
+        self.assertIn("codex mcp get playwright", text)
+        self.assertIn('`default_tools_approval_mode = "approve"`', text)
+        self.assertIn("`[mcp_servers.playwright]`", text)
+        self.assertIn("do not edit `config.toml`", text)
+        self.assertIn("`browser: none`", text)
+
+    def test_add_command_sends_playwright_output_under_worktrees(self):
+        flag = "@playwright/mcp@0.0.84 --output-dir .worktrees/review/playwright-mcp"
+
+        self.assertIn(flag, SKILL.read_text())
+        self.assertIn(flag, DEPLOY.read_text())
+
+    def test_deploy_verifier_saves_its_screenshot_to_an_absolute_scratch_path(self):
+        self.assertIn("screenshotFile: <absolute path under <project>/.worktrees/", VERIFIER.read_text())
+        self.assertIn("screenshotFile: <project>/.worktrees/deploy/verify-<sha7>.png", DEPLOY.read_text())
 
 
 class ProjectReviewDispatchTest(unittest.TestCase):
@@ -74,6 +103,8 @@ class ProjectReviewDispatchTest(unittest.TestCase):
         phase = self.section("# Phase 4 — Deliverables PR", "# Phase 5 — Report & hand off")
 
         self.assertIn("scripts/worktree.py create", phase)
+        self.assertNotIn("python3 scripts/worktree.py", self.text)
+        self.assertEqual(self.text.count("worktree.py"), self.text.count("<pluginRoot>/scripts/worktree.py"))
         self.assertIn('fork_turns: "none"', phase)
         self.assertIn("FINAL_ANSWER", phase)
         self.assertIn("worktree.py remove", phase)
@@ -86,6 +117,20 @@ class ProjectReviewDispatchTest(unittest.TestCase):
         self.assertIn("scripts/worktree.py", text)
         self.assertNotIn('isolation: "worktree"', text)
         self.assertNotIn(".claude/worktrees/", text)
+
+    def test_unverified_e2e_test_puts_the_outside_command_in_the_pr_body(self):
+        phase = self.section("# Phase 4 — Deliverables PR", "# Phase 5 — Report & hand off")
+
+        self.assertIn("`unverified` with the error line", phase)
+        self.assertIn("the command that the operator runs outside Codex", phase)
+        self.assertIn("Do not change the\n   permission profile", phase)
+
+    def test_scribe_reports_a_browser_start_failure_as_unverified(self):
+        text = SCRIBE.read_text()
+
+        self.assertIn("report that test as\n  `unverified` in `testRun`", text)
+        self.assertIn("`MachPortRendezvous`", text)
+        self.assertIn("run it outside Codex", text)
 
     def test_filing_gate_keeps_only_qualifying_findings_as_issues(self):
         phase = self.section("# Phase 3 — Gather & file", "# Phase 4 — Deliverables PR")

@@ -69,11 +69,20 @@ have damaged.
 1. **Repo check.** Same as issue-flow: `git rev-parse --is-inside-work-tree`,
    `forge.repo.view`, `forge.auth.check`. Detect the remote name and the dev-vs-live
    branch model (review branches fork off dev when it exists, else the default branch).
-2. **Browser check.** Run `codex mcp list`. If its output has no server named
-   `playwright`, show the operator this command and stop before you spawn a browser role:
-   `codex mcp add playwright -- npx -y @playwright/mcp@0.0.84`. Never run the add
-   command. The package README uses `@latest`; release `v0.0.84` is the latest pinned
-   release at https://github.com/microsoft/playwright-mcp/releases (retrieved 2026-11-04).
+2. **Browser check.** Run `codex mcp get playwright`. The check passes only when the
+   command succeeds and its output has the line `default_tools_approval_mode: approve`.
+   If the check fails, show the operator these two steps. Then stop before you spawn a browser role:
+   1. If `codex mcp list` has no server named `playwright`, run
+      `codex mcp add playwright -- npx -y @playwright/mcp@0.0.84 --output-dir .worktrees/review/playwright-mcp`.
+   2. In `config.toml` under `CODEX_HOME`, add `default_tools_approval_mode = "approve"`
+      under `[mcp_servers.playwright]`.
+
+   Never run the add command, and never edit `config.toml`. Without the key, Codex
+   denies each Playwright call with `MCP tool call requires approval, but approval
+   policy is never`. The `--output-dir` flag keeps the automatically named Playwright
+   files out of the project tree. The package README uses `@latest`; release `v0.0.84`
+   is the latest pinned release at https://github.com/microsoft/playwright-mcp/releases
+   (retrieved 2026-11-04).
 3. **Sandbox up.** The review runs against a **sandbox, never production**. Resolve in
    order, asking the user only when ambiguous:
    - A URL the user supplied for this review.
@@ -213,9 +222,11 @@ Sub-agents **report**; only the PM files. On all verdicts collected:
 # Phase 4 — Deliverables PR (manual + E2E tests)
 
 1. Set `scribe_task` to `review_scribe_<RUN_ID_with_underscores>`. Create the scribe
-   worktree with `python3 scripts/worktree.py create --project <project> --task
+   worktree with `python3 <pluginRoot>/scripts/worktree.py create --project <project> --task
    <scribe_task> --branch review/<RUN_ID> --base <remote>/<dev>
    --remote <remote>`. For a CI re-run, use `<remote>/review/<RUN_ID>` as the base.
+   `<pluginRoot>` is the plugin's absolute directory: two levels above the directory of
+   this `SKILL.md`. The reviewed project does not hold this script.
    Read the printed path. Call `list_agents` and confirm a free thread slot. Spawn the
    `review_scribe` role with `task_name: <scribe_task>`, `agent_type: "review_scribe"`,
    and `fork_turns: "none"`. Include the worktree path in its brief. Tell the scribe to
@@ -241,20 +252,26 @@ Sub-agents **report**; only the PM files. On all verdicts collected:
    shared across worktrees, so you need not enter the scribe's) and open **one PR
    `review/<RUN_ID>` → dev**: title
    `Project review <RUN_ID>: user manual + E2E smoke tests`, body listing manual pages,
-   tests added, the test-run result, **the routed repairs and where each landed** (read them
+   tests added, the test-run result, the run command for each `unverified` test (see
+   below), **the routed repairs and where each landed** (read them
    from the scribe's `repairsMade`), and the filed-issue ledger. A repair the scribe reports
    unmade is stated as unmade with its reason, never dropped from the list. Docs + tests only —
    this PR is standalone, so **CI runs normally** on it.
+   If the browser for an E2E test cannot start inside Codex, the scribe reports that test
+   as `unverified` with the error line. An example is Chromium that exits with
+   `MachPortRendezvous` and `Permission denied`. For each `unverified` test, list in the
+   PR body the command that the operator runs outside Codex. Do not change the
+   permission profile to start the browser.
 3. Gate the PR like any PM merge. Read `prAuthority` from `.issue-flow.json` when it
    exists. A PR into dev uses the batch-PR column in `references/session-config.md`.
    Under the default `batch-review` and stricter settings, request human approval.
    Merge only after CI passes and all threads resolve. If CI fails because of new tests,
    send the scribe the failure with `followup_task` by its `task_name`. Wait for its new
    verdict, push the branch, and wait for CI on the new head. If the scribe is gone,
-   remove its worktree with `worktree.py remove`, then create it again with
-   `worktree.py create` and base it on `<remote>/review/<RUN_ID>`. **Never patch product
-   code to make a review test pass.** Remove the scribe worktree with
-   `python3 scripts/worktree.py remove --project <project> --task <scribe_task>` when
+   remove its worktree with `<pluginRoot>/scripts/worktree.py remove`. Then create it
+   again with `<pluginRoot>/scripts/worktree.py create` and base it on
+   `<remote>/review/<RUN_ID>`. **Never patch product code to make a review test pass.** Remove the scribe worktree with
+   `python3 <pluginRoot>/scripts/worktree.py remove --project <project> --task <scribe_task>` when
    the PR merges or the review ends without a merge.
 
 # Phase 5 — Report & hand off to issue-flow
@@ -281,7 +298,7 @@ Sub-agents **report**; only the PM files. On all verdicts collected:
 4. **Teardown.** Stop any sandbox you launched. Use the reviewed project's `run` skill
    stop step to end MCP server processes that remain after a subagent finishes. Remove
    the scribe worktree when the PR merges or the review ends without a merge. Run
-   `python3 scripts/worktree.py remove --project <project> --task <scribe_task>`.
+   `python3 <pluginRoot>/scripts/worktree.py remove --project <project> --task <scribe_task>`.
 
 ---
 

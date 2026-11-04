@@ -199,9 +199,21 @@ not be reported as one the merge triggered.
 ## The deploy-verifier agent (browser check)
 
 A green build does not prove the app runs. After a deployment returns `succeeded`,
-check the `playwright` MCP server with `codex mcp list`. If the server is missing, the
-role uses its documented `curl` fallback and reports that it could not use a browser.
-Do not run `codex mcp add`.
+run `codex mcp get playwright`. The browser is ready only when the command succeeds
+and its output has the line `default_tools_approval_mode: approve`. Without that key,
+Codex denies each Playwright call with `MCP tool call requires approval, but approval
+policy is never`. If the browser is not ready, add `browser: none` to the brief. The
+role then uses its documented `curl` fallback and reports that it could not use a
+browser. Also show the operator these two
+steps in the digest:
+
+1. If `codex mcp list` has no server named `playwright`, run
+   `codex mcp add playwright -- npx -y @playwright/mcp@0.0.84 --output-dir .worktrees/review/playwright-mcp`.
+2. In `config.toml` under `CODEX_HOME`, add `default_tools_approval_mode = "approve"`
+   under `[mcp_servers.playwright]`.
+
+Do not run `codex mcp add`, and do not edit `config.toml`. The `--output-dir` flag keeps
+the automatically named Playwright files out of the project tree.
 
 Call `list_agents` before you spawn a browser role. If a `deploy_verifier` or
 `ux_explorer` role is active, call `wait_agent` until it finishes, then check again.
@@ -218,7 +230,11 @@ url:      <deployed or PR-preview URL>
 commit:   <full SHA that produced the deploy>
 expect:   <optional expected text or selectors>
 issue:    #<tracking issue number> / PR #<number>
+screenshotFile: <project>/.worktrees/deploy/verify-<sha7>.png
 ```
+
+Write `screenshotFile` as an absolute path, and create `.worktrees/deploy/` before the
+spawn. Playwright resolves a relative file name against the project root.
 
 The role drives a real browser through the **Playwright** MCP server. It checks HTTP,
 rendering, expected content, console errors and failed requests. It saves a screenshot

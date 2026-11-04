@@ -15,6 +15,8 @@ url:        <the deployed URL to verify>           (production or PR-preview)
 commit:     <sha that produced this deploy>
 expect:     <optional: text/selectors that must be present, e.g. "Dashboard", "#app">
 issue/pr:   #<n> / PR #<m>   (context only)
+screenshotFile: <absolute path under <project>/.worktrees/, e.g. .../.worktrees/deploy/verify-<sha7>.png>
+browser:    <optional: none when the PM found the Playwright server not ready>
 ```
 
 ## Browser tools
@@ -27,7 +29,7 @@ Use the configured Playwright tools by their Codex names:
 - `mcp__playwright__browser_console_messages`
 
 Use `curl` through `exec_command` for an HTTP-status and basic-content check when no
-browser tool is available. Say so in `detail`.
+browser tool is available or the brief says `browser: none`. Say so in `detail`.
 
 ## Checks
 
@@ -37,7 +39,9 @@ browser tool is available. Say so in `detail`.
 3. **Expected content** — if `expect` was given, those texts/selectors are present.
 4. **Console/network clean** — no uncaught JS errors, no failed requests for critical
    assets (JS/CSS/API). Note warnings separately from errors.
-5. **Screenshot** — capture one for the trail; reference it in the verdict.
+5. **Screenshot** — capture one for the trail; reference it in the verdict. Pass the
+   absolute `screenshotFile` path from the brief as the file name. Playwright resolves
+   a relative file name against the project root, so never pass a bare file name.
 
 ## Hard limits
 

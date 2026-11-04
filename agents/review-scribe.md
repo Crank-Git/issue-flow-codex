@@ -129,6 +129,11 @@ comment written the same way.
 - **Run the suite against `sandboxUrl` until your added tests are green** (or
   properly skipped). Flaky ones get stabilized or skipped-with-reason — never left
   intermittent. Report exactly what ran and the results.
+- If the browser for an E2E test cannot start inside Codex, report that test as
+  `unverified` in `testRun`. Quote the error line, for example Chromium that exits with
+  `MachPortRendezvous` and `Permission denied`. Put the command that runs the test in
+  `notesForPM`, so the operator can run it outside Codex. Do not retry with other
+  sandbox settings.
 
 ## 3 — Commit
 
@@ -148,7 +153,7 @@ comment written the same way.
   "detail": "one-line summary",
   "manualPages": ["<paths written>"],
   "testsAdded": ["<spec paths>"],
-  "testRun": "<what ran and results, e.g. '12 passed, 2 skipped (broken flows #f3,#f7)'>",
+  "testRun": "<what ran and results, e.g. '12 passed, 2 skipped (broken flows #f3,#f7)', or 'unverified: <error line>'>",
   "commits": ["<sha — subject>"],
   "repairsMade": [
     { "file": "<path>", "made": true, "detail": "<what changed, or why it was not made>" }

@@ -17,7 +17,7 @@ It ports the two upstream hooks and adds the role guard.
 
 - As the operator, I want to install the plugin with two `codex plugin` commands, so that I do not copy files by hand.
 - As the operator, I want one skill that configures my project, so that the roles, the thread limit, and the permission profile are correct before the first run.
-- As the operator, I want the setup skill to show each change before it writes it, so that I control my Codex configuration.
+- As the operator, I want the setup skill to show each change before it is applied, so that I control my Codex configuration.
 - As the operator, I want the PM to stop when its hooks did not run, so that the loop never runs without its guards.
 - As the maintainer, I want the spawn guard to deny the spawn shapes that are unsafe, so that the Codex loop keeps the upstream protection against a runaway worker.
 
@@ -38,14 +38,14 @@ It ports the two upstream hooks and adds the role guard.
 ### Setup skill
 
 - FR-plugin-packaging-10 — The plugin ships the skill `setup`, started as `$issue-flow:setup`.
-- FR-plugin-packaging-11 — The setup skill copies each file in `<pluginRoot>/roles/` to `<project>/.codex/agents/`.
-- FR-plugin-packaging-12 — The setup skill writes the config block in `<project>/.codex/config.toml` between the lines `# issue-flow:begin` and `# issue-flow:end`.
+- FR-plugin-packaging-11 — The setup skill prints each file in `<pluginRoot>/roles/` as a role file for `<project>/.codex/agents/`. The operator applies the files with `python3 scripts/setup_project.py apply` from a shell outside the Codex sandbox. Nothing writes `.codex/` from inside a Codex session.
+- FR-plugin-packaging-12 — The setup skill prints the config block for `<project>/.codex/config.toml` between the lines `# issue-flow:begin` and `# issue-flow:end`. The operator applies the block with `python3 scripts/setup_project.py apply` from a shell outside the Codex sandbox. Nothing writes `.codex/` from inside a Codex session.
 - FR-plugin-packaging-13 — The setup skill changes no text outside the config block.
 - FR-plugin-packaging-14 — The config block sets `[features.multi_agent_v2]` `max_concurrent_threads_per_session` to the run concurrency plus 4.
 - FR-plugin-packaging-15 — The config block defines the permission profile `issue_flow` per Behaviour rules.
 - FR-plugin-packaging-16 — The config block sets `default_permissions = "issue_flow"` only when the operator accepts that line.
-- FR-plugin-packaging-17 — The setup skill shows the full diff of each file before it writes the file.
-- FR-plugin-packaging-18 — The setup skill writes a file only after the operator accepts its diff.
+- FR-plugin-packaging-17 — The setup skill shows the full diff of each file before the file is applied.
+- FR-plugin-packaging-18 — The setup skill writes only files outside `.codex/`, and only after the operator accepts the diff. For a `.codex/` file, the operator applies the accepted diff outside Codex.
 - FR-plugin-packaging-19 — The setup skill adds `.worktrees/` to `<project>/.gitignore` when the line is not present.
 - FR-plugin-packaging-20 — The setup skill tells the operator to approve the plugin hooks with `/hooks`.
 - FR-plugin-packaging-21 — The setup skill with the argument `check` reports each setup item as `ok`, `missing`, or `stale`, and writes no file.
@@ -85,8 +85,8 @@ flowchart TD
     E --> F["Operator runs $issue-flow:setup"]
     F --> G["Setup shows the diff for .codex/agents, .codex/config.toml, .gitignore"]
     G --> H{"Operator accepts?"}
-    H -- "no" --> I["Setup writes nothing for that file"]
-    H -- "yes" --> J["Setup writes the file"]
+    H -- "no" --> I["Nothing is applied for that file"]
+    H -- "yes" --> J["Setup writes .gitignore; the operator applies .codex/ files outside Codex"]
     J --> K["Setup tells the operator to run /hooks and trust the issue-flow hooks"]
     K --> L["Operator restarts codex"]
     L --> M["SessionStart hook runs: 'issue-flow preflight: ran'"]
@@ -98,7 +98,7 @@ flowchart TD
 4. If Codex asks to trust the project, the operator trusts it. Codex loads the project `.codex/` layer only for a trusted project.
 5. The operator runs `$issue-flow:setup`.
 6. The setup skill shows the diff for each file.
-7. If the operator accepts a diff, the setup skill writes that file.
+7. If the operator accepts a diff, the setup skill writes `.gitignore`. For the `.codex/` files, the operator runs `python3 scripts/setup_project.py apply` from a shell outside Codex, because the session keeps `.codex/` read-only.
 8. The setup skill tells the operator to run `/hooks` and trust the issue-flow hooks.
 9. The operator starts a new `codex` session.
 
@@ -222,8 +222,8 @@ without `apply_patch`. The roles' instructions state the same limits.
 - [ ] `codex plugin marketplace add` and `codex plugin add issue-flow@issue-flow-codex` succeed on a clean `CODEX_HOME`. (FR-plugin-packaging-1 to 6)
 - [ ] `codex` lists the skills as `issue-flow:<name>`. (FR-plugin-packaging-10)
 - [ ] `validate_manifests.py` fails a test fixture for each rule in FR-plugin-packaging-7 to 9.
-- [ ] The setup skill on an empty project writes six role files, the block, and the `.gitignore` line, and nothing else. (FR-plugin-packaging-11 to 19)
-- [ ] The setup skill on a project with a user `config.toml` keeps every user line. (FR-plugin-packaging-13)
+- [ ] The setup plan on an empty project covers six role files, the block, and the `.gitignore` line, and nothing else. `apply` writes exactly those files. (FR-plugin-packaging-11 to 19)
+- [ ] Setup on a project with a user `config.toml` keeps every user line. (FR-plugin-packaging-13)
 - [ ] `$issue-flow:setup check` reports `stale` after one byte changes in a role file, and writes no file. (FR-plugin-packaging-21, 22)
 - [ ] With trusted hooks, a new session's context holds `issue-flow preflight: ran 0.1.0`. (FR-plugin-packaging-26)
 - [ ] The spawn guard test denies a spawn with `fork_turns: "all"` and with `fork_turns` omitted, denies a worker `task_name` without `agent_type: "issue_worker"`, and allows a worker `task_name` with `issue_worker` and `"none"`. (FR-plugin-packaging-29 to 33)
@@ -237,3 +237,5 @@ without `apply_patch`. The roles' instructions state the same limits.
 - The setup skill does not install MCP servers. Feature 05 covers the browser server.
 
 ## Open questions
+
+- Resolved (#109, operator ruling): agents never write `.codex/`. The setup skill prints the `.codex/` changes, and the operator applies them outside Codex.

@@ -360,6 +360,16 @@ class SetupProjectTest(unittest.TestCase):
         self.assertIn("threads      stale    max_concurrent_threads_per_session = 7, expected 9", text)
         self.assertIn("config block stale", text)
 
+    def test_check_reports_stale_block_for_a_config_written_before_the_agents_rule(self):
+        self.apply("--with-default-permissions")
+        config = self.project / ".codex" / "config.toml"
+        old = config.read_text(encoding="utf-8")
+        self.assertIn('".agents" = "write"\n', old)
+        config.write_text(old.replace('".agents" = "write"\n', ""), encoding="utf-8")
+        code, text = self.run_check()
+        self.assertEqual(code, 1)
+        self.assertIn("config block stale", text)
+
     def test_check_writes_no_file(self):
         before = sorted(self.project.rglob("*"))
         self.run_check()

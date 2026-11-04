@@ -11,10 +11,12 @@ A role rule can use these keys:
   bash_prefixes     command prefixes denied for the `Bash` tool
   patch_only_under  `apply_patch` may write only below this directory (relative to `cwd`)
   spawn_roles       roles that the `spawn_agent` tool may not start
-  patch_only_under_project_worktrees  `apply_patch` stays below the project .worktrees/ directory
+  patch_only_under_project_worktrees  `apply_patch` may write only below the worker's own
+                    tree `<project>/.worktrees/<task>/`, taken from `cwd`; it denies the call
+                    when `cwd` is not inside such a tree, and denies a sibling's tree
 
-The guard is not a security boundary: a shell command can write a file without
-`apply_patch`.
+The guard is not a security boundary. A shell command can write a file without
+`apply_patch`, and the guard does not resolve symlinks.
 
 The guard fails open. Any payload it cannot read exits 0 with no output, which allows the
 call. `ISSUE_FLOW_ROLE_GUARD=off` disables it.
@@ -63,25 +65,24 @@ def violation(payload, rule):
             if has_prefix(command, prefix):
                 return f"a Bash command may not start with `{prefix}`"
     if tool == "apply_patch":
-        project_worktrees = rule.get("patch_only_under_project_worktrees")
         scratch = rule.get("patch_only_under")
         cwd = payload.get("cwd", "")
         boundary_cwd = None
-        if project_worktrees:
+        if rule.get("patch_only_under_project_worktrees") and cwd:
+            parts = posixpath.normpath(cwd).split("/")
+            if ".worktrees" not in parts[:-1]:
+                return ("the worktree rule needs the working directory inside the worker's own "
+                        f"tree .worktrees/<task>/, not {cwd}")
+            index = parts.index(".worktrees")
+            boundary_cwd = "/".join(parts[:index]) or "/"
+            scratch = f".worktrees/{parts[index + 1]}/"
             cwd = posixpath.normpath(cwd)
-            parts = cwd.split("/")
-            if ".worktrees" in parts:
-                parts = parts[:parts.index(".worktrees")]
-                boundary_cwd = "/".join(parts) or "/"
-            else:
-                boundary_cwd = cwd
-            scratch = ".worktrees/"
         outside = (outside_scratch(arguments.get("command", ""), cwd, scratch, boundary_cwd)
                    if scratch else [])
         if outside:
-            if project_worktrees:
-                return ("the worktree rule permits apply_patch only under the project worktrees "
-                        f"directory (.worktrees/), not {', '.join(outside)}")
+            if boundary_cwd:
+                return (f"the worktree rule permits apply_patch only under the worker's own tree "
+                        f"({scratch}), not {', '.join(outside)}")
             return f"apply_patch may write only below {scratch}, not {', '.join(outside)}"
     if re.search("spawn_agent$", tool) and arguments.get("agent_type") in rule.get("spawn_roles", []):
         return f"the role may not spawn the role {arguments['agent_type']}"

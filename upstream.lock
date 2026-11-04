@@ -75,6 +75,12 @@ upstream_sha256 = ""
 notes = "Port-only file."
 
 [[file]]
+path = ".github/workflows/upstream-check.yml"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
 path = ".gitignore"
 mode = "new"
 upstream_sha256 = ""
@@ -108,7 +114,7 @@ notes = "MIT text with the upstream and port copyright lines."
 path = "README.md"
 mode = "patched"
 upstream_sha256 = "6f5cf3ddd736fba8e560324c4bf141d28ce77dfd655b7a1e361ad9b678bfd384"
-notes = "Port header credits upstream and the license; Codex install steps follow in a later issue."
+notes = "Port header credits upstream and the license; adds the Codex install steps."
 
 [[file]]
 path = "agents/code-auditor.md"
@@ -433,6 +439,12 @@ path = "scripts/testbed-reset.py"
 mode = "new"
 upstream_sha256 = ""
 notes = "Port-only. Returns a test bed to seed state."
+
+[[file]]
+path = "scripts/upstream_check.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
 
 [[file]]
 path = "scripts/upstream_sync.py"
@@ -825,6 +837,12 @@ upstream_sha256 = ""
 notes = "Port-only. Tests the reset script with faked forge calls."
 
 [[file]]
+path = "tests/test_upstream_check.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
 path = "tests/test_upstream_sync.py"
 mode = "new"
 upstream_sha256 = ""
@@ -985,6 +1003,24 @@ path = "tests/test_wait_replay.py"
 mode = "new"
 upstream_sha256 = ""
 notes = "port-only: replay the recorded PM hook sequence (#75)"
+
+[[file]]
+path = ".github/workflows/tag-release.yml"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: tag an untagged manifest version on main (#42)"
+
+[[file]]
+path = "scripts/release_tag.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: select a release tag for an untagged manifest version (#42)"
+
+[[file]]
+path = "tests/test_release_tag.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: test release tag selection and documentation (#42)"
 
 [[file]]
 path = "tests/fixtures/hooks/apply_patch_outside_worktree.json"

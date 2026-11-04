@@ -184,7 +184,7 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li>FR-mirror-and-sync-8 — The workflow opens no second issue for a tag that already has one.
 </li>
-<li>FR-mirror-and-sync-9 — The sync issue body holds the <code>sync-report.md</code> content, in the upstream issue body format.
+<li>FR-mirror-and-sync-9 — The sync issue body holds the <code>sync-report.md</code> content. When the report is longer than the forge accepts, the body drops the diff blocks and names the local command that prints the full report.
 </li>
 </ul>
 <h4 id="mirror-and-sync-repo-mirror">repo-mirror</h4>
@@ -198,7 +198,7 @@ body.rv-open .layout { padding-right:21rem; }
 </ul>
 <h4 id="mirror-and-sync-release">Release</h4>
 <ul>
-<li>FR-mirror-and-sync-13 — The release workflow tags <code>issue-flow-codex--v&lt;version&gt;</code> on a merge to <code>main</code> that changes the manifest <code>version</code>.
+<li>FR-mirror-and-sync-13 — The release workflow tags <code>issue-flow-codex--v&lt;version&gt;</code> on a merge to <code>main</code> that changes the manifest <code>version</code>. It creates the initial tag when no tag exists for the version already on <code>main</code>.
 </li>
 <li>FR-mirror-and-sync-14 — <code>README.md</code> documents install, setup, hook trust, the run command, and the known limits.
 </li>
@@ -238,6 +238,8 @@ body.rv-open .layout { padding-right:21rem; }
 <li>The sync never edits a <code>patched</code> or <code>rewritten</code> file. A person or a worker ports those changes.
 </li>
 <li>The port version is independent of the upstream version. <code>README.md</code> states the upstream tag that each port release tracks.
+</li>
+<li>The release workflow creates a missing tag for the current manifest version once. This bootstraps the first port release when the manifest predates the workflow.
 </li>
 </ul>
 <h3 id="mirror-and-sync-data-touched">Data touched</h3>

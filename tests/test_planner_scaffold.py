@@ -39,6 +39,25 @@ class ProjectScaffoldTest(unittest.TestCase):
         self.assertIn("root file and every nested `AGENTS.md`\ntogether under 24 KiB", text)
         self.assertIn("move detail into `docs/rules/`", text)
 
+    def test_scaffold_defines_project_skills_and_safe_hooks(self):
+        text = SCAFFOLD.read_text()
+
+        for token in (".codex/hooks.json", "trusts", "fast", "idempotent",
+                      "non-interactive", "Never delete data", "remote service",
+                      "command -v", "Run the project test suites"):
+            with self.subTest(token=token):
+                self.assertIn(token, text)
+
+    def test_scaffold_defines_dual_harness_files_and_gitignore(self):
+        text = SCAFFOLD.read_text()
+
+        for token in ("dual-harness mode", "`CLAUDE.md`", "@AGENTS.md",
+                      "`.claude/rules/<name>.md`", "paths:", ".worktrees/",
+                      ".issue-flow.local.json", ".claude/settings.local.json",
+                      "CLAUDE.local.md"):
+            with self.subTest(token=token):
+                self.assertIn(token, text)
+
 
 if __name__ == "__main__":
     unittest.main()

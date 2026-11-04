@@ -114,7 +114,7 @@ notes = "MIT text with the upstream and port copyright lines."
 path = "README.md"
 mode = "patched"
 upstream_sha256 = "6f5cf3ddd736fba8e560324c4bf141d28ce77dfd655b7a1e361ad9b678bfd384"
-notes = "Port header credits upstream and the license; Codex install steps follow in a later issue."
+notes = "Port header credits upstream and the license; adds the Codex install steps."
 
 [[file]]
 path = "agents/code-auditor.md"

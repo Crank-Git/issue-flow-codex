@@ -41,6 +41,8 @@ later sync produce the same commits. Never filter with anything else, and pin
   itself out of the mirror. Always keep them. Once the mirror is live, a changed list
   rewrites every commit that touches the affected paths, so every sync after it is
   rejected until the one-time repair in Rules runs. Say so before you change it.
+  A config with its own `exclude` list replaces the default list. That list must name
+  the Codex private paths (`AGENTS.md`, `.codex/`, `.agents/`) itself.
 - **`branches`** — the live branch, plus `dev` under the dev-and-live model. Never the
   `issue/`, `batch/`, `epic/`, `review/` or `spec/` branches. Only tags that one of
   these branches contains are mirrored; a tag on any other branch is skipped.

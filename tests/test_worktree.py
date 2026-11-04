@@ -78,6 +78,22 @@ class WorktreeTest(unittest.TestCase):
         self.create()
         self.assertEqual((self.tree / "tracked.txt").read_text(), "tracked\n")
 
+    def test_excludes_the_worktrees_directory_when_no_ignore_rule_covers_it(self):
+        (self.project / ".gitignore").write_text(".env\n")
+        git(self.project, "commit", "-q", "-am", "drop the worktrees line")
+        result = self.create()
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertEqual(git(self.project, "status", "--porcelain"), "")
+        self.assertEqual((self.project / ".gitignore").read_text(), ".env\n")
+        exclude = (self.project / ".git" / "info" / "exclude").read_text()
+        self.assertEqual(exclude.splitlines().count(".worktrees/"), 1)
+
+    def test_leaves_the_exclude_file_unchanged_when_gitignore_covers_the_worktrees(self):
+        exclude = self.project / ".git" / "info" / "exclude"
+        before = exclude.read_text() if exclude.exists() else None
+        self.create()
+        self.assertEqual(exclude.read_text() if exclude.exists() else None, before)
+
     def test_refuses_to_remove_a_worktree_with_an_uncommitted_file(self):
         self.create()
         (self.tree / "new.txt").write_text("x\n")

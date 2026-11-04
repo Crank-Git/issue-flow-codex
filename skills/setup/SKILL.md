@@ -1,13 +1,13 @@
 ---
 name: setup
-description: Configure one project for the issue-flow loop. Use when the operator says "$issue-flow:setup". Prints `.codex/` changes for operator application, writes accepted files outside `.codex/`, and checks existing setup.
+description: Configure Codex for the issue-flow loop. Use when the operator says "$issue-flow:setup". By default, prints the one terminal command that sets up the operator's Codex home once per machine. Per-project mode prints `.codex/` changes for operator application, writes accepted files outside `.codex/`, and checks existing setup.
 ---
 
-# Setup — configure a project for the issue-flow loop
+# Setup — configure Codex for the issue-flow loop
 
-A Codex plugin cannot ship roles or a thread limit. This skill puts them in the project.
-The script `scripts/setup_project.py` does the file work. This skill shows the diffs and
-asks the operator.
+A Codex plugin cannot ship roles or a permission profile. The script
+`scripts/setup_project.py` writes them. This skill runs the read-only commands and
+tells the operator which command to run in a terminal.
 
 ## Find the plugin root
 
@@ -15,7 +15,40 @@ The skill catalog gives you the absolute path of this `SKILL.md`. The plugin roo
 directory two levels above it. Call it `<pluginRoot>`. The script is
 `<pluginRoot>/scripts/setup_project.py`.
 
-## Procedure
+## User-level mode (default)
+
+Use this mode unless the operator asks for per-project setup. The operator runs it once
+per machine, and again after each plugin update.
+
+1. Run `python3 <pluginRoot>/scripts/setup_project.py plan --user`. The command writes
+   nothing. It prints one unified diff for each file that setup changes in the Codex
+   home, or the line `no changes`.
+2. Show the operator the full diff of each file. Do not summarize a diff.
+3. If the plan prints `no changes`, tell the operator that Codex is set up. Go to step 5.
+4. Give the operator this command, with `<pluginRoot>` replaced by the absolute path:
+   `python3 <pluginRoot>/scripts/setup_project.py apply --user`.
+   Tell the operator to run it in a terminal, outside Codex. The Codex sandbox cannot
+   write the Codex home. If the command prints a diff and exits 1, a file differs from
+   the plugin copy. The last line names the `--accept` arguments that replace it.
+5. End with a message that lists the next steps:
+   - Run `/hooks` and trust the issue-flow hooks. Codex skips plugin hooks that the operator has not trusted.
+   - In each project, start Codex with `codex -p issue-flow -a never`.
+   - Then run `$issue-flow:project-planner` or another issue-flow skill.
+
+The command writes `issue-flow.config.toml` and the role files in `agents/` in
+`$CODEX_HOME`, or in `~/.codex` when `CODEX_HOME` is not set. It never writes
+`config.toml` and never sets `approval_policy`. The profile applies only to a session
+that starts with `-p issue-flow`.
+
+To check the user-level setup, run
+`python3 <pluginRoot>/scripts/setup_project.py check --user` and show the output. Each
+file is `ok`, `missing`, or `stale`. Exit code 1 means a file is `missing` or `stale`.
+
+## Per-project mode
+
+Use this mode only when the operator asks for setup in one project. It sets the thread
+limit and the models from the project's run configuration. The user-level mode uses the
+default concurrency of 3, so its thread limit is 7.
 
 1. Take the project directory from the operator. If the operator names none, use the
    current directory. Call it `<project>`.
@@ -49,9 +82,9 @@ directory two levels above it. Call it `<pluginRoot>`. The script is
    - Run `/hooks` and trust the issue-flow hooks. Codex skips plugin hooks that the operator has not trusted.
    - Start another `codex` session to load the trusted plugin hooks.
 
-## Check mode
+### Per-project check
 
-When the operator asks to check the setup, run
+When the operator asks to check the project setup, run
 `python3 <pluginRoot>/scripts/setup_project.py check --project <project>` and show the
 output. The command writes nothing. Each item is `ok`, `missing`, or `stale`. A role
 file is `stale` when its keys other than `model` and `model_reasoning_effort` differ from

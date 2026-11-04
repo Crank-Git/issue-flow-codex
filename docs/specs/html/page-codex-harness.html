@@ -239,6 +239,14 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li><strong>Chromium cannot start for an E2E test inside the <code>issue_flow</code> profile on macOS.</strong> The <code>review_scribe</code>'s Playwright E2E run failed with <code>MachPortRendezvous</code> and <code>Permission denied</code>. The same test passed outside Codex. Same evidence as item 22.
 </li>
+<li><strong><code>codex -p &lt;name&gt;</code> layers a profile file.</strong> Codex layers <code>$CODEX_HOME/&lt;name&gt;.config.toml</code> on the user config. A legacy <code>[profiles.&lt;name&gt;]</code> table in <code>config.toml</code> makes <code>-p &lt;name&gt;</code> fail. Evidence: help, <code>codex --help</code> (0.166.0): "Layer $CODEX_HOME/&lt;name&gt;.config.toml on top of the base user config"; a live run on 2026-11-04 in an isolated <code>CODEX_HOME</code> (#126).
+</li>
+<li><strong>A role file in <code>$CODEX_HOME/agents/</code> loads in every project.</strong> The role appears in <code>codex debug prompt-input</code> in a project that has no <code>.codex/</code>. In the #126 live proof, a <code>codex exec -p issue-flow</code> session in an empty directory spawned <code>ci_watcher</code> with <code>fork_turns: "none"</code>. The subagent rollout has <code>agent_role: "ci_watcher"</code>, the instructions of <code>$CODEX_HOME/agents/ci-watcher.toml</code>, and the final answer that the brief asked for. Evidence: live runs on 2026-11-04, codex-cli 0.166.0, <code>gpt-6-luna</code>; session <code>01a1a4ad-993d-7552-9fe9-6c4377de2777</code>.
+</li>
+<li><strong>The user-level profile file gives a new directory git writes and network access.</strong> With <code>$CODEX_HOME/issue-flow.config.toml</code> that sets <code>default_permissions = "issue_flow"</code>, <code>codex exec -p issue-flow</code> in an empty directory ran <code>git init</code>, <code>git commit</code>, and <code>git ls-remote https://github.com/openai/codex HEAD</code>. All three exited 0. The session's writable roots were the directory, its <code>.git</code> and <code>.agents</code>, and the temporary directories. The Codex home was not writable. Evidence: live runs on 2026-11-04, codex-cli 0.166.0, <code>gpt-6-luna</code> (#126); session <code>01a1a4ad-993d-7552-9fe9-6c4377de2777</code>.
+</li>
+<li><strong>A feature table in a profile file layers too.</strong> With <code>[features.multi_agent_v2] max_concurrent_threads_per_session = 7</code> in <code>$CODEX_HOME/issue-flow.config.toml</code>, <code>codex -p issue-flow debug prompt-input</code> shows "There are 7 available concurrency slots". Without <code>-p</code>, it shows 4. Evidence: live, 2026-11-04, codex-cli 0.166.0, isolated <code>CODEX_HOME</code>, no model call (#126).
+</li>
 </ol>
 <p>The profile used in facts 8 and 9:</p>
 <pre class="code"><code>default_permissions = "gitw"

@@ -169,9 +169,10 @@ back.
 
 Before the planner writes `.agents/skills/`, confirm that the active session uses the
 `issue_flow` profile. The profile grants write access to `.agents/` and keeps `.codex/`
-read-only. If the project has no profile yet, stop and ask the operator to run
-`$issue-flow:setup`, apply the printed `.codex/` changes, start a new Codex session, and
-then start the planner again. A greenfield project needs this step before scaffold approval.
+read-only. The operator starts the session with `codex -p issue-flow -a never` after the
+one-time user-level setup, or uses a project with per-project setup. If the session has no
+profile, stop. Ask the operator to run `$issue-flow:setup` once, then to start the planner
+again in a session started with `codex -p issue-flow -a never`.
 
 Generate `spec.html` from the markdown — copy the skill's `scripts/render-spec.py`
 into `docs/specs/`, vendor the mermaid asset, and run it; the markdown is the spec and

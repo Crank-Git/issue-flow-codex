@@ -140,8 +140,11 @@ the failed item, and do not start any loop work.**
 2. **The worker role exists.** `spawn_agent` must offer `agent_type` `issue_worker`. If it
    does not, stop and name `$issue-flow:setup`, which installs the role files.
 3. **The project passes the setup check.** Run
-   `python3 <pluginRoot>/scripts/setup_project.py check --project <dir>`. A nonzero exit
-   means an item is missing. Stop on the item that the output names, and name
+   `python3 <pluginRoot>/scripts/setup_project.py check --project <dir>`. The check
+   passes when the user-level setup or the project setup is complete. With a complete
+   user-level setup, the project items show `not used`. A nonzero exit means an item is
+   `missing` or `stale`. Stop on the item that the output names. If the output has a
+   `fix:` line, give the operator that command to run in a terminal. Else name
    `$issue-flow:setup` as the fix.
 4. **The sandbox probe passes.** Run `git update-ref refs/issue-flow/probe HEAD`, then
    `git update-ref -d refs/issue-flow/probe`, then `git ls-remote <remote>`. All three

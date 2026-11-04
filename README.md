@@ -24,19 +24,42 @@ plugin unless the Codex-specific sections below say otherwise. Where behavior di
 Add the marketplace at the release tag and install the plugin:
 
 ```bash
-codex plugin marketplace add Crank-Git/issue-flow-codex --ref issue-flow-codex--v0.1.0
+codex plugin marketplace add Crank-Git/issue-flow-codex --ref issue-flow-codex--v0.1.1
 codex plugin add issue-flow@issue-flow-codex
 ```
 
 Without `--ref`, Codex installs the default branch `dev`, which is not a release.
 
-Start Codex in the project and run `$issue-flow:setup`. Review each proposed diff.
-The skill writes accepted files outside `.codex/`. Apply accepted `.codex/` changes
-outside Codex, then start a new session. The profile permits `.agents/` writes and
-keeps `.codex/` read-only.
+Start `codex`, then run `/hooks` and trust the issue-flow hooks. Codex skips plugin
+hooks until you trust them.
 
-After setup, run `/hooks` and trust the issue-flow hooks. Codex skips plugin hooks until
-you trust them. Start a new Codex session after you trust the hooks.
+Run the one-time setup in a terminal, outside Codex. `$issue-flow:setup` prints this
+command with the absolute plugin path:
+
+```bash
+python3 <pluginRoot>/scripts/setup_project.py apply --user
+```
+
+The command writes `issue-flow.config.toml` and the role files in `agents/` in
+`$CODEX_HOME`, or in `~/.codex`. It does not change `config.toml`. The permission
+profile `issue_flow` permits `.git` writes and network access, but only in a session
+that you start with `-p issue-flow`.
+
+In each project, start Codex with the profile, then start a skill:
+
+```bash
+codex -p issue-flow -a never
+```
+
+```text
+$issue-flow:project-planner <your idea>
+```
+
+`-a never` sets the approval policy for that session only. After a plugin update, run
+`/hooks` to trust the hooks again, and run the setup command again.
+
+To keep the setup in one project instead, ask `$issue-flow:setup` for per-project
+mode. It prints `.codex/` changes, and you apply them outside Codex.
 
 Use `$issue-flow:issue-flow` to start the loop. The table maps each upstream skill to its
 Codex invocation.

@@ -160,11 +160,10 @@ def sync_report(repository, old_commit, new_commit, old_paths, new_paths, entrie
         lines += ["```", ""]
     if not changed:
         lines.append("No changes.")
-    added = sorted(new_paths - old_paths)
+    added = sorted((new_paths - old_paths) - modes.keys())
     deleted = sorted(old_paths - new_paths)
     lines += ["", "## New upstream files without lock entries", ""]
-    lines.extend(f"- `{path}`" + (" (no lock entry)" if path not in modes else "")
-                 for path in added)
+    lines.extend(f"- `{path}`" for path in added)
     if not added:
         lines.append("None.")
     lines += ["", "## Deleted upstream files", ""]

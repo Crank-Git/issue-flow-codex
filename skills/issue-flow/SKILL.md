@@ -894,11 +894,28 @@ deadline. The loop, the SHA anchor and the status command contract are in
 
 On the watcher's verdict:
 
-- **`succeeded`** → the build went green, but **green ≠ working**. Spawn the
-  **deploy-verifier** (`spawn_agent` with `agent_type: "deploy_verifier"` and
-  `fork_turns: "none"`) against the deployed URL captured in Phase 0. The role arrives
-  with Epic 5. When `spawn_agent` does not offer `deploy_verifier`, skip the browser
-  check, treat the deploy as built but not browser-verified, and say so in the digest.
+- **`succeeded`** → the build went green, but **green ≠ working**. Confirm the
+  `playwright` MCP server with `codex mcp list`. If it is missing, the role uses its
+  documented `curl` fallback and reports that it could not use a browser. Do not run
+  `codex mcp add`.
+  Call `list_agents` before you spawn a browser role. If a `deploy_verifier` or
+  `ux_explorer` role is active, call `wait_agent` until it finishes, then check again.
+  If no thread slot is free, call `wait_agent` until one frees, then check again.
+  This check serializes all browser roles because they share one browser session.
+  Spawn the **deploy-verifier** (`spawn_agent` with `agent_type: "deploy_verifier"`,
+  `task_name: "verify_deploy_<sha7>"`, and `fork_turns: "none"`). Pass this brief:
+
+  ```text
+  url: <deployed URL from Phase 0>
+  commit: <full SHA from the watcher verdict>
+  expect: <configured expected text or selectors, when present>
+  issue: #<tracking issue number>
+  ```
+
+  The role arrives with Epic 5. Read its verdict from `FINAL_ANSWER`. Record the
+  outcome, evidence, and screenshot ref in the digest. If `spawn_agent` does not offer
+  `deploy_verifier`, skip the browser check, treat the deploy as built but not
+  browser-verified, and say so in the digest.
   On its verdict:
   - **`verified`** → remove `status:deploying`, comment the confirmation with the
     screenshot ref on the batch PR / tracking issue. Post the digest (Stage E). Done.

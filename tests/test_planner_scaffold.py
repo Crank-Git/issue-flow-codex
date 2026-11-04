@@ -59,6 +59,13 @@ class ProjectScaffoldTest(unittest.TestCase):
         self.assertIn("Before the planner writes `.agents/skills/`, confirm that the active session uses the", text)
         self.assertIn("If the project has no profile yet, stop and ask the operator to run", text)
 
+    def test_planner_checklist_names_hooks_for_operator_application(self):
+        skill = SCAFFOLD.parent.parent / "SKILL.md"
+        text = skill.read_text()
+        checklist = text.split("## Output checklist", 1)[1]
+
+        self.assertIn("prints the approved hooks as file content", checklist)
+
     def test_scaffold_defines_dual_harness_files_and_gitignore(self):
         text = SCAFFOLD.read_text()
 

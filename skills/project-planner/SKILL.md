@@ -284,8 +284,9 @@ Before you declare the planner done, verify:
 - [ ] `docs/rules/external-apis.md` — written and scoped to external interfaces.
 - [ ] `.agents/skills/run/SKILL.md` and `.agents/skills/test/SKILL.md` — written with
       relative paths and no permission allow-list.
-- [ ] `.codex/hooks.json` — contains only hooks that the spec justifies and the user
-      approves; each hook checks for a missing tool.
+- [ ] `.codex/hooks.json` — The planner prints the approved hooks as file content for
+      the operator to apply. The content holds only hooks that the spec justifies.
+      Each hook checks for a missing tool.
 - [ ] **The filing gate is in `AGENTS.md`** — the five cases that earn a tracker issue, the
       rule that every other finding is repaired by the change set that found it, and where
       each repair goes in this project's branch model. Without it the loop files an issue

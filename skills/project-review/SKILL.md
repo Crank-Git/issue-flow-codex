@@ -77,11 +77,11 @@ have damaged.
 1. **Repo check.** Same as issue-flow: `git rev-parse --is-inside-work-tree`,
    `forge.repo.view`, `forge.auth.check`. Detect the remote name and the dev-vs-live
    branch model (review branches fork off dev when it exists, else the default branch).
-2. **Browser check.** `ToolSearch("playwright browser navigate")` /
-   `ToolSearch("chrome devtools")`. No browser MCP → tell the user the interactive half
-   degrades badly (explorers fall back to WebFetch-level checks) and suggest:
-   `claude mcp add playwright -s user -- npx -y @playwright/mcp@latest`. Offer to
-   continue degraded (code audit + HTTP checks + docs from static analysis) or stop.
+2. **Browser check.** Run `codex mcp list`. If its output has no server named
+   `playwright`, show the operator this command and stop before you spawn a browser role:
+   `codex mcp add playwright -- npx -y @playwright/mcp@0.0.84`. Never run the add
+   command. The package README uses `@latest`; release `v0.0.84` is the latest pinned
+   release at https://github.com/microsoft/playwright-mcp/releases (retrieved 2026-11-04).
 3. **Sandbox up.** The review runs against a **sandbox, never production**. Resolve in
    order, asking the user only when ambiguous:
    - A URL the user supplied for this review.

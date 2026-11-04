@@ -79,8 +79,9 @@ have damaged.
    - A URL the user supplied for this review.
    - An already-running local dev server (probe common ports the repo's config names).
    - Something launchable from the repo: `docker compose up`, `npm run dev`,
-     `make dev`, a devcontainer — launch it with `run_in_background: true`, wait for
-     the port to answer, and keep the handle so you can stop it at the end.
+     `make dev`, a devcontainer — launch it as a background process with
+     `exec_command` (`tty: true`) and keep its session id, wait for the port to answer,
+     and stop it through that session (`write_stdin` with Ctrl-C) at the end.
    - A deployed **dev/staging** URL (from issue-flow's deploy detection). Never the
      production URL — explorers submit test data.
    Capture: `SANDBOX_URL`, and a **`logCmd`** that prints/tails the server logs

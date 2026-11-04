@@ -234,13 +234,13 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li>FR-plugin-packaging-44 — The user-level mode never writes <code>config.toml</code> and never sets <code>approval_policy</code>.
 </li>
-<li>FR-plugin-packaging-45 — <code>apply --user</code> replaces a file that differs only when <code>--accept</code> names that file. Else it prints the diff of that file and exits 1.
+<li>FR-plugin-packaging-45 — <code>apply --user</code> replaces a file that differs only when <code>--accept</code> names that file. Else it prints the diff of that file and exits 1. In <code>issue-flow.config.toml</code>, it replaces only <code>default_permissions</code>, <code>[features.multi_agent_v2]</code>, and <code>[permissions.issue_flow]</code> with its subtables, and keeps every other line.
 </li>
 <li>FR-plugin-packaging-46 — A second <code>apply --user</code> writes no file and prints <code>no changes</code>.
 </li>
 <li>FR-plugin-packaging-47 — The setup skill runs <code>plan --user</code> and prints the command <code>python3 &lt;pluginRoot&gt;/scripts/setup_project.py apply --user</code> with the absolute plugin root. The operator runs the command outside Codex, because the session cannot write the Codex home.
 </li>
-<li>FR-plugin-packaging-48 — <code>check --user</code> reports each file of the user-level mode as <code>ok</code>, <code>missing</code>, or <code>stale</code>, and writes no file.
+<li>FR-plugin-packaging-48 — <code>check --user</code> reports each file of the user-level mode as <code>ok</code>, <code>missing</code>, or <code>stale</code>, and writes no file. For <code>issue-flow.config.toml</code>, it compares only the keys of FR-plugin-packaging-45, because Codex saves its own state in that file (codex-harness.md, fact 29).
 </li>
 <li>FR-plugin-packaging-49 — <code>check --project</code> passes when the user-level setup or the project setup is complete. With a complete user-level setup, a missing project item is <code>not used</code>. When neither is complete, the output ends with <code>fix: python3 &lt;pluginRoot&gt;/scripts/setup_project.py apply --user</code>.
 </li>
@@ -519,6 +519,8 @@ enabled = true</code></pre>
 <li>If <code>config.toml</code> holds a legacy <code>[profiles.issue-flow]</code> table, <code>codex -p issue-flow</code> fails. The operator removes the table.
 </li>
 <li>If the operator updates the plugin, <code>check --user</code> reports changed role files as <code>stale</code>. The operator runs <code>apply --user</code> again.
+</li>
+<li>If <code>issue-flow.config.toml</code> is not valid TOML, <code>apply --user --accept</code> changes nothing, and tells the operator to repair the file.
 </li>
 <li>If a project has no <code>.worktrees/</code> line in <code>.gitignore</code>, <code>worktree.py create</code> adds the line to <code>.git/info/exclude</code>. No tracked file changes.
 </li>

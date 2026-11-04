@@ -247,6 +247,8 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li><strong>A feature table in a profile file layers too.</strong> With <code>[features.multi_agent_v2] max_concurrent_threads_per_session = 7</code> in <code>$CODEX_HOME/issue-flow.config.toml</code>, <code>codex -p issue-flow debug prompt-input</code> shows "There are 7 available concurrency slots". Without <code>-p</code>, it shows 4. Evidence: live, 2026-11-04, codex-cli 0.166.0, isolated <code>CODEX_HOME</code>, no model call (#126).
 </li>
+<li><strong>Codex saves its state in the active profile file.</strong> After one interactive <code>codex -p issue-flow</code> session, <code>$CODEX_HOME/issue-flow.config.toml</code> held three new tables after the setup keys: <code>[projects."&lt;dir&gt;"]</code> with <code>trust_level</code>, one <code>[hooks.state."&lt;plugin&gt;:hooks/hooks.json:&lt;event&gt;:&lt;n&gt;:0"]</code> per hook with <code>trusted_hash</code> and <code>trusted_content_hash</code>, and <code>[tui.model_availability_nux]</code>. Setup therefore owns only its own keys in that file. Evidence: live, 2026-11-04, codex-cli 0.166.0, the operator's Codex home (#129).
+</li>
 </ol>
 <p>The profile used in facts 8 and 9:</p>
 <pre class="code"><code>default_permissions = "gitw"

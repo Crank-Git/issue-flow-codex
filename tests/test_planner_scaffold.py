@@ -1,5 +1,3 @@
-"""Contract tests for the project-planner scaffold instructions."""
-
 import unittest
 from pathlib import Path
 

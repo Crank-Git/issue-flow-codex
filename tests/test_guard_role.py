@@ -97,6 +97,33 @@ class RoleGuardTest(unittest.TestCase):
             "*** Begin Patch\n*** Add File: /repo/skills/note.txt\n+x\n*** End Patch",
         ), "worktree", "/repo/skills/note.txt")
 
+    def test_denies_issue_worker_patch_with_project_root_cwd(self):
+        self.assertDenied(worker_patch(
+            "/repo",
+            "*** Begin Patch\n*** Add File: /repo/skills/note.txt\n+x\n*** End Patch",
+        ), "worktree", "/repo/skills/note.txt")
+
+    def test_allows_issue_worker_patch_with_project_root_cwd(self):
+        self.assertAllowed(worker_patch(
+            "/repo",
+            "*** Begin Patch\n*** Add File: /repo/.worktrees/worker_17/note.txt\n+x\n*** End Patch",
+        ))
+
+    def test_checks_issue_worker_patch_from_a_nested_worktree_directory(self):
+        cwd = "/repo/.worktrees/worker_17/hooks"
+        self.assertDenied(worker_patch(
+            cwd,
+            "*** Begin Patch\n*** Add File: /repo/skills/note.txt\n+x\n*** End Patch",
+        ), "worktree")
+        self.assertAllowed(worker_patch(
+            cwd,
+            "*** Begin Patch\n*** Add File: ../note.txt\n+x\n*** End Patch",
+        ))
+        self.assertAllowed(worker_patch(
+            cwd,
+            "*** Begin Patch\n*** Add File: /repo/.worktrees/worker_18/note.txt\n+x\n*** End Patch",
+        ))
+
     def test_allows_issue_worker_patch_in_a_project_worktree(self):
         self.assertAllowed(worker_patch(
             "/repo/.worktrees/worker_17",

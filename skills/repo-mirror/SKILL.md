@@ -6,9 +6,10 @@ description: Keep a project's specs, issues and PRs private while publishing its
 # Repo mirror — private source of truth, filtered public mirror
 
 The private repo holds everything: code, `docs/specs/`, `AGENTS.md`, `.codex/`,
-`.agents/`, `docs/rules/`, `CLAUDE.md`, `.claude/`, the issue-flow issues and PRs. A GitHub Actions job in the private repo publishes a filtered
-copy of chosen branches and all tags to the public repo. issue-flow runs against the
-private repo and does not change.
+`.agents/`, `docs/rules/`, `CLAUDE.md`, `.claude/`, the issue-flow issues and PRs.
+
+A GitHub Actions job in the private repo publishes a filtered copy of chosen branches and
+all tags to the public repo. issue-flow runs against the private repo and does not change.
 
 The filter is [`scripts/mirror_filter.py`](scripts/mirror_filter.py): git filter-repo
 with a fixed exclude list. It is **deterministic** — the same history gives the same

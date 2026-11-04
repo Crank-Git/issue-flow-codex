@@ -71,9 +71,9 @@ practices:    tdd: true|false            (tests land with or before the implemen
               coverage: <n>|null         (threshold to report in localChecks)
               commitStyle: <e.g. conventional>
               docs: none|public-api|all
-steRule:      <path to the writing standard: <project>/docs/rules/ste.md when it exists,
+steRule:      <absolute path to the writing standard: <project>/docs/rules/ste.md when it exists,
                else <pluginRoot>/references/ste.md>
-qualityRule:  <path to the quality rules: <project>/docs/rules/quality.md when it exists;
+qualityRule:  <absolute path to the quality rules: <project>/docs/rules/quality.md when it exists;
                omit this field otherwise>
 pluginRoot:   <absolute path of the plugin directory: two levels above this skill's
                `SKILL.md`, e.g. …/issue-flow when the skill is at

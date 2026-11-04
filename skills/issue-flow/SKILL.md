@@ -637,7 +637,14 @@ back in `notesForPM`.
    3. **Spawn the worker.** Call `spawn_agent` with `task_name: "worker_<n>"`, `agent_type: "issue_worker"`, `fork_turns: "none"`, and the handoff brief as `message`. Set the brief field `worktree` to the `path` that step 1 printed. A replacement worker after a checkpoint is named `worker_<n>_c<k>`, where `<k>` counts the checkpoints. The `task_name` is the address of the worker for this session.
    4. **Comment at launch.** See the held claim below.
 
-   Pass only the handoff brief: issue number, branch, **worktree**, **base = the integration branch**, `ci: skip`, batch ref, **`members` = the batch's member count** (it is how the worker knows whether `crossCheck` may legally be `n/a`), remote, `forge`, the plan you commented, conventions, the session's **`practices` block** (TDD, DDD, E2E, coverage, commit style, docs; these are part of the worker's definition of done), **`steRule`** (the path to the writing standard for the worker's comments, docstrings, test names, and PR body: `<project>/docs/rules/ste.md` when it exists, else `<pluginRoot>/references/ste.md`; the brief carries `qualityRule` as `<project>/docs/rules/quality.md` when it exists, and omits it otherwise), and `pluginRoot`. The worker's runbook, `agents/issue-worker.md`, holds its rules. The brief format is in [references/issue-worker.md](references/issue-worker.md).
+   The brief includes the issue number, branch, worktree, base, CI mode, batch ref, and
+   member count. `members` tells the worker if `crossCheck` may be `n/a`.
+   The brief also includes remote, `forge`, plan, conventions, `practices`, and `pluginRoot`.
+   Set `steRule` to the absolute path `<project>/docs/rules/ste.md` when the file exists.
+   Otherwise, set it to `<pluginRoot>/references/ste.md`.
+   Set `qualityRule` to the absolute path `<project>/docs/rules/quality.md` when it exists.
+   Omit `qualityRule` otherwise. The worker's runbook, `agents/issue-worker.md`, holds its
+   rules. The brief format is in [references/issue-worker.md](references/issue-worker.md).
 
    **Never spawn a worker with a forked session.** A fork inherits the whole PM session, and nothing in that text tells it to stop after one issue. The spawn guard (`hooks/guard-spawn.py`) denies a `spawn_agent` call whose `fork_turns` is not `"none"`, and a `task_name` of `worker_<n>` without `agent_type: "issue_worker"`. See [references/worktrees.md](references/worktrees.md).
 

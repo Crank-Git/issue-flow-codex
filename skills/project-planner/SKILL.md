@@ -188,8 +188,8 @@ Three things gate this phase:
 
 1. Print a **short digest** in the terminal: goals, epic list with sizes, stack, and the
    open questions — plus the scaffold **proposal**: each hook's exact command and each
-   skill with a one-line purpose. Hooks and skills are written only after the user approves them; the
-   spec files and mockups may be written first so there is something to review.
+   skill with a one-line purpose. Hooks and skills require user approval before the planner
+   writes them. The planner may write spec files and mockups first.
 2. **Open the spec locally** — `xdg-open docs/specs/spec.html` (Linux), `open` (macOS),
    `start ""` (Windows). If the command is unavailable or the session is
    non-interactive, print the absolute path instead and continue; never fail the phase

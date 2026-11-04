@@ -53,8 +53,9 @@ class PlannerHandoffTextTest(unittest.TestCase):
 
         for path in ("AGENTS.md", "docs/rules/", ".agents/skills/", ".codex/"):
             with self.subTest(path=path):
-                self.assertIn(path, checklist)
-        self.assertNotRegex(checklist, r"(?m)^- \[ \].*(?:CLAUDE\.md|`?\.claude/)")
+                self.assertTrue(path in checklist, f"output checklist omits {path}")
+        claude_item = re.search(r"(?m)^- \[ \].*(?:CLAUDE\.md|`?\.claude/)", checklist)
+        self.assertIsNone(claude_item, "output checklist has a Claude-only scaffold item")
         phase_three = text.split("## Phase 3", 1)[1].split("## Phase 4", 1)[0]
         self.assertIn("AGENTS.md", phase_three)
         self.assertIn(".codex/config.toml", phase_three)
@@ -67,11 +68,16 @@ class PlannerHandoffTextTest(unittest.TestCase):
             root / "skills/issue-flow/references/issue-worker.md",
         ))
 
-        self.assertIn("<project>/docs/rules/ste.md", text)
-        self.assertIn("else <pluginRoot>/references/ste.md", text)
-        self.assertIn("<project>/docs/rules/quality.md", text)
-        self.assertIn("omit this field otherwise", text)
-        self.assertNotIn("<project>/.claude/rules/ste.md", text)
+        self.assertTrue("absolute path `<project>/docs/rules/ste.md`" in text,
+                        "brief omits the project STE path")
+        self.assertTrue("<pluginRoot>/references/ste.md" in text,
+                        "brief omits the plugin STE fallback")
+        self.assertTrue("absolute path `<project>/docs/rules/quality.md`" in text,
+                        "brief omits the project quality path")
+        self.assertTrue("Omit `qualityRule` otherwise" in text,
+                        "brief does not omit qualityRule when the file is absent")
+        claude_rule = re.search(r"<project>/\.claude/rules/ste\.md", text)
+        self.assertIsNone(claude_rule, "brief points to the Claude-only STE path")
 
 
 class StageBTest(unittest.TestCase):

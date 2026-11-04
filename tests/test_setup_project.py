@@ -436,6 +436,52 @@ class UserSetupTest(unittest.TestCase):
                                   "permissions": project["permissions"]})
         self.assertEqual(parsed["features"]["multi_agent_v2"]["max_concurrent_threads_per_session"], 7)
 
+    def add_codex_state(self, profile_text):
+        """Return the profile text with the state that a Codex session saves (codex-harness.md, fact 29)."""
+        return (profile_text + '\n[projects."/work/app"]\ntrust_level = "trusted"\n\n'
+                '[hooks.state."issue-flow@issue-flow-codex:hooks/hooks.json:pre_tool_use:0:0"]\n'
+                'trusted_hash = "sha256:aa"\n\n[tui.model_availability_nux]\n"gpt-6.1-sol" = 1\n')
+
+    def test_check_passes_when_codex_saved_its_state_in_the_profile_file(self):
+        self.run_main("apply")
+        profile = self.home / "issue-flow.config.toml"
+        profile.write_text(self.add_codex_state(profile.read_text(encoding="utf-8")), encoding="utf-8")
+        code, out, _ = self.run_main("check")
+        self.assertEqual(code, 0, out)
+        code, out, _ = self.run_main("apply")
+        self.assertEqual((code, out.strip()), (0, "no changes"))
+
+    def test_apply_accept_rewrites_only_the_owned_keys_of_the_profile_file(self):
+        self.run_main("apply")
+        profile = self.home / "issue-flow.config.toml"
+        saved = self.add_codex_state(profile.read_text(encoding="utf-8").replace("= 7", "= 4"))
+        profile.write_text('model = "x"\n' + saved, encoding="utf-8")
+        code, out, _ = self.run_main("check")
+        self.assertEqual(code, 1)
+        self.assertIn("issue-flow.config.toml           stale", out)
+        code, out, _ = self.run_main("apply")
+        self.assertEqual(code, 1)
+        self.assertIn("+max_concurrent_threads_per_session = 7", out)
+        self.assertNotIn("-trust_level", out)
+        code, _, _ = self.run_main("apply", "--accept", "issue-flow.config.toml")
+        self.assertEqual(code, 0)
+        parsed = tomllib.loads(profile.read_text(encoding="utf-8"))
+        self.assertEqual(parsed["features"]["multi_agent_v2"]["max_concurrent_threads_per_session"], 7)
+        self.assertEqual(parsed["model"], "x")
+        self.assertEqual(parsed["projects"]["/work/app"]["trust_level"], "trusted")
+        self.assertEqual(len(parsed["hooks"]["state"]), 1)
+        self.assertEqual(parsed["tui"]["model_availability_nux"], {"gpt-6.1-sol": 1})
+        self.assertEqual(self.run_main("check")[0], 0)
+
+    def test_apply_accept_stops_on_a_profile_file_that_is_not_toml(self):
+        self.run_main("apply")
+        profile = self.home / "issue-flow.config.toml"
+        profile.write_text("[broken\n", encoding="utf-8")
+        code, _, err = self.run_main("apply", "--accept", "issue-flow.config.toml")
+        self.assertEqual(code, 1)
+        self.assertIn("repair the file", err)
+        self.assertEqual(profile.read_text(encoding="utf-8"), "[broken\n")
+
     def test_apply_never_writes_config_toml_or_an_approval_policy(self):
         self.run_main("apply")
         self.assertFalse((self.home / "config.toml").exists())
@@ -516,10 +562,11 @@ class UserSetupTest(unittest.TestCase):
         self.assertIn("issue-flow.config.toml", out)
         self.assertTrue(all(line.split()[1] == "ok" for line in out.splitlines()))
 
-    def test_check_reports_stale_after_one_byte_changes_in_the_profile_file(self):
+    def test_check_reports_stale_after_one_owned_value_changes_in_the_profile_file(self):
         self.run_main("apply")
         profile = self.home / "issue-flow.config.toml"
-        profile.write_bytes(profile.read_bytes() + b" ")
+        profile.write_text(profile.read_text(encoding="utf-8").replace('".agents" = "write"', '".agents" = "read"'),
+                           encoding="utf-8")
         code, out, _ = self.run_main("check")
         self.assertEqual(code, 1)
         self.assertEqual(out.splitlines()[0].split(), ["issue-flow.config.toml", "stale"])

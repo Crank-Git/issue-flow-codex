@@ -54,6 +54,7 @@ class SetupProjectTest(unittest.TestCase):
     def test_setup_skill_routes_codex_changes_to_the_operator(self):
         skill = (ROOT / "skills" / "setup" / "SKILL.md").read_text(encoding="utf-8")
 
+        self.assertIn("Prints `.codex/` changes for operator application", skill)
         self.assertIn("The operator applies accepted `.codex/` changes outside Codex", skill)
         self.assertIn("Start a new `codex` session after applying `.codex/config.toml`", skill)
 

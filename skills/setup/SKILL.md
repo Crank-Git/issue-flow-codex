@@ -1,6 +1,6 @@
 ---
 name: setup
-description: Configure one project for the issue-flow loop. Use when the operator says "$issue-flow:setup", "set up issue-flow", or "configure this project for issue-flow". Copies the role files into .codex/agents/, writes the issue-flow block in .codex/config.toml, and adds .worktrees/ to .gitignore. Shows the diff of each file and writes a file only after the operator accepts it. Also checks an existing setup when the operator asks.
+description: Configure one project for the issue-flow loop. Use when the operator says "$issue-flow:setup". Prints `.codex/` changes for operator application, writes accepted files outside `.codex/`, and checks existing setup.
 ---
 
 # Setup — configure a project for the issue-flow loop
@@ -47,7 +47,7 @@ directory two levels above it. Call it `<pluginRoot>`. The script is
    - Start a new `codex` session after applying `.codex/config.toml`. Codex reads the
      profile at session start.
    - Run `/hooks` and trust the issue-flow hooks. Codex skips plugin hooks that the operator has not trusted.
-   - Start a new `codex` session. Codex reads `.codex/` only for a trusted project.
+   - Start another `codex` session to load the trusted project hooks.
 
 ## Check mode
 

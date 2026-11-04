@@ -75,6 +75,12 @@ upstream_sha256 = ""
 notes = "Port-only file."
 
 [[file]]
+path = ".github/workflows/upstream-check.yml"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
 path = ".gitignore"
 mode = "new"
 upstream_sha256 = ""
@@ -433,6 +439,12 @@ path = "scripts/testbed-reset.py"
 mode = "new"
 upstream_sha256 = ""
 notes = "Port-only. Returns a test bed to seed state."
+
+[[file]]
+path = "scripts/upstream_check.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
 
 [[file]]
 path = "scripts/upstream_sync.py"
@@ -823,6 +835,12 @@ path = "tests/test_testbed_reset.py"
 mode = "new"
 upstream_sha256 = ""
 notes = "Port-only. Tests the reset script with faked forge calls."
+
+[[file]]
+path = "tests/test_upstream_check.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
 
 [[file]]
 path = "tests/test_upstream_sync.py"

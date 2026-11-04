@@ -42,6 +42,11 @@ class SetupProjectTest(unittest.TestCase):
         (self.plugin / ".codex-plugin").mkdir()
         (self.plugin / ".codex-plugin" / "plugin.json").write_text(
             json.dumps({"name": "issue-flow", "version": "0.1.0"}), encoding="utf-8")
+        self.home = base / "codex-home"
+        self.home.mkdir()
+        env = mock.patch.dict(os.environ, {"CODEX_HOME": str(self.home)})
+        env.start()
+        self.addCleanup(env.stop)
 
     def apply(self, *extra, accept=None):
         flag = True if "--with-default-permissions" in extra else (
@@ -288,6 +293,7 @@ class SetupProjectTest(unittest.TestCase):
             "threads      ok       max_concurrent_threads_per_session = 7",
             "profile      ok       default_permissions = issue_flow",
             "gitignore    ok",
+            "user setup   not used " + str(self.home),
             "hooks        unknown  run /hooks to see the trust state",
         ])
 
@@ -392,6 +398,9 @@ class UserSetupTest(unittest.TestCase):
         for name in ROLE_NAMES:
             (self.plugin / "roles" / f"{name}.toml").write_text(
                 f'name = "{name.replace("-", "_")}"\ndescription = "{name}"\n', encoding="utf-8")
+        (self.plugin / ".codex-plugin").mkdir()
+        (self.plugin / ".codex-plugin" / "plugin.json").write_text(
+            json.dumps({"name": "issue-flow", "version": "0.1.1"}), encoding="utf-8")
         env = mock.patch.dict(os.environ, {"CODEX_HOME": str(self.home)})
         env.start()
         self.addCleanup(env.stop)
@@ -423,7 +432,9 @@ class UserSetupTest(unittest.TestCase):
         parsed = tomllib.loads(text)
         project = tomllib.loads(setup_project.render_block(3, True))
         self.assertEqual(parsed, {"default_permissions": "issue_flow",
+                                  "features": project["features"],
                                   "permissions": project["permissions"]})
+        self.assertEqual(parsed["features"]["multi_agent_v2"]["max_concurrent_threads_per_session"], 7)
 
     def test_apply_never_writes_config_toml_or_an_approval_policy(self):
         self.run_main("apply")
@@ -525,6 +536,55 @@ class UserSetupTest(unittest.TestCase):
     def test_rejects_project_and_user_together(self):
         with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
             setup_project.main(["plan", "--user", "--project", str(self.home)])
+
+    def check_project(self, project):
+        out = io.StringIO()
+        with redirect_stdout(out):
+            code = setup_project.main(["check", "--project", str(project),
+                                       "--plugin-root", str(self.plugin)])
+        return code, out.getvalue()
+
+    def project_rows(self, text):
+        return {line[:12].strip(): line[13:].split()[0] for line in text.splitlines()}
+
+    def test_project_check_passes_on_an_empty_project_when_the_user_setup_is_complete(self):
+        self.run_main("apply")
+        project = self.home.parent / "project"
+        project.mkdir()
+        code, text = self.check_project(project)
+        self.assertEqual(code, 0, text)
+        rows = self.project_rows(text)
+        self.assertEqual(rows["user setup"], "ok")
+        for item in ("roles", "config block", "threads", "profile", "gitignore"):
+            self.assertEqual(rows[item], "not", item)
+        self.assertIn("roles        not used", text)
+
+    def test_project_check_fails_on_a_stale_project_role_when_the_user_setup_is_complete(self):
+        self.run_main("apply")
+        project = self.home.parent / "project"
+        (project / ".codex" / "agents").mkdir(parents=True)
+        (project / ".codex" / "agents" / "issue-worker.toml").write_text("old\n", encoding="utf-8")
+        code, text = self.check_project(project)
+        self.assertEqual(code, 1)
+        self.assertEqual(self.project_rows(text)["roles"], "stale")
+
+    def test_project_check_fails_and_prints_the_user_command_when_neither_level_is_complete(self):
+        project = self.home.parent / "project"
+        project.mkdir()
+        code, text = self.check_project(project)
+        self.assertEqual(code, 1)
+        self.assertEqual(self.project_rows(text)["user setup"], "missing")
+        self.assertIn(f"fix: python3 {self.plugin}/scripts/setup_project.py apply --user",
+                      text.splitlines())
+
+    def test_project_check_fails_when_the_user_setup_is_stale_and_the_project_is_empty(self):
+        self.run_main("apply")
+        (self.home / "agents" / "issue-worker.toml").write_text("old\n", encoding="utf-8")
+        project = self.home.parent / "project"
+        project.mkdir()
+        code, text = self.check_project(project)
+        self.assertEqual(code, 1)
+        self.assertEqual(self.project_rows(text)["user setup"], "stale")
 
     def test_rejects_apply_project_without_accept(self):
         with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):

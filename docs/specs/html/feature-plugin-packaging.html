@@ -228,7 +228,7 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li>FR-plugin-packaging-41 — The user-level mode works in <code>$CODEX_HOME</code>, or in <code>~/.codex</code> when <code>CODEX_HOME</code> is not set. This directory is the Codex home.
 </li>
-<li>FR-plugin-packaging-42 — <code>setup_project.py apply --user</code> writes <code>issue-flow.config.toml</code> in the Codex home. The file holds <code>default_permissions = "issue_flow"</code> first, then the permission profile <code>issue_flow</code> of the config block.
+<li>FR-plugin-packaging-42 — <code>setup_project.py apply --user</code> writes <code>issue-flow.config.toml</code> in the Codex home. The file holds <code>default_permissions = "issue_flow"</code> first, then the <code>[features.multi_agent_v2]</code> table of the config block for concurrency 3, then the permission profile <code>issue_flow</code> of the config block.
 </li>
 <li>FR-plugin-packaging-43 — <code>setup_project.py apply --user</code> copies each file in <code>&lt;pluginRoot&gt;/roles/</code> into <code>agents/</code> in the Codex home.
 </li>
@@ -241,6 +241,10 @@ body.rv-open .layout { padding-right:21rem; }
 <li>FR-plugin-packaging-47 — The setup skill runs <code>plan --user</code> and prints the command <code>python3 &lt;pluginRoot&gt;/scripts/setup_project.py apply --user</code> with the absolute plugin root. The operator runs the command outside Codex, because the session cannot write the Codex home.
 </li>
 <li>FR-plugin-packaging-48 — <code>check --user</code> reports each file of the user-level mode as <code>ok</code>, <code>missing</code>, or <code>stale</code>, and writes no file.
+</li>
+<li>FR-plugin-packaging-49 — <code>check --project</code> passes when the user-level setup or the project setup is complete. With a complete user-level setup, a missing project item is <code>not used</code>. When neither is complete, the output ends with <code>fix: python3 &lt;pluginRoot&gt;/scripts/setup_project.py apply --user</code>.
+</li>
+<li>FR-plugin-packaging-50 — <code>scripts/worktree.py create</code> adds <code>.worktrees/</code> to the local git exclude file when no ignore rule covers <code>.worktrees/</code>.
 </li>
 </ul>
 <h4 id="plugin-packaging-hooks">Hooks</h4>
@@ -385,6 +389,15 @@ config block ok
 threads      ok       max_concurrent_threads_per_session = 7
 profile      missing  default_permissions is not set to issue_flow
 gitignore    ok
+user setup   not used /Users/&lt;operator&gt;/.codex
+hooks        unknown  run /hooks to see the trust state</code></pre>
+<p>With a complete user-level setup, the same check on a project without <code>.codex/</code> prints:</p>
+<pre class="code"><code>roles        not used
+config block not used
+threads      not used
+profile      not used
+gitignore    not used
+user setup   ok       /Users/&lt;operator&gt;/.codex
 hooks        unknown  run /hooks to see the trust state</code></pre>
 <p><code>check --user</code> prints one line for each file in the Codex home:</p>
 <pre class="code"><code>issue-flow.config.toml           ok
@@ -421,8 +434,12 @@ enabled = true
 </li>
 </ul>
 <h4 id="plugin-packaging-the-user-level-profile-file">The user-level profile file</h4>
-<p><code>issue-flow.config.toml</code> in the Codex home holds the profile of the config block, with <code>default_permissions</code> first:</p>
+<p><code>issue-flow.config.toml</code> in the Codex home holds the thread limit and the profile of the config block, with <code>default_permissions</code> first:</p>
 <pre class="code"><code>default_permissions = "issue_flow"
+
+[features.multi_agent_v2]
+enabled = true
+max_concurrent_threads_per_session = 7
 
 [permissions.issue_flow]
 extends = ":workspace"
@@ -482,7 +499,7 @@ enabled = true</code></pre>
 </li>
 <li><strong>Role file keys that Codex applies:</strong> <code>developer_instructions</code>, <code>model</code>, <code>model_reasoning_effort</code>, <code>model_reasoning_summary</code>, <code>model_verbosity</code>, <code>personality</code>, <code>service_tier</code>, and feature or skill disables. Verified against: source <code>codex-rs/core/src/agent/role.rs:79-117</code>.
 </li>
-<li><strong>Profile file:</strong> <code>codex -p &lt;name&gt;</code> layers <code>$CODEX_HOME/&lt;name&gt;.config.toml</code> on the user config. A role file in <code>$CODEX_HOME/agents/</code> loads in a project that has no <code>.codex/</code>. Verified against: <code>codex --help</code> (0.166.0) and live tests 2026-11-04 (<a href="page-codex-harness.html">Codex harness facts</a>, facts 25 to 27).
+<li><strong>Profile file:</strong> <code>codex -p &lt;name&gt;</code> layers <code>$CODEX_HOME/&lt;name&gt;.config.toml</code> on the user config. A role file in <code>$CODEX_HOME/agents/</code> loads in a project that has no <code>.codex/</code>. Verified against: <code>codex --help</code> (0.166.0) and live tests 2026-11-04 (<a href="page-codex-harness.html">Codex harness facts</a>, facts 25 to 28).
 </li>
 <li><strong>Docs:</strong> https://learn.chatgpt.com/docs/hooks, https://learn.chatgpt.com/docs/agent-configuration/subagents, https://developers.openai.com/plugins/build/plugins (retrieved 2026-11-03).
 </li>
@@ -503,7 +520,9 @@ enabled = true</code></pre>
 </li>
 <li>If the operator updates the plugin, <code>check --user</code> reports changed role files as <code>stale</code>. The operator runs <code>apply --user</code> again.
 </li>
-<li>The user-level mode does not set the thread limit. Without a project config block, the Codex default of 4 threads applies.
+<li>If a project has no <code>.worktrees/</code> line in <code>.gitignore</code>, <code>worktree.py create</code> adds the line to <code>.git/info/exclude</code>. No tracked file changes.
+</li>
+<li>If the operator needs a concurrency other than 3, the operator uses per-project setup. The project block sets the thread limit for that project.
 </li>
 </ul>
 <h3 id="plugin-packaging-acceptance-criteria">Acceptance criteria</h3>
@@ -521,6 +540,10 @@ enabled = true</code></pre>
 <li>[ ] <code>$issue-flow:setup check</code> reports <code>stale</code> after one byte changes in a role file, and writes no file. (FR-plugin-packaging-21, 22)
 </li>
 <li>[ ] <code>apply --user</code> in an empty Codex home writes <code>issue-flow.config.toml</code> and the six role files, and a second run writes no file. (FR-plugin-packaging-42 to 46)
+</li>
+<li>[ ] With a complete user-level setup, <code>check --project</code> on an empty project exits 0. (FR-plugin-packaging-49)
+</li>
+<li>[ ] With <code>-p issue-flow</code>, the prompt input shows 7 concurrency slots. (FR-plugin-packaging-42)
 </li>
 <li>[ ] After <code>apply --user</code>, <code>codex exec -p issue-flow</code> in an empty directory runs <code>git init</code> and a commit, and spawns one issue-flow role from the user-level role files. (FR-plugin-packaging-42, 43)
 </li>

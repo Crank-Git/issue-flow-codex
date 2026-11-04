@@ -245,6 +245,8 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li><strong>The user-level profile file gives a new directory git writes and network access.</strong> With <code>$CODEX_HOME/issue-flow.config.toml</code> that sets <code>default_permissions = "issue_flow"</code>, <code>codex exec -p issue-flow</code> in an empty directory ran <code>git init</code>, <code>git commit</code>, and <code>git ls-remote https://github.com/openai/codex HEAD</code>. All three exited 0. The session's writable roots were the directory, its <code>.git</code> and <code>.agents</code>, and the temporary directories. The Codex home was not writable. Evidence: live runs on 2026-11-04, codex-cli 0.166.0, <code>gpt-6-luna</code> (#126); session <code>01a1a4ad-993d-7552-9fe9-6c4377de2777</code>.
 </li>
+<li><strong>A feature table in a profile file layers too.</strong> With <code>[features.multi_agent_v2] max_concurrent_threads_per_session = 7</code> in <code>$CODEX_HOME/issue-flow.config.toml</code>, <code>codex -p issue-flow debug prompt-input</code> shows "There are 7 available concurrency slots". Without <code>-p</code>, it shows 4. Evidence: live, 2026-11-04, codex-cli 0.166.0, isolated <code>CODEX_HOME</code>, no model call (#126).
+</li>
 </ol>
 <p>The profile used in facts 8 and 9:</p>
 <pre class="code"><code>default_permissions = "gitw"

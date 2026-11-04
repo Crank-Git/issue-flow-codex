@@ -56,21 +56,24 @@ extends = ":workspace"
 
 [permissions.issue_flow.network]
 enabled = true"""
+FEATURES = """\
+[features.multi_agent_v2]
+enabled = true
+max_concurrent_threads_per_session = {threads}"""
 # Same text as the block in docs/specs/features/01-plugin-packaging.md, Behaviour rules.
 BLOCK_TEMPLATE = """\
 # issue-flow:begin (written by $issue-flow:setup — edit with the setup skill)
-{permissions_line}[features.multi_agent_v2]
-enabled = true
-max_concurrent_threads_per_session = {threads}
-
-""" + PROFILE + """
+{permissions_line}""" + FEATURES + "\n\n" + PROFILE + """
 # issue-flow:end"""
 
 
 PERMISSIONS_LINE = 'default_permissions = "issue_flow"'
 # `codex -p issue-flow` layers this file on the user config (codex-harness.md, fact 25).
 USER_PROFILE_FILE = "issue-flow.config.toml"
-USER_PROFILE = PERMISSIONS_LINE + "\n\n" + PROFILE + "\n"
+# The user-level mode has no run configuration, so it uses the default concurrency.
+USER_PROFILE = (PERMISSIONS_LINE + "\n\n"
+                + FEATURES.format(threads=DEFAULT_CONCURRENCY + THREAD_OVERHEAD) + "\n\n"
+                + PROFILE + "\n")
 
 
 class SetupError(Exception):
@@ -258,9 +261,10 @@ def check_report(project, plugin_root):
         elif source.stem in ("code-auditor", "deploy-verifier", "review-scribe", "ux-explorer", "ci-watcher"):
             source_role["model"] = codex.get("helperModel", source_role["model"])
         matching += render_role(source_role) == copy.read_text(encoding="utf-8")
-    absent = not all(c.is_file() for c in copies)
-    rows.append(("roles", "missing" if absent else "ok" if matching == len(wanted) else "stale",
-                 f"{matching} of {len(wanted)} match plugin {version}"))
+    # A present copy that differs is stale even when other copies are absent: Codex loads it.
+    present = sum(c.is_file() for c in copies)
+    status = "stale" if matching < present else "missing" if present < len(wanted) else "ok"
+    rows.append(("roles", status, f"{matching} of {len(wanted)} match plugin {version}"))
 
     config = project / ".codex" / "config.toml"
     text = config.read_text(encoding="utf-8") if config.is_file() else ""
@@ -294,8 +298,8 @@ def check_report(project, plugin_root):
     return rows
 
 
-def run_user(command, plugin_root, accept):
-    """Run `plan`, `apply`, or `check` on the Codex home and return the exit code.
+def user_status(plugin_root):
+    """Return (Codex home, {path: wanted text}, {path: ok | missing | stale}) for the user setup.
 
     The Codex home is `$CODEX_HOME`, else `~/.codex`.
     """
@@ -310,6 +314,12 @@ def run_user(command, plugin_root, accept):
             status[rel] = "missing"
         else:
             status[rel] = "ok" if path.read_text(encoding="utf-8") == text else "stale"
+    return home, wanted, status
+
+
+def run_user(command, plugin_root, accept):
+    """Run `plan`, `apply`, or `check` on the Codex home and return the exit code."""
+    home, wanted, status = user_status(plugin_root)
     if command == "check":
         for rel in wanted:
             print(f"{rel:<32} {status[rel]}")
@@ -362,9 +372,25 @@ def main(argv=None):
             return run_user(args.command, args.plugin_root, getattr(args, "accept", []))
         if args.command == "check":
             rows = check_report(args.project, args.plugin_root)
+            home, _, user = user_status(args.plugin_root)
+            user_ok = all(s == "ok" for s in user.values())
+            project_ok = not any(s in ("missing", "stale") for _, s, _ in rows)
+            # A complete user-level setup makes the project files optional (ADR 0005).
+            if user_ok:
+                rows = [(item, "not used", "") if s == "missing" else (item, s, detail)
+                        for item, s, detail in rows]
+                user_row = "ok"
+            elif project_ok:
+                user_row = "not used"
+            else:
+                user_row = "missing" if "missing" in user.values() else "stale"
+            rows.insert(len(rows) - 1, ("user setup", user_row, str(home)))
             for item, status, detail in rows:
                 print(f"{item:<12} {status:<8} {detail}".rstrip())
-            return int(any(status in ("missing", "stale") for _, status, _ in rows))
+            failed = any(status in ("missing", "stale") for _, status, _ in rows)
+            if failed and not user_ok:
+                print(f"fix: python3 {args.plugin_root}/scripts/setup_project.py apply --user")
+            return int(failed)
         files = plan_files(args.project, args.plugin_root, args.with_default_permissions)
         if args.command == "plan":
             if files:

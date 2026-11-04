@@ -181,7 +181,7 @@ Why a native plugin beat an external orchestrator: an external script would dupl
 - The setup skill writes a permission profile `issue_flow` that extends `:workspace`, makes `.git` and `.agents/` writable, and enables network access. The profile keeps `.codex/` read-only. The operator applies `.codex/` changes and starts a new session. Verified against: the operator ruling on #109 and the profile pattern in `codex-harness.md`, fact 8.
 - Subagents inherit the profile from the PM. Verified against: live test (a `git_worker` subagent created a worktree and committed).
 - [ADR 0003](../adr/0003-permission-profile.md) records the decision.
-- By default, the setup skill writes the profile once per machine, in `$CODEX_HOME/issue-flow.config.toml`. The operator starts each session with `codex -p issue-flow -a never`. Verified against: `codex --help` (0.166.0) and `codex-harness.md`, facts 25 to 27. [ADR 0005](../adr/0005-user-level-setup.md) records the decision.
+- By default, the setup skill writes the profile once per machine, in `$CODEX_HOME/issue-flow.config.toml`. The operator starts each session with `codex -p issue-flow -a never`. Verified against: `codex --help` (0.166.0) and `codex-harness.md`, facts 25 to 28. [ADR 0005](../adr/0005-user-level-setup.md) records the decision.
 
 ### Models
 
@@ -336,7 +336,7 @@ Created by spec-to-issues on 2026-11-03 in `Crank-Git/issue-flow-codex`.
 | FR-plugin-packaging-23, FR-plugin-packaging-26, FR-plugin-packaging-27, FR-plugin-packaging-28, FR-plugin-packaging-39 | #16 |
 | FR-plugin-packaging-24, FR-plugin-packaging-29, FR-plugin-packaging-30, FR-plugin-packaging-31, FR-plugin-packaging-32, FR-plugin-packaging-33 | #17 |
 | FR-plugin-packaging-25, FR-plugin-packaging-34, FR-plugin-packaging-35, FR-plugin-packaging-36, FR-plugin-packaging-37, FR-plugin-packaging-38 | #18 |
-| FR-plugin-packaging-40, FR-plugin-packaging-41, FR-plugin-packaging-42, FR-plugin-packaging-43, FR-plugin-packaging-44, FR-plugin-packaging-45, FR-plugin-packaging-46, FR-plugin-packaging-47, FR-plugin-packaging-48 | #126 |
+| FR-plugin-packaging-40, FR-plugin-packaging-41, FR-plugin-packaging-42, FR-plugin-packaging-43, FR-plugin-packaging-44, FR-plugin-packaging-45, FR-plugin-packaging-46, FR-plugin-packaging-47, FR-plugin-packaging-48, FR-plugin-packaging-49, FR-plugin-packaging-50 | #126 |
 | FR-worker-dispatch-1, FR-worker-dispatch-2, FR-worker-dispatch-3, FR-worker-dispatch-4, FR-worker-dispatch-5, FR-worker-dispatch-6, FR-worker-dispatch-7 | #19 |
 | FR-worker-dispatch-12, FR-worker-dispatch-13, FR-worker-dispatch-14, FR-worker-dispatch-15, FR-worker-dispatch-34, FR-worker-dispatch-35, FR-worker-dispatch-36 | #20 |
 | FR-worker-dispatch-8, FR-worker-dispatch-9, FR-worker-dispatch-10, FR-worker-dispatch-11, FR-worker-dispatch-16, FR-worker-dispatch-17, FR-worker-dispatch-18 | #21 |
@@ -378,4 +378,4 @@ Created by spec-to-issues on 2026-11-03 in `Crank-Git/issue-flow-codex`.
 - 2026-11-03 — Epic 7 batch gate (PR #124): FR-mirror-and-sync-9 named an upstream issue body format that does not exist. The sync issue body is the report itself, without its diff blocks when it is too long. The README installs at the release tag, because the default branch is `dev`.
 - 2026-11-03 — Epic 5 and Epic 6 batch gates (PRs #120, #124). The Codex PM built #35-#42 (dogfood run 3). The live gate passed the Epic 5 criteria on the test bed after four port repairs; browser calls need `default_tools_approval_mode = "approve"` (codex-harness facts 22-24). Project review is built. Mirror and sync stays issued until #42's release install passes after the promotion that tags v0.1.0.
 - 2026-11-04 — Promotion PR #125 merged dev into main with operator approval. The release workflow tagged `issue-flow-codex--v0.1.0`, and the release install passed. Mirror and sync is built.
-- 2026-11-04 — Operator ruling on #126: setup is one time per machine. The setup skill defaults to `setup_project.py apply --user`, which writes `$CODEX_HOME/issue-flow.config.toml` and the role files; per-project setup stays an option (ADR 0005). The approval policy stays a separate `-a never` flag. The plugin version is 0.1.1.
+- 2026-11-04 — Operator ruling on #126: setup is one time per machine. The setup skill defaults to `setup_project.py apply --user`, which writes `$CODEX_HOME/issue-flow.config.toml` and the role files; per-project setup stays an option (ADR 0005). The user-level file also sets the thread limit to 7. The PM's setup check passes on a complete user-level setup, and `worktree.py` keeps `.worktrees/` out of `git status` through the local exclude file. The approval policy stays a separate `-a never` flag. The plugin version is 0.1.1.

@@ -46,8 +46,9 @@ file is `ok`, `missing`, or `stale`. Exit code 1 means a file is `missing` or `s
 
 ## Per-project mode
 
-Use this mode only when the operator asks for setup in one project. It also sets the
-thread limit and the models from the project's run configuration.
+Use this mode only when the operator asks for setup in one project. It sets the thread
+limit and the models from the project's run configuration. The user-level mode uses the
+default concurrency of 3, so its thread limit is 7.
 
 1. Take the project directory from the operator. If the operator names none, use the
    current directory. Call it `<project>`.

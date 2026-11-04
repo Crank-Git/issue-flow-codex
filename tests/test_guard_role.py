@@ -43,10 +43,10 @@ def patch(role, *paths):
     return payload(APPLY_PATCH, role, tool_input={"command": text})
 
 
-def worker_patch(*directives):
+def worker_patch(*directives, **changes):
     """Build a worker apply_patch payload. A spawned worker's cwd is the PM's project root."""
     text = "*** Begin Patch\n" + "\n".join(directives) + "\n*** End Patch"
-    return payload(OUTSIDE, "issue_worker", tool_input={"command": text})
+    return payload(OUTSIDE, "issue_worker", tool_input={"command": text}, **changes)
 
 
 def spawn(role, spawned):
@@ -106,6 +106,25 @@ class RoleGuardTest(unittest.TestCase):
         for root in (tempfile.gettempdir(), "/tmp", "/private/tmp", "/var/folders/ab/cd"):
             with self.subTest(root=root):
                 self.assertAllowed(worker_patch(f"*** Add File: {root}/pr-body.md"))
+
+    def test_denies_a_patch_to_the_project_checkout_when_the_project_lives_under_a_temp_dir(self):
+        for path in ("/private/tmp/proj/README.md", "/tmp/proj/README.md", "README.md"):
+            with self.subTest(path=path):
+                self.assertDenied(worker_patch(f"*** Update File: {path}", cwd="/private/tmp/proj"),
+                                  "worktree", "README.md")
+
+    def test_allows_a_patch_to_a_worktree_when_the_project_lives_under_a_temp_dir(self):
+        self.assertAllowed(worker_patch(
+            "*** Update File: /private/tmp/proj/.worktrees/worker_1/README.md",
+            cwd="/private/tmp/proj"))
+
+    def test_allows_a_scratch_patch_in_a_temp_dir_outside_the_project(self):
+        self.assertAllowed(worker_patch("*** Add File: /private/tmp/scratch/pr-body.md",
+                                        cwd="/private/tmp/proj"))
+
+    def test_denies_a_scratch_looking_path_that_is_inside_the_project(self):
+        self.assertDenied(worker_patch("*** Add File: /private/tmp/proj/scratch/pr-body.md",
+                                       cwd="/private/tmp/proj"), "worktree", "pr-body.md")
 
     def test_denies_issue_worker_patch_that_climbs_out_of_the_worktrees(self):
         for directive in ("Add File", "Update File", "Delete File", "Move to"):

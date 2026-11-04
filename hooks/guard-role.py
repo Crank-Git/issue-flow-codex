@@ -60,12 +60,27 @@ def outside_scratch(patch_text, cwd, scratch):
 
 
 def outside_worktrees(patch_text, cwd):
-    """Return patch paths outside `<cwd>/.worktrees/` and outside the system temp directories."""
-    worktrees = posixpath.normpath(posixpath.join(cwd, ".worktrees")) + "/"
-    temp = [posixpath.normpath(root) + "/"
-            for root in {tempfile.gettempdir(), "/tmp", "/private/tmp", "/var/folders"}]
-    return [path for path, resolved in patch_paths(patch_text, cwd)
-            if not resolved.startswith(worktrees) and not resolved.startswith(tuple(temp))]
+    """Return patch paths that an issue_worker may not write.
+
+    Rules, in order, for a path resolved against `cwd`:
+      1. inside `<cwd>/.worktrees/`: allowed;
+      2. inside `<cwd>` (the project): denied, even when the project lives under a temp directory;
+      3. outside `<cwd>` and inside a system temp directory: allowed (scratch);
+      4. anything else: denied.
+    Both sides go through `os.path.realpath`, so `/tmp` and `/private/tmp` compare equal.
+    """
+    project = os.path.realpath(cwd)
+    worktrees = os.path.join(project, ".worktrees") + "/"
+    temp = tuple(os.path.realpath(root) + "/"
+                 for root in {tempfile.gettempdir(), "/tmp", "/private/tmp", "/var/folders"})
+    denied = []
+    for path, resolved in patch_paths(patch_text, cwd):
+        real = os.path.realpath(resolved)
+        if real.startswith(worktrees):
+            continue
+        if real == project or real.startswith(project + "/") or not real.startswith(temp):
+            denied.append(path)
+    return denied
 
 
 def violation(payload, rule):

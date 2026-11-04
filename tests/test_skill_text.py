@@ -467,6 +467,33 @@ class CiWatcherTextTest(unittest.TestCase):
         self.assertIn('agent_type: "deploy_verifier"', text)
         self.assertIn("skip the browser check", text)
 
+    def test_stage_d_checks_playwright_and_serializes_browser_roles(self):
+        text = " ".join(stage_d().split())
+        self.assertIn('`codex mcp list`', text)
+        self.assertIn("call `wait_agent` until it finishes", text)
+        self.assertIn("If no thread slot is free", text)
+        self.assertIn("`ux_explorer` role is active", text)
+
+    def test_stage_d_passes_the_deployment_context_and_records_the_verdict(self):
+        text = " ".join(stage_d().split())
+        self.assertIn('task_name: "verify_deploy_<sha7>"', text)
+        self.assertIn('url: <deployed URL from Phase 0>', text)
+        self.assertIn('commit: <full SHA from the watcher verdict>', text)
+        self.assertIn('issue: #<tracking issue number>', text)
+        self.assertIn('FINAL_ANSWER', text)
+        for outcome in ("verified", "broken", "unreachable"):
+            with self.subTest(outcome=outcome):
+                self.assertIn(outcome, text)
+
+    def test_deploy_reference_documents_verifier_preflight_and_brief(self):
+        text = " ".join(deploy_reference().split())
+        for token in ("returns `succeeded`", "`codex mcp list`", "curl", "list_agents",
+                      "`ux_explorer`", "no thread slot is free", "wait_agent",
+                      'task_name: "verify_deploy_<sha7>"',
+                      "full SHA", "FINAL_ANSWER", "verified | broken | unreachable"):
+            with self.subTest(token=token):
+                self.assertIn(token, text)
+
     def test_owned_text_has_no_claude_code_mechanics(self):
         tokens = ("run_in_background", "isolation", "subagent_type", "CLAUDE_PLUGIN_ROOT",
                   ".claude/worktrees", "ToolSearch", "claude mcp add")

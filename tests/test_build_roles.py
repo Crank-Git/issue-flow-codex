@@ -29,6 +29,12 @@ You are a worker. Run `git status` and keep a 'quote' and a \\ backslash.
 
 
 WATCHER = AGENT.replace("issue-worker", "ci-watcher").replace("gpt-6.1-sol", "gpt-6-luna")
+REVIEW_ROLES = {
+    "ux-explorer": ("gpt-6.1-sol", "medium"),
+    "deploy-verifier": ("gpt-6-luna", "low"),
+    "review-scribe": ("gpt-6.1-sol", "medium"),
+    "code-auditor": ("gpt-6-luna", "low"),
+}
 
 
 class Fixture(unittest.TestCase):
@@ -40,6 +46,10 @@ class Fixture(unittest.TestCase):
         (self.repo / "agents" / "ci-watcher.md").write_text(WATCHER, encoding="utf-8")
         (self.repo / "agents" / "other-agent.md").write_text(
             AGENT.replace("issue-worker", "other-agent"), encoding="utf-8")
+        for stem in ("ux-explorer", "deploy-verifier", "review-scribe", "code-auditor"):
+            source = ROOT / "agents" / f"{stem}.md"
+            (self.repo / "agents" / f"{stem}.md").write_text(
+                source.read_text(encoding="utf-8"), encoding="utf-8")
 
     def role(self):
         build_roles.write(self.repo)
@@ -73,7 +83,8 @@ class TestBuildRoles(Fixture):
     def test_builds_only_ported_agents(self):
         build_roles.write(self.repo)
         self.assertEqual(sorted(p.name for p in (self.repo / "roles").iterdir()),
-                         ["ci-watcher.toml", "issue-worker.toml"])
+                         ["ci-watcher.toml", "code-auditor.toml", "deploy-verifier.toml",
+                          "issue-worker.toml", "review-scribe.toml", "ux-explorer.toml"])
 
     def test_check_passes_on_a_fresh_role_file(self):
         build_roles.write(self.repo)
@@ -88,7 +99,15 @@ class TestBuildRoles(Fixture):
 
     def test_check_fails_when_the_role_file_is_missing(self):
         self.assertEqual(sorted(build_roles.stale(self.repo)),
-                         ["roles/ci-watcher.toml", "roles/issue-worker.toml"])
+                         ["roles/ci-watcher.toml", "roles/code-auditor.toml",
+                          "roles/deploy-verifier.toml", "roles/issue-worker.toml",
+                          "roles/review-scribe.toml", "roles/ux-explorer.toml"])
+
+    def test_builds_only_supported_roles(self):
+        self.assertEqual(set(build_roles.PORTED), {
+            "issue-worker", "ci-watcher", "ux-explorer", "deploy-verifier",
+            "review-scribe", "code-auditor",
+        })
 
 
 class TestRepositoryRole(unittest.TestCase):
@@ -99,6 +118,33 @@ class TestRepositoryRole(unittest.TestCase):
         role = tomllib.loads((ROOT / "roles" / "ci-watcher.toml").read_text(encoding="utf-8"))
         self.assertEqual(role["name"], "ci_watcher")
         self.assertEqual(role["model"], "gpt-6-luna")
+
+    def test_project_review_roles_use_the_configured_models(self):
+        for stem, (model, effort) in REVIEW_ROLES.items():
+            with self.subTest(stem=stem):
+                role = tomllib.loads((ROOT / "roles" / f"{stem}.toml").read_text())
+                self.assertEqual(role["name"], stem.replace("-", "_"))
+                self.assertEqual((role["model"], role["model_reasoning_effort"]),
+                                 (model, effort))
+
+    def test_browser_roles_name_playwright_tools_with_codex_names(self):
+        tools = {
+            "ux-explorer": (
+                "browser_navigate", "browser_snapshot", "browser_click", "browser_type",
+                "browser_take_screenshot", "browser_console_messages", "browser_fill_form",
+            ),
+            "deploy-verifier": (
+                "browser_navigate", "browser_snapshot", "browser_take_screenshot",
+                "browser_console_messages",
+            ),
+        }
+        for stem, names in tools.items():
+            with self.subTest(stem=stem):
+                instructions = tomllib.loads(
+                    (ROOT / "roles" / f"{stem}.toml").read_text())["developer_instructions"]
+                for name in names:
+                    self.assertIn(f"mcp__playwright__{name}", instructions)
+                self.assertNotIn("ToolSearch", instructions)
 
     def test_manifest_validation_passes_on_the_built_role(self):
         self.assertEqual(validate_manifests.check(ROOT), [])

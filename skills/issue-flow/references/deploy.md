@@ -198,25 +198,50 @@ not be reported as one the merge triggered.
 
 ## The deploy-verifier agent (browser check)
 
-A green build doesn't prove the app runs. After a deployment reports `succeeded` (and
-optionally for a PR preview), spawn the `deploy_verifier` role (`spawn_agent` with
-`agent_type: "deploy_verifier"` and `fork_turns: "none"`). The role arrives with Epic 5.
-When `spawn_agent` does not offer it, skip the browser check and say so in the digest.
-The role drives a real browser via the **Playwright** MCP server: loads the URL,
-checks HTTP/render/expected-content/console/network, screenshots, and returns
-`verified | broken | unreachable`. Brief:
+A green build does not prove the app runs. After a deployment returns `succeeded`,
+run `codex mcp get playwright`. The browser is ready only when the command succeeds
+and its output has the line `default_tools_approval_mode: approve`. Without that key,
+Codex denies each Playwright call with `MCP tool call requires approval, but approval
+policy is never`. If the browser is not ready, add `browser: none` to the brief. The
+role then uses its documented `curl` fallback and reports that it could not use a
+browser. Also show the operator these two
+steps in the digest:
+
+1. If `codex mcp list` has no server named `playwright`, run
+   `codex mcp add playwright -- npx -y @playwright/mcp@0.0.84 --output-dir .worktrees/review/playwright-mcp`.
+2. In `config.toml` under `CODEX_HOME`, add `default_tools_approval_mode = "approve"`
+   under `[mcp_servers.playwright]`.
+
+Do not run `codex mcp add`, and do not edit `config.toml`. The `--output-dir` flag keeps
+the automatically named Playwright files out of the project tree.
+
+Call `list_agents` before you spawn a browser role. If a `deploy_verifier` or
+`ux_explorer` role is active, call `wait_agent` until it finishes, then check again.
+If no thread slot is free, call `wait_agent` until one frees, then check again.
+All browser roles share one browser session, so run only one at a time.
+
+Spawn the `deploy_verifier` role (`spawn_agent` with `agent_type: "deploy_verifier"`,
+`task_name: "verify_deploy_<sha7>"`, and `fork_turns: "none"`). The role arrives with
+Epic 5. If the spawn does not offer this role, skip the browser check and say so in the
+digest. Pass this brief:
 
 ```
 url:      <deployed or PR-preview URL>
-commit:   <sha that produced the deploy>
-expect:   <optional text/selectors that must be present>
-issue/pr: #<n> / PR #<m>
+commit:   <full SHA that produced the deploy>
+expect:   <optional expected text or selectors>
+issue:    #<tracking issue number> / PR #<number>
+screenshotFile: <project>/.worktrees/deploy/verify-<sha7>.png
 ```
 
-Requires the `playwright` MCP server in the Codex configuration (`codex mcp list` shows it;
-`codex mcp add` adds it). If none is available, the verifier degrades to an HTTP/content
-check with `curl` and says so. A `broken`/`unreachable` verdict flows into the same hotfix / needs-feedback
-routing as a deploy failure.
+Write `screenshotFile` as an absolute path, and create `.worktrees/deploy/` before the
+spawn. Playwright resolves a relative file name against the project root.
+
+The role drives a real browser through the **Playwright** MCP server. It checks HTTP,
+rendering, expected content, console errors and failed requests. It saves a screenshot
+and returns `verified | broken | unreachable`. Read the verdict from `FINAL_ANSWER` and
+record the outcome, evidence and screenshot ref in the digest. A `broken` or
+`unreachable` verdict follows the same hotfix or needs-feedback routing as a deploy
+failure.
 
 ## Recovery note
 

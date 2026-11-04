@@ -36,9 +36,9 @@ def has_prefix(command, prefix):
     return command.startswith(prefix) and not command[len(prefix):len(prefix) + 1].isalnum()
 
 
-def outside_scratch(patch_text, cwd, scratch):
-    """Return the patch paths that fall outside `scratch`, a directory relative to `cwd`."""
-    root = posixpath.normpath(posixpath.join(cwd, scratch))
+def outside_scratch(patch_text, cwd, scratch, boundary_cwd=None):
+    """Return patch paths outside `scratch`, resolved from `cwd` and rooted at `boundary_cwd`."""
+    root = posixpath.normpath(posixpath.join(boundary_cwd or cwd, scratch))
     outside = []
     for path in PATCH_PATH.findall(patch_text):
         resolved = posixpath.normpath(posixpath.join(cwd, path.strip()))
@@ -61,10 +61,26 @@ def violation(payload, rule):
         for prefix in rule.get("bash_prefixes", []):
             if has_prefix(command, prefix):
                 return f"a Bash command may not start with `{prefix}`"
-    scratch = rule.get("patch_only_under")
-    if scratch and tool == "apply_patch":
-        outside = outside_scratch(arguments.get("command", ""), payload.get("cwd", ""), scratch)
+    if tool == "apply_patch":
+        project_worktrees = rule.get("patch_only_under_project_worktrees")
+        scratch = rule.get("patch_only_under")
+        cwd = payload.get("cwd", "")
+        boundary_cwd = None
+        if project_worktrees:
+            cwd = posixpath.normpath(cwd)
+            parts = cwd.split("/")
+            if ".worktrees" in parts:
+                parts = parts[:parts.index(".worktrees")]
+                boundary_cwd = "/".join(parts) or "/"
+            else:
+                boundary_cwd = cwd
+            scratch = ".worktrees/"
+        outside = (outside_scratch(arguments.get("command", ""), cwd, scratch, boundary_cwd)
+                   if scratch else [])
         if outside:
+            if project_worktrees:
+                return ("the worktree rule permits apply_patch only under the project worktrees "
+                        f"directory (.worktrees/), not {', '.join(outside)}")
             return f"apply_patch may write only below {scratch}, not {', '.join(outside)}"
     if re.search("spawn_agent$", tool) and arguments.get("agent_type") in rule.get("spawn_roles", []):
         return f"the role may not spawn the role {arguments['agent_type']}"

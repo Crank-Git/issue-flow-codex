@@ -3,6 +3,7 @@
 
 `--import <tag>` copies every file under `issue-flow/` of the upstream tag to the
 same path at the repository root, and writes `upstream.lock`.
+`--to <tag>` copies `verbatim` files and updates the lock after it writes a report.
 `--check` needs no network. It compares each `verbatim` file with the lock. It also
 fails and names each tracked file (`git ls-files`) that has no lock entry. The lock
 file needs no entry of its own.
@@ -13,6 +14,7 @@ The lock records one `[[file]]` table per path. `mode` is one of `verbatim`,
 """
 
 import argparse
+import difflib
 import hashlib
 import json
 import re
@@ -120,11 +122,103 @@ def cmd_check(root):
         raise SyncError("tracked file has no lock entry: " + ", ".join(unlocked))
 
 
+def git_output(args, cwd=None):
+    result = subprocess.run(["git", *args], cwd=cwd, capture_output=True, text=True)
+    if result.returncode:
+        raise SyncError(result.stderr.strip() or "git command failed")
+    return result.stdout.strip()
+
+
+def upstream_paths(repository, commit):
+    listing = git_output(["ls-tree", "-r", "--name-only", commit, UPSTREAM_PREFIX], cwd=repository)
+    return {path[len(UPSTREAM_PREFIX) + 1:] for path in listing.splitlines()
+            if path.startswith(UPSTREAM_PREFIX + "/")}
+
+
+def source_text(repository, commit, path):
+    result = subprocess.run(["git", "show", f"{commit}:{UPSTREAM_PREFIX}/{path}"],
+                            cwd=repository, capture_output=True)
+    if result.returncode:
+        raise SyncError(f"cannot read {path} at {commit}")
+    return result.stdout.decode("utf-8", errors="replace").splitlines(keepends=True)
+
+
+def sync_report(repository, old_commit, new_commit, old_paths, new_paths, entries):
+    modes = {entry["path"]: entry["mode"] for entry in entries}
+    lines = [f"# Upstream sync: {new_commit}", "", "## Changes to ported files", ""]
+    changed = []
+    for path in sorted(old_paths & new_paths & modes.keys()):
+        if modes[path] not in {"patched", "rewritten", "dropped"}:
+            continue
+        old = source_text(repository, old_commit, path)
+        new = source_text(repository, new_commit, path)
+        if old == new:
+            continue
+        changed.append(path)
+        lines += [f"### `{path}` ({modes[path]})", "", "```diff"]
+        lines.extend(difflib.unified_diff(old, new, fromfile=f"a/{path}", tofile=f"b/{path}"))
+        lines += ["```", ""]
+    if not changed:
+        lines.append("No changes.")
+    added = sorted(new_paths - old_paths)
+    deleted = sorted(old_paths - new_paths)
+    lines += ["", "## New upstream files without lock entries", ""]
+    lines.extend(f"- `{path}`" + (" (no lock entry)" if path not in modes else "")
+                 for path in added)
+    if not added:
+        lines.append("None.")
+    lines += ["", "## Deleted upstream files", ""]
+    lines.extend(f"- `{path}`" for path in deleted)
+    if not deleted:
+        lines.append("None.")
+    return "\n".join(lines).rstrip() + "\n"
+
+
+def cmd_sync(root, repository, tag, report_only):
+    status = git_output(["-C", str(root), "status", "--porcelain", "--untracked-files=all"])
+    if status:
+        raise SyncError("working tree has uncommitted changes")
+    with (root / LOCK).open("rb") as handle:
+        lock = tomllib.load(handle)
+    with tempfile.TemporaryDirectory() as tmp:
+        clone = Path(tmp) / "upstream"
+        clone_result = subprocess.run(["git", "clone", "--quiet", "--", repository, str(clone)],
+                                      capture_output=True, text=True)
+        if clone_result.returncode:
+            raise SyncError(f"cannot fetch upstream repository {repository}: {clone_result.stderr.strip()}")
+        new_commit = git_output(["rev-parse", f"refs/tags/{tag}^{{commit}}"], cwd=clone)
+        old_commit = lock["commit"]
+        old_paths = upstream_paths(clone, old_commit)
+        new_paths = upstream_paths(clone, new_commit)
+        entries = lock["file"]
+        report = sync_report(clone, old_commit, new_commit, old_paths, new_paths, entries)
+        updated_entries = []
+        for entry in entries:
+            updated = dict(entry)
+            path = entry["path"]
+            if path in new_paths:
+                content = subprocess.run(["git", "show", f"{new_commit}:{UPSTREAM_PREFIX}/{path}"],
+                                         cwd=clone, capture_output=True, check=True).stdout
+                updated["upstream_sha256"] = hashlib.sha256(content).hexdigest()
+                if entry["mode"] == "verbatim":
+                    target = root / path
+                    if not report_only:
+                        target.parent.mkdir(parents=True, exist_ok=True)
+                        target.write_bytes(content)
+            updated_entries.append(updated)
+        (root / "sync-report.md").write_text(report, encoding="utf-8")
+        if not report_only:
+            (root / LOCK).write_text(serialize_lock(lock["repository"], tag, new_commit,
+                                                     updated_entries), encoding="utf-8")
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     action = parser.add_mutually_exclusive_group(required=True)
     action.add_argument("--import", dest="tag", metavar="TAG", help="import this upstream tag")
+    action.add_argument("--to", dest="sync_tag", metavar="TAG", help="sync to this upstream tag")
     action.add_argument("--check", action="store_true", help="compare verbatim files with the lock")
+    parser.add_argument("--report-only", action="store_true", help="write the report without changing port files or the lock")
     parser.add_argument("--root", type=Path, default=ROOT, help="repository root")
     parser.add_argument("--inventory", type=Path, help=f"default: <root>/{INVENTORY}")
     parser.add_argument("--repository", default=UPSTREAM_REPOSITORY, help="upstream git URL or path")
@@ -132,7 +226,11 @@ def main(argv=None):
     try:
         if args.tag:
             cmd_import(args.root, args.inventory or args.root / INVENTORY, args.repository, args.tag)
+        elif args.sync_tag:
+            cmd_sync(args.root, args.repository, args.sync_tag, args.report_only)
         else:
+            if args.report_only:
+                raise SyncError("--report-only requires --to")
             cmd_check(args.root)
     except SyncError as error:
         print(f"upstream_sync: {error}", file=sys.stderr)

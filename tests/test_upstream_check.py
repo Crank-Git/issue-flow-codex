@@ -111,6 +111,64 @@ class WorkflowTest(unittest.TestCase):
             ("Sync upstream issue-flow--v1.2.0", "report for issue-flow--v1.2.0\n"),
         ])
 
+    def run_with_report(self, report, argv=()):
+        created_body = []
+
+        def run(command, **kwargs):
+            self.calls.append(command)
+            if command[0] == "git":
+                output = "one\trefs/tags/issue-flow--v1.1.0\n"
+                return upstream_check.subprocess.CompletedProcess(command, 0, output, "")
+            if command[0] == "gh" and "api" in command:
+                return upstream_check.subprocess.CompletedProcess(command, 0, "[]", "")
+            if command[0] == sys.executable:
+                (self.root / "sync-report.md").write_text(report)
+                return upstream_check.subprocess.CompletedProcess(command, 0, "", "")
+            if "create" in command:
+                created_body.append(Path(command[command.index("--body-file") + 1]).read_text())
+            return upstream_check.subprocess.CompletedProcess(command, 0, "", "")
+
+        with patch.object(upstream_check.subprocess, "run", side_effect=run):
+            code = upstream_check.main(["--root", str(self.root),
+                                        "--tracker-repository", "OWNER/REPO", *argv])
+        self.assertEqual(code, 0)
+        return created_body
+
+    def test_cuts_the_diffs_from_a_report_over_the_body_limit(self):
+        diff = "".join(f"+line {n}\n" for n in range(20000))
+        report = ("# Upstream sync: new-commit\n\n## Changes to ported files\n\n"
+                  "### `README.md` (patched)\n\n```diff\n" + diff + "```\n\n"
+                  "## New upstream files without lock entries\n\n- `new.md`\n\n"
+                  "## Deleted upstream files\n\nNone.\n")
+        self.assertGreater(len(report), 65536)
+
+        [body] = self.run_with_report(report)
+
+        self.assertLessEqual(len(body), upstream_check.BODY_LIMIT)
+        self.assertIn("### `README.md` (patched)", body)
+        self.assertIn("- `new.md`", body)
+        self.assertNotIn("+line 1\n", body)
+        self.assertIn("python3 scripts/upstream_sync.py --to issue-flow--v1.1.0 --report-only",
+                      body)
+
+    def test_cuts_a_report_at_a_line_when_it_is_still_over_the_limit(self):
+        report = "# Upstream sync\n\n" + "".join(f"- `file{n}.md`\n" for n in range(10000))
+
+        [body] = self.run_with_report(report)
+
+        self.assertLessEqual(len(body), upstream_check.BODY_LIMIT)
+        self.assertIn("--report-only", body)
+        self.assertTrue(all(line == "" or line.startswith(("#", "- `", "The full"))
+                            or "upstream_sync.py" in line for line in body.splitlines()))
+
+    def test_passes_the_repository_override_to_the_sync_report(self):
+        self.run_with_report("report\n", ["--repository", "file:///tmp/upstream"])
+
+        sync = next(call for call in self.calls if call[0] == sys.executable)
+        self.assertEqual(sync[sync.index("--repository") + 1], "file:///tmp/upstream")
+        ls_remote = next(call for call in self.calls if call[0] == "git")
+        self.assertIn("file:///tmp/upstream", ls_remote)
+
     def test_skips_a_tag_that_already_has_an_issue(self):
         self.assertEqual(self.run_main([
             (0, "012345\trefs/tags/issue-flow--v1.1.0\n", ""),

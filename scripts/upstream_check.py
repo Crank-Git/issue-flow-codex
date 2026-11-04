@@ -15,6 +15,8 @@ ROOT = Path(__file__).resolve().parent.parent
 LOCK = "upstream.lock"
 UPSTREAM = "https://github.com/Sniper7Kills-LLC/claude-plugins"
 TAG_PREFIX = "issue-flow--v"
+# GitHub rejects an issue body over 65536 characters.
+BODY_LIMIT = 60000
 SEMVER = re.compile(
     r"^(0|[1-9]\d*)\.(0|[1-9]\d*)\.(0|[1-9]\d*)"
     r"(?:-([0-9A-Za-z-]+(?:\.[0-9A-Za-z-]+)*))?"
@@ -80,6 +82,29 @@ def existing_titles(output):
             if "pull_request" not in issue}
 
 
+def issue_body(report, tag):
+    """Return the report, cut to BODY_LIMIT characters with a note when it is longer."""
+    if len(report) <= BODY_LIMIT:
+        return report
+    note = (f"\nThe full report is too long for an issue body. To write it to `sync-report.md`, "
+            f"run `python3 scripts/upstream_sync.py --to {tag} --report-only` locally.\n")
+    # Remove each diff block. The section heading names the changed file.
+    lines = []
+    in_diff = False
+    for line in report.splitlines(keepends=True):
+        if line.startswith("```diff"):
+            in_diff = True
+        elif in_diff:
+            in_diff = line.rstrip("\n") != "```"
+        else:
+            lines.append(line)
+    body = "".join(lines)
+    limit = BODY_LIMIT - len(note)
+    if len(body) > limit:
+        body = body[:body.rfind("\n", 0, limit) + 1]
+    return body + note
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     parser.add_argument("--root", type=Path, default=ROOT)
@@ -110,12 +135,14 @@ def main(argv=None):
                 if title in titles:
                     continue
                 run([sys.executable, str(ROOT / "scripts" / "upstream_sync.py"),
-                     "--to", tag, "--report-only", "--root", str(root)], root)
+                     "--to", tag, "--report-only", "--root", str(root),
+                     "--repository", repository], root)
                 report = root / "sync-report.md"
                 if not report.is_file():
                     raise CheckError(f"upstream sync did not write {report.name}")
                 body = Path(tmp) / f"{tag}.md"
-                body.write_text(report.read_text(encoding="utf-8"), encoding="utf-8")
+                body.write_text(issue_body(report.read_text(encoding="utf-8"), tag),
+                                encoding="utf-8")
                 reports.append((title, body))
             for title, body in reports:
                 run(["gh", "issue", "create", "--repo", tracker,

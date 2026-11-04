@@ -44,6 +44,15 @@ class CheckTest(unittest.TestCase):
     def check(self):
         return run_main(["--check", "--root", str(self.tree)])
 
+    def test_check_reports_a_missing_lock_as_one_line(self):
+        (self.tree / "upstream.lock").unlink()
+
+        code, err = self.check()
+
+        self.assertEqual(code, 1)
+        self.assertTrue(err.startswith("upstream_sync: "))
+        self.assertEqual(len(err.splitlines()), 1)
+
     def test_check_passes_when_verbatim_files_match_the_lock(self):
         self.assertEqual(self.check(), (0, ""))
 

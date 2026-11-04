@@ -235,7 +235,7 @@ def main(argv=None):
             if args.report_only:
                 raise SyncError("--report-only requires --to")
             cmd_check(args.root)
-    except SyncError as error:
+    except (SyncError, KeyError, OSError, tomllib.TOMLDecodeError) as error:
         print(f"upstream_sync: {error}", file=sys.stderr)
         return 1
     return 0

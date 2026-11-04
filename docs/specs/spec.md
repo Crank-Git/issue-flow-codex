@@ -63,7 +63,7 @@ port action.
 | Codex | noun | The OpenAI Codex CLI harness, `codex` binary, version 0.166.0 or later. | Codex app, OpenAI CLI |
 | plugin | noun | The installable Codex package that holds the skills, the hooks, and the scripts. | extension, add-on |
 | skill | noun | One `SKILL.md` procedure that the operator starts with `$issue-flow:<name>`. | command, prompt, slash command |
-| role | noun | One Codex custom agent definition: a TOML file in `.codex/agents/`. | agent type, subagent type, persona |
+| role | noun | One Codex custom agent definition: a TOML file in `$CODEX_HOME/agents/` or `.codex/agents/`. | agent type, subagent type, persona |
 | PM | noun | The main Codex thread that runs the issue-flow skill and makes every decision. | orchestrator, lead, coordinator |
 | worker | noun | A subagent of role `issue_worker` that builds one issue. | child, helper, subtask |
 | watcher | noun | A subagent of role `ci_watcher` that waits for one CI run or one deployment and returns a verdict. | monitor, poller |
@@ -75,7 +75,7 @@ port action.
 | spawn guard | noun | The PreToolUse hook that denies an unsafe `spawn_agent` call. | spawn hook, fork guard |
 | role guard | noun | The PreToolUse hook that denies a tool call that a role must not make. | tool filter, allowlist hook |
 | hook trust | noun | The Codex record that the operator approved a hook at its current content hash. | hook approval, allow |
-| setup skill | noun | The skill `$issue-flow:setup` that writes the Codex configuration into a project. | installer, bootstrap |
+| setup skill | noun | The skill `$issue-flow:setup` that writes the Codex configuration for the operator's Codex home or for one project. | installer, bootstrap |
 | sync | verb | To copy upstream changes into the port by the rules in `upstream.lock`. | merge upstream, rebase |
 | upstream lock | noun | The file `upstream.lock` that records the upstream tag and the port mode of each file. | manifest, provenance file |
 | port mode | noun | One of `verbatim`, `patched`, `rewritten`, `dropped`, or `new`: how a file relates to upstream. | sync type, status |
@@ -157,7 +157,7 @@ flowchart LR
 - **Manifest:** `.codex-plugin/plugin.json`, in the legacy manifest format. The Agent Plugin format (root `plugin.json` with `$schema`) loads no hooks in Codex 0.166.0, so the port does not use it. Verified against: source `codex-rs/core-plugins/src/loader.rs:985-997` (commit `dbaead01`) and the live test in [Codex harness facts](pages/codex-harness.md).
 - **Marketplace:** `.agents/plugins/marketplace.json`, the Codex path. The port does not use `.claude-plugin/marketplace.json`, because Claude Code reads that path and would offer a plugin that does not work in Claude Code. Verified against: source `codex-rs/core-plugins/src/marketplace.rs:20-25`.
 - **Skills:** `skills/<name>/SKILL.md`. Codex names them `issue-flow:<name>`. The operator types `$issue-flow:<name>`. Verified against: live test (skill listed as `spikeplug:ping`).
-- **Roles:** Codex plugins cannot carry roles. The plugin ships role files under `roles/`. The setup skill copies them into the project's `.codex/agents/`. Verified against: source `codex-rs/core-plugins/src/manifest.rs:48-117` (no `agents` field).
+- **Roles:** Codex plugins cannot carry roles. The plugin ships role files under `roles/`. The setup skill copies them into `$CODEX_HOME/agents/`, or into the project's `.codex/agents/` in per-project mode. Verified against: source `codex-rs/core-plugins/src/manifest.rs:48-117` (no `agents` field).
 - **Hooks:** `hooks/hooks.json`. Hook commands use `$PLUGIN_ROOT`. Verified against: live test (`PLUGIN_ROOT` set to the install cache path).
 - **Scripts:** Python 3 standard library only, the same as upstream. No package install step.
 
@@ -181,6 +181,7 @@ Why a native plugin beat an external orchestrator: an external script would dupl
 - The setup skill writes a permission profile `issue_flow` that extends `:workspace`, makes `.git` and `.agents/` writable, and enables network access. The profile keeps `.codex/` read-only. The operator applies `.codex/` changes and starts a new session. Verified against: the operator ruling on #109 and the profile pattern in `codex-harness.md`, fact 8.
 - Subagents inherit the profile from the PM. Verified against: live test (a `git_worker` subagent created a worktree and committed).
 - [ADR 0003](../adr/0003-permission-profile.md) records the decision.
+- By default, the setup skill writes the profile once per machine, in `$CODEX_HOME/issue-flow.config.toml`. The operator starts each session with `codex -p issue-flow -a never`. Verified against: `codex --help` (0.166.0) and `codex-harness.md`, facts 25 to 27. [ADR 0005](../adr/0005-user-level-setup.md) records the decision.
 
 ### Models
 
@@ -335,6 +336,7 @@ Created by spec-to-issues on 2026-11-03 in `Crank-Git/issue-flow-codex`.
 | FR-plugin-packaging-23, FR-plugin-packaging-26, FR-plugin-packaging-27, FR-plugin-packaging-28, FR-plugin-packaging-39 | #16 |
 | FR-plugin-packaging-24, FR-plugin-packaging-29, FR-plugin-packaging-30, FR-plugin-packaging-31, FR-plugin-packaging-32, FR-plugin-packaging-33 | #17 |
 | FR-plugin-packaging-25, FR-plugin-packaging-34, FR-plugin-packaging-35, FR-plugin-packaging-36, FR-plugin-packaging-37, FR-plugin-packaging-38 | #18 |
+| FR-plugin-packaging-40, FR-plugin-packaging-41, FR-plugin-packaging-42, FR-plugin-packaging-43, FR-plugin-packaging-44, FR-plugin-packaging-45, FR-plugin-packaging-46, FR-plugin-packaging-47, FR-plugin-packaging-48 | #126 |
 | FR-worker-dispatch-1, FR-worker-dispatch-2, FR-worker-dispatch-3, FR-worker-dispatch-4, FR-worker-dispatch-5, FR-worker-dispatch-6, FR-worker-dispatch-7 | #19 |
 | FR-worker-dispatch-12, FR-worker-dispatch-13, FR-worker-dispatch-14, FR-worker-dispatch-15, FR-worker-dispatch-34, FR-worker-dispatch-35, FR-worker-dispatch-36 | #20 |
 | FR-worker-dispatch-8, FR-worker-dispatch-9, FR-worker-dispatch-10, FR-worker-dispatch-11, FR-worker-dispatch-16, FR-worker-dispatch-17, FR-worker-dispatch-18 | #21 |
@@ -376,3 +378,4 @@ Created by spec-to-issues on 2026-11-03 in `Crank-Git/issue-flow-codex`.
 - 2026-11-03 — Epic 7 batch gate (PR #124): FR-mirror-and-sync-9 named an upstream issue body format that does not exist. The sync issue body is the report itself, without its diff blocks when it is too long. The README installs at the release tag, because the default branch is `dev`.
 - 2026-11-03 — Epic 5 and Epic 6 batch gates (PRs #120, #124). The Codex PM built #35-#42 (dogfood run 3). The live gate passed the Epic 5 criteria on the test bed after four port repairs; browser calls need `default_tools_approval_mode = "approve"` (codex-harness facts 22-24). Project review is built. Mirror and sync stays issued until #42's release install passes after the promotion that tags v0.1.0.
 - 2026-11-04 — Promotion PR #125 merged dev into main with operator approval. The release workflow tagged `issue-flow-codex--v0.1.0`, and the release install passed. Mirror and sync is built.
+- 2026-11-04 — Operator ruling on #126: setup is one time per machine. The setup skill defaults to `setup_project.py apply --user`, which writes `$CODEX_HOME/issue-flow.config.toml` and the role files; per-project setup stays an option (ADR 0005). The approval policy stays a separate `-a never` flag. The plugin version is 0.1.1.

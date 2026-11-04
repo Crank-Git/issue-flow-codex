@@ -1,11 +1,20 @@
 #!/usr/bin/env python3
 """Plan and apply the project setup for the issue-flow loop.
 
-Port-only script, the mechanics of the `setup` skill (FR-plugin-packaging-11 to 19).
+Port-only script, the mechanics of the `setup` skill (FR-plugin-packaging-11 to 19, 40 to 48).
 
+    python3 scripts/setup_project.py plan --user
+    python3 scripts/setup_project.py apply --user [--accept <file>...]
+    python3 scripts/setup_project.py check --user
     python3 scripts/setup_project.py plan --project <dir> [--with-default-permissions]
     python3 scripts/setup_project.py apply --project <dir> --accept <file>... [--with-default-permissions]
     python3 scripts/setup_project.py check --project <dir>
+
+`--user` works in `$CODEX_HOME`, or in `~/.codex` when the variable is not set. It
+writes `issue-flow.config.toml`, which `codex -p issue-flow` layers on the user config,
+and copies the role files into `agents/`. It never writes `config.toml`.
+`apply --user` writes each missing file. It replaces a file that differs only when
+`--accept` names the file; else it prints the diff and exits 1.
 
 A rerun keeps a `default_permissions = "issue_flow"` line that the block already holds.
 `--without-default-permissions` drops it. Without either flag, `plan` and `apply` decide
@@ -22,6 +31,7 @@ is `missing` or `stale` (docs/specs/features/01-plugin-packaging.md, Screens & s
 import argparse
 import difflib
 import json
+import os
 import re
 import sys
 import tomllib
@@ -35,13 +45,7 @@ THREAD_OVERHEAD = 4
 BEGIN = "# issue-flow:begin"
 END = "# issue-flow:end"
 TABLE_HEADER = re.compile(r"^\s*\[")
-# Same text as the block in docs/specs/features/01-plugin-packaging.md, Behaviour rules.
-BLOCK_TEMPLATE = """\
-# issue-flow:begin (written by $issue-flow:setup — edit with the setup skill)
-{permissions_line}[features.multi_agent_v2]
-enabled = true
-max_concurrent_threads_per_session = {threads}
-
+PROFILE = """\
 [permissions.issue_flow]
 extends = ":workspace"
 
@@ -51,11 +55,22 @@ extends = ":workspace"
 ".agents" = "write"
 
 [permissions.issue_flow.network]
+enabled = true"""
+# Same text as the block in docs/specs/features/01-plugin-packaging.md, Behaviour rules.
+BLOCK_TEMPLATE = """\
+# issue-flow:begin (written by $issue-flow:setup — edit with the setup skill)
+{permissions_line}[features.multi_agent_v2]
 enabled = true
+max_concurrent_threads_per_session = {threads}
+
+""" + PROFILE + """
 # issue-flow:end"""
 
 
 PERMISSIONS_LINE = 'default_permissions = "issue_flow"'
+# `codex -p issue-flow` layers this file on the user config (codex-harness.md, fact 25).
+USER_PROFILE_FILE = "issue-flow.config.toml"
+USER_PROFILE = PERMISSIONS_LINE + "\n\n" + PROFILE + "\n"
 
 
 class SetupError(Exception):
@@ -279,12 +294,56 @@ def check_report(project, plugin_root):
     return rows
 
 
+def run_user(command, plugin_root, accept):
+    """Run `plan`, `apply`, or `check` on the Codex home and return the exit code.
+
+    The Codex home is `$CODEX_HOME`, else `~/.codex`.
+    """
+    home = Path(os.environ.get("CODEX_HOME") or Path.home() / ".codex")
+    wanted = {USER_PROFILE_FILE: USER_PROFILE}
+    for role in sorted((plugin_root / "roles").glob("*.toml")):
+        wanted[f"agents/{role.name}"] = role.read_text(encoding="utf-8")
+    status = {}
+    for rel, text in wanted.items():
+        path = home / rel
+        if not path.is_file():
+            status[rel] = "missing"
+        else:
+            status[rel] = "ok" if path.read_text(encoding="utf-8") == text else "stale"
+    if command == "check":
+        for rel in wanted:
+            print(f"{rel:<32} {status[rel]}")
+        return int(any(s != "ok" for s in status.values()))
+    files = {rel: text for rel, text in wanted.items() if status[rel] != "ok"}
+    if not files:
+        print("no changes")
+        return 0
+    if command == "plan":
+        print_diffs(home, files, None)
+        return 0
+    accepted = [rel for rel in files if status[rel] == "missing"]
+    accepted += [rel for rel in accept if rel not in accepted]
+    for rel in apply_files(home, files, accepted):
+        print(json.dumps({"wrote": rel}))
+    pending = {rel: text for rel, text in files.items() if rel not in accepted}
+    if pending:
+        print_diffs(home, pending, None)
+        print(f"setup_project: {len(pending)} file(s) differ; to replace, rerun apply --user "
+              f"--accept {' '.join(pending)}",
+              file=sys.stderr)
+        return 1
+    return 0
+
+
 def main(argv=None):
     parser = argparse.ArgumentParser(description=__doc__.splitlines()[0])
     sub = parser.add_subparsers(dest="command", required=True)
     for name in ("plan", "apply", "check"):
         p = sub.add_parser(name)
-        p.add_argument("--project", required=True, type=Path)
+        target = p.add_mutually_exclusive_group(required=True)
+        target.add_argument("--project", type=Path)
+        target.add_argument("--user", action="store_true",
+                            help="set up $CODEX_HOME (default ~/.codex) for every project")
         if name != "check":
             group = p.add_mutually_exclusive_group()
             group.add_argument("--with-default-permissions", action="store_true", default=None,
@@ -294,9 +353,13 @@ def main(argv=None):
                                help="drop the default_permissions line")
         # Tests point this at a fixture; a run leaves the default.
         p.add_argument("--plugin-root", type=Path, default=Path(__file__).resolve().parent.parent)
-    sub.choices["apply"].add_argument("--accept", nargs="+", required=True, metavar="FILE")
+    sub.choices["apply"].add_argument("--accept", nargs="+", default=[], metavar="FILE")
     args = parser.parse_args(argv)
+    if args.command == "apply" and args.project and not args.accept:
+        parser.error("apply --project needs --accept")
     try:
+        if args.user:
+            return run_user(args.command, args.plugin_root, getattr(args, "accept", []))
         if args.command == "check":
             rows = check_report(args.project, args.plugin_root)
             for item, status, detail in rows:

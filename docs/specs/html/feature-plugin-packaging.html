@@ -155,10 +155,12 @@ body.rv-open .layout { padding-right:21rem; }
 <h1>Feature: Plugin packaging and hooks</h1>
 <p class="meta">Epic 1: Plugin packaging and hooks &nbsp; <span class="badge">built</span></p>
 <h3 id="plugin-packaging-purpose">Purpose</h3>
-<p>This feature makes the port installable. It ships the Codex manifest and the marketplace file. It adds the setup skill, which configures one project for the loop. It ports the two upstream hooks and adds the role guard.</p>
+<p>This feature makes the port installable. It ships the Codex manifest and the marketplace file. It adds the setup skill, which configures Codex for the loop once per machine. Per-project setup stays available as an option. It ports the two upstream hooks and adds the role guard.</p>
 <h3 id="plugin-packaging-user-stories">User stories</h3>
 <ul>
 <li>As the operator, I want to install the plugin with two <code>codex plugin</code> commands, so that I do not copy files by hand.
+</li>
+<li>As the operator, I want to set up Codex once per machine, so that a new project needs no setup step before the first skill.
 </li>
 <li>As the operator, I want one skill that configures my project, so that the roles, the thread limit, and the permission profile are correct before the first run.
 </li>
@@ -191,7 +193,7 @@ body.rv-open .layout { padding-right:21rem; }
 <li>FR-plugin-packaging-9 — <code>scripts/validate_manifests.py</code> exits 1 when a role file has a key that Codex ignores in a role: <code>sandbox_mode</code>, <code>approval_policy</code>, or <code>mcp_servers</code>.
 </li>
 </ul>
-<h4 id="plugin-packaging-setup-skill">Setup skill</h4>
+<h4 id="plugin-packaging-setup-skill-per-project-mode">Setup skill, per-project mode</h4>
 <ul>
 <li>FR-plugin-packaging-10 — The plugin ships the skill <code>setup</code>, started as <code>$issue-flow:setup</code>.
 </li>
@@ -218,6 +220,27 @@ body.rv-open .layout { padding-right:21rem; }
 <li>FR-plugin-packaging-21 — The setup skill with the argument <code>check</code> reports each setup item as <code>ok</code>, <code>missing</code>, or <code>stale</code>, and writes no file.
 </li>
 <li>FR-plugin-packaging-22 — A role file in <code>.codex/agents/</code> is <code>stale</code> when its content differs from the plugin's copy.
+</li>
+</ul>
+<h4 id="plugin-packaging-setup-skill-user-level-mode">Setup skill, user-level mode</h4>
+<ul>
+<li>FR-plugin-packaging-40 — The setup skill uses the user-level mode unless the operator asks for per-project mode.
+</li>
+<li>FR-plugin-packaging-41 — The user-level mode works in <code>$CODEX_HOME</code>, or in <code>~/.codex</code> when <code>CODEX_HOME</code> is not set. This directory is the Codex home.
+</li>
+<li>FR-plugin-packaging-42 — <code>setup_project.py apply --user</code> writes <code>issue-flow.config.toml</code> in the Codex home. The file holds <code>default_permissions = "issue_flow"</code> first, then the permission profile <code>issue_flow</code> of the config block.
+</li>
+<li>FR-plugin-packaging-43 — <code>setup_project.py apply --user</code> copies each file in <code>&lt;pluginRoot&gt;/roles/</code> into <code>agents/</code> in the Codex home.
+</li>
+<li>FR-plugin-packaging-44 — The user-level mode never writes <code>config.toml</code> and never sets <code>approval_policy</code>.
+</li>
+<li>FR-plugin-packaging-45 — <code>apply --user</code> replaces a file that differs only when <code>--accept</code> names that file. Else it prints the diff of that file and exits 1.
+</li>
+<li>FR-plugin-packaging-46 — A second <code>apply --user</code> writes no file and prints <code>no changes</code>.
+</li>
+<li>FR-plugin-packaging-47 — The setup skill runs <code>plan --user</code> and prints the command <code>python3 &lt;pluginRoot&gt;/scripts/setup_project.py apply --user</code> with the absolute plugin root. The operator runs the command outside Codex, because the session cannot write the Codex home.
+</li>
+<li>FR-plugin-packaging-48 — <code>check --user</code> reports each file of the user-level mode as <code>ok</code>, <code>missing</code>, or <code>stale</code>, and writes no file.
 </li>
 </ul>
 <h4 id="plugin-packaging-hooks">Hooks</h4>
@@ -258,39 +281,30 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 </ul>
 <h3 id="plugin-packaging-user-flows">User flows</h3>
-<h4 id="plugin-packaging-flow-1-install-and-configure">Flow 1 — Install and configure</h4>
+<h4 id="plugin-packaging-flow-1-install-and-set-up-once-per-machine">Flow 1 — Install and set up once per machine</h4>
 <div class="diagram"><pre class="mermaid">flowchart TD
     A["codex plugin marketplace add Crank-Git/issue-flow-codex"] --&gt; B["codex plugin add issue-flow@issue-flow-codex"]
-    B --&gt; C["Start codex in the project"]
-    C --&gt; D{"Codex asks to trust the project?"}
-    D -- "yes" --&gt; E["Operator trusts the project"]
-    D -- "no" --&gt; F
-    E --&gt; F["Operator runs $issue-flow:setup"]
-    F --&gt; G["Setup shows the diff for .codex/agents, .codex/config.toml, .gitignore"]
-    G --&gt; H{"Operator accepts?"}
-    H -- "no" --&gt; I["Nothing is applied for that file"]
-    H -- "yes" --&gt; J["Setup writes .gitignore; the operator applies .codex/ files outside Codex"]
-    J --&gt; K["Setup tells the operator to run /hooks and trust the issue-flow hooks"]
-    K --&gt; L["Operator restarts codex"]
-    L --&gt; M["SessionStart hook runs: 'issue-flow preflight: ran'"]</pre></div>
+    B --&gt; C["Operator runs /hooks and trusts the issue-flow hooks"]
+    C --&gt; D["$issue-flow:setup runs plan --user and prints the apply command"]
+    D --&gt; E["Operator runs setup_project.py apply --user in a terminal"]
+    E --&gt; F["In each project: codex -p issue-flow -a never"]
+    F --&gt; G["Operator runs $issue-flow:project-planner"]</pre></div>
 <ol>
 <li>The operator runs <code>codex plugin marketplace add Crank-Git/issue-flow-codex</code>.
 </li>
 <li>The operator runs <code>codex plugin add issue-flow@issue-flow-codex</code>.
 </li>
-<li>The operator starts <code>codex</code> in the project.
+<li>The operator runs <code>/hooks</code> in <code>codex</code> and trusts the issue-flow hooks.
 </li>
-<li>If Codex asks to trust the project, the operator trusts it. Codex loads the project <code>.codex/</code> layer only for a trusted project.
+<li>The operator runs <code>$issue-flow:setup</code>. The skill runs <code>plan --user</code> and prints the <code>apply --user</code> command.
 </li>
-<li>The operator runs <code>$issue-flow:setup</code>.
+<li>The operator runs <code>python3 &lt;pluginRoot&gt;/scripts/setup_project.py apply --user</code> in a terminal.
 </li>
-<li>The setup skill shows the diff for each file.
+<li>In each project, the operator starts <code>codex -p issue-flow -a never</code>.
 </li>
-<li>If the operator accepts a diff, the setup skill writes <code>.gitignore</code>. For the <code>.codex/</code> files, the operator runs <code>python3 scripts/setup_project.py apply</code> from a shell outside Codex, because the session keeps <code>.codex/</code> read-only.
+<li>The operator runs <code>$issue-flow:project-planner</code> or another skill.
 </li>
-<li>The setup skill tells the operator to run <code>/hooks</code> and trust the issue-flow hooks.
-</li>
-<li>The operator starts a new <code>codex</code> session.
+<li>After a plugin update, the operator does steps 3 and 5 again.
 </li>
 </ol>
 <h4 id="plugin-packaging-flow-2-spawn-guard-decision">Flow 2 — Spawn guard decision</h4>
@@ -329,6 +343,41 @@ body.rv-open .layout { padding-right:21rem; }
 <li>Else the PM continues Phase 0.
 </li>
 </ol>
+<h4 id="plugin-packaging-flow-4-per-project-setup-option">Flow 4 — Per-project setup (option)</h4>
+<div class="diagram"><pre class="mermaid">flowchart TD
+    A["codex plugin marketplace add Crank-Git/issue-flow-codex"] --&gt; B["codex plugin add issue-flow@issue-flow-codex"]
+    B --&gt; C["Start codex in the project"]
+    C --&gt; D{"Codex asks to trust the project?"}
+    D -- "yes" --&gt; E["Operator trusts the project"]
+    D -- "no" --&gt; F
+    E --&gt; F["Operator runs $issue-flow:setup"]
+    F --&gt; G["Setup shows the diff for .codex/agents, .codex/config.toml, .gitignore"]
+    G --&gt; H{"Operator accepts?"}
+    H -- "no" --&gt; I["Nothing is applied for that file"]
+    H -- "yes" --&gt; J["Setup writes .gitignore; the operator applies .codex/ files outside Codex"]
+    J --&gt; K["Setup tells the operator to run /hooks and trust the issue-flow hooks"]
+    K --&gt; L["Operator restarts codex"]
+    L --&gt; M["SessionStart hook runs: 'issue-flow preflight: ran'"]</pre></div>
+<ol>
+<li>The operator runs <code>codex plugin marketplace add Crank-Git/issue-flow-codex</code>.
+</li>
+<li>The operator runs <code>codex plugin add issue-flow@issue-flow-codex</code>.
+</li>
+<li>The operator starts <code>codex</code> in the project.
+</li>
+<li>If Codex asks to trust the project, the operator trusts it. Codex loads the project <code>.codex/</code> layer only for a trusted project.
+</li>
+<li>The operator runs <code>$issue-flow:setup</code>.
+</li>
+<li>The setup skill shows the diff for each file.
+</li>
+<li>If the operator accepts a diff, the setup skill writes <code>.gitignore</code>. For the <code>.codex/</code> files, the operator runs <code>python3 scripts/setup_project.py apply</code> from a shell outside Codex, because the session keeps <code>.codex/</code> read-only.
+</li>
+<li>The setup skill tells the operator to run <code>/hooks</code> and trust the issue-flow hooks.
+</li>
+<li>The operator starts a new <code>codex</code> session.
+</li>
+</ol>
 <h3 id="plugin-packaging-screens-states">Screens &amp; states</h3>
 <p>The feature has no screens. The setup skill prints text. The <code>check</code> argument prints:</p>
 <pre class="code"><code>roles        ok       6 of 6 match plugin 0.1.0
@@ -337,6 +386,14 @@ threads      ok       max_concurrent_threads_per_session = 7
 profile      missing  default_permissions is not set to issue_flow
 gitignore    ok
 hooks        unknown  run /hooks to see the trust state</code></pre>
+<p><code>check --user</code> prints one line for each file in the Codex home:</p>
+<pre class="code"><code>issue-flow.config.toml           ok
+agents/ci-watcher.toml           ok
+agents/code-auditor.toml         ok
+agents/deploy-verifier.toml      ok
+agents/issue-worker.toml         stale
+agents/review-scribe.toml        ok
+agents/ux-explorer.toml          missing</code></pre>
 <h3 id="plugin-packaging-behaviour-rules">Behaviour rules</h3>
 <h4 id="plugin-packaging-the-config-block">The config block</h4>
 <pre class="code"><code># issue-flow:begin (written by $issue-flow:setup — edit with the setup skill)
@@ -363,6 +420,26 @@ enabled = true
 <li>The block does not set <code>[agents]</code> keys. V2 ignores <code>max_depth</code>.
 </li>
 </ul>
+<h4 id="plugin-packaging-the-user-level-profile-file">The user-level profile file</h4>
+<p><code>issue-flow.config.toml</code> in the Codex home holds the profile of the config block, with <code>default_permissions</code> first:</p>
+<pre class="code"><code>default_permissions = "issue_flow"
+
+[permissions.issue_flow]
+extends = ":workspace"
+
+[permissions.issue_flow.filesystem.":workspace_roots"]
+"." = "write"
+".git" = "write"
+".agents" = "write"
+
+[permissions.issue_flow.network]
+enabled = true</code></pre>
+<ul>
+<li><code>codex -p issue-flow</code> layers this file on the user config. A session without <code>-p issue-flow</code> does not get the profile. <a href="../../adr/0005-user-level-setup.md">ADR 0005</a> records the decision.
+</li>
+<li>The approval policy stays a separate <code>-a never</code> flag.
+</li>
+</ul>
 <h4 id="plugin-packaging-role-policy">Role policy</h4>
 <div class="table-wrap"><table>
 <tr><th>Role</th><th>Denied</th></tr>
@@ -381,6 +458,10 @@ enabled = true
 <li><code>&lt;project&gt;/.codex/config.toml</code> (the block only).
 </li>
 <li><code>&lt;project&gt;/.gitignore</code> (one line).
+</li>
+<li><code>&lt;Codex home&gt;/issue-flow.config.toml</code> (new file, user-level mode).
+</li>
+<li><code>&lt;Codex home&gt;/agents/*.toml</code> (new files, user-level mode).
 </li>
 <li><code>$CODEX_HOME/config.toml</code> <code>[hooks.state]</code> (written by Codex when the operator trusts the hooks, not by the port).
 </li>
@@ -401,6 +482,8 @@ enabled = true
 </li>
 <li><strong>Role file keys that Codex applies:</strong> <code>developer_instructions</code>, <code>model</code>, <code>model_reasoning_effort</code>, <code>model_reasoning_summary</code>, <code>model_verbosity</code>, <code>personality</code>, <code>service_tier</code>, and feature or skill disables. Verified against: source <code>codex-rs/core/src/agent/role.rs:79-117</code>.
 </li>
+<li><strong>Profile file:</strong> <code>codex -p &lt;name&gt;</code> layers <code>$CODEX_HOME/&lt;name&gt;.config.toml</code> on the user config. A role file in <code>$CODEX_HOME/agents/</code> loads in a project that has no <code>.codex/</code>. Verified against: <code>codex --help</code> (0.166.0) and live tests 2026-11-04 (<a href="page-codex-harness.html">Codex harness facts</a>, facts 25 to 27).
+</li>
 <li><strong>Docs:</strong> https://learn.chatgpt.com/docs/hooks, https://learn.chatgpt.com/docs/agent-configuration/subagents, https://developers.openai.com/plugins/build/plugins (retrieved 2026-11-03).
 </li>
 </ul>
@@ -416,6 +499,12 @@ enabled = true
 </li>
 <li>If the payload has a <code>tool_input</code> that is a string, not an object, the hooks allow the call.
 </li>
+<li>If <code>config.toml</code> holds a legacy <code>[profiles.issue-flow]</code> table, <code>codex -p issue-flow</code> fails. The operator removes the table.
+</li>
+<li>If the operator updates the plugin, <code>check --user</code> reports changed role files as <code>stale</code>. The operator runs <code>apply --user</code> again.
+</li>
+<li>The user-level mode does not set the thread limit. Without a project config block, the Codex default of 4 threads applies.
+</li>
 </ul>
 <h3 id="plugin-packaging-acceptance-criteria">Acceptance criteria</h3>
 <ul>
@@ -430,6 +519,10 @@ enabled = true
 <li>[ ] Setup on a project with a user <code>config.toml</code> keeps every user line. (FR-plugin-packaging-13)
 </li>
 <li>[ ] <code>$issue-flow:setup check</code> reports <code>stale</code> after one byte changes in a role file, and writes no file. (FR-plugin-packaging-21, 22)
+</li>
+<li>[ ] <code>apply --user</code> in an empty Codex home writes <code>issue-flow.config.toml</code> and the six role files, and a second run writes no file. (FR-plugin-packaging-42 to 46)
+</li>
+<li>[ ] After <code>apply --user</code>, <code>codex exec -p issue-flow</code> in an empty directory runs <code>git init</code> and a commit, and spawns one issue-flow role from the user-level role files. (FR-plugin-packaging-42, 43)
 </li>
 <li>[ ] With trusted hooks, a new session's context holds <code>issue-flow preflight: ran 0.1.0</code>. (FR-plugin-packaging-26)
 </li>
@@ -451,6 +544,8 @@ enabled = true
 </ul>
 <h3 id="plugin-packaging-open-questions" class="callout-h">Open questions</h3>
 <ul>
+<li>Resolved (#126, operator ruling 2026-11-04): setup is one time per machine. The user-level mode is the default, and per-project setup is an option. The approval policy stays a separate <code>-a never</code> flag.
+</li>
 <li>Resolved (#109, operator ruling): agents never write <code>.codex/</code>. The setup skill prints the <code>.codex/</code> changes, and the operator applies them outside Codex.
 </li>
 </ul><nav class="pager">

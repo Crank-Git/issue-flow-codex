@@ -5,6 +5,7 @@ Each test builds a scratch project and a fixture plugin root in a temporary dire
 
 import io
 import json
+import os
 import re
 import sys
 import tempfile
@@ -12,6 +13,7 @@ import tomllib
 import unittest
 from contextlib import redirect_stderr, redirect_stdout
 from pathlib import Path
+from unittest import mock
 
 ROOT = Path(__file__).resolve().parent.parent
 sys.path.insert(0, str(ROOT / "scripts"))
@@ -54,7 +56,7 @@ class SetupProjectTest(unittest.TestCase):
     def test_setup_skill_routes_codex_changes_to_the_operator(self):
         skill = (ROOT / "skills" / "setup" / "SKILL.md").read_text(encoding="utf-8")
 
-        self.assertIn("Prints `.codex/` changes for operator application", skill)
+        self.assertIn("Per-project mode prints `.codex/` changes for operator application", skill)
         self.assertIn("The operator applies accepted `.codex/` changes outside Codex", skill)
         self.assertIn("Start a new `codex` session after applying `.codex/config.toml`", skill)
 
@@ -374,6 +376,173 @@ class SetupProjectTest(unittest.TestCase):
         before = sorted(self.project.rglob("*"))
         self.run_check()
         self.assertEqual(sorted(self.project.rglob("*")), before)
+
+
+class UserSetupTest(unittest.TestCase):
+    """The user-level mode writes into a temporary CODEX_HOME, never the operator's ~/.codex."""
+
+    def setUp(self):
+        tmp = tempfile.TemporaryDirectory()
+        self.addCleanup(tmp.cleanup)
+        base = Path(tmp.name)
+        self.home = base / "codex-home"
+        self.home.mkdir()
+        self.plugin = base / "plugin"
+        (self.plugin / "roles").mkdir(parents=True)
+        for name in ROLE_NAMES:
+            (self.plugin / "roles" / f"{name}.toml").write_text(
+                f'name = "{name.replace("-", "_")}"\ndescription = "{name}"\n', encoding="utf-8")
+        env = mock.patch.dict(os.environ, {"CODEX_HOME": str(self.home)})
+        env.start()
+        self.addCleanup(env.stop)
+
+    def run_main(self, *args):
+        out, err = io.StringIO(), io.StringIO()
+        with redirect_stdout(out), redirect_stderr(err):
+            code = setup_project.main([*args, "--user", "--plugin-root", str(self.plugin)])
+        return code, out.getvalue(), err.getvalue()
+
+    def files(self):
+        return {str(p.relative_to(self.home)): p.read_text(encoding="utf-8")
+                for p in sorted(self.home.rglob("*")) if p.is_file()}
+
+    def test_apply_writes_the_profile_file_and_the_role_files_into_an_empty_home(self):
+        code, out, _ = self.run_main("apply")
+        self.assertEqual(code, 0)
+        self.assertEqual(sorted(self.files()),
+                         sorted(["issue-flow.config.toml"] + [f"agents/{n}.toml" for n in ROLE_NAMES]))
+        for name in ROLE_NAMES:
+            self.assertEqual(self.files()[f"agents/{name}.toml"],
+                             (self.plugin / "roles" / f"{name}.toml").read_text(encoding="utf-8"))
+        self.assertIn('{"wrote": "issue-flow.config.toml"}', out.splitlines())
+
+    def test_profile_file_starts_with_default_permissions_and_holds_the_project_profile(self):
+        self.run_main("apply")
+        text = self.files()["issue-flow.config.toml"]
+        self.assertTrue(text.startswith('default_permissions = "issue_flow"\n'))
+        parsed = tomllib.loads(text)
+        project = tomllib.loads(setup_project.render_block(3, True))
+        self.assertEqual(parsed, {"default_permissions": "issue_flow",
+                                  "permissions": project["permissions"]})
+
+    def test_apply_never_writes_config_toml_or_an_approval_policy(self):
+        self.run_main("apply")
+        self.assertFalse((self.home / "config.toml").exists())
+        self.assertNotIn("approval_policy", self.files()["issue-flow.config.toml"])
+
+    def test_apply_keeps_an_existing_config_toml_unchanged(self):
+        (self.home / "config.toml").write_text('model = "x"\n', encoding="utf-8")
+        self.run_main("apply")
+        self.assertEqual((self.home / "config.toml").read_text(encoding="utf-8"), 'model = "x"\n')
+
+    def test_a_second_apply_changes_nothing(self):
+        self.run_main("apply")
+        before = self.files()
+        mtimes = {p: p.stat().st_mtime_ns for p in self.home.rglob("*")}
+        code, out, _ = self.run_main("apply")
+        self.assertEqual(code, 0)
+        self.assertEqual(out.strip(), "no changes")
+        self.assertEqual(self.files(), before)
+        self.assertEqual({p: p.stat().st_mtime_ns for p in self.home.rglob("*")}, mtimes)
+
+    def test_apply_shows_the_diff_and_keeps_a_file_that_differs(self):
+        self.run_main("apply")
+        role = self.home / "agents" / "issue-worker.toml"
+        role.write_text("edited\n", encoding="utf-8")
+        code, out, err = self.run_main("apply")
+        self.assertEqual(code, 1)
+        self.assertIn("--- a/agents/issue-worker.toml", out)
+        self.assertIn("-edited", out)
+        self.assertEqual(role.read_text(encoding="utf-8"), "edited\n")
+        self.assertEqual(len(err.splitlines()), 1)
+        self.assertIn("--accept agents/issue-worker.toml", err)
+
+    def test_apply_replaces_a_file_that_differs_when_the_operator_accepts_it(self):
+        self.run_main("apply")
+        role = self.home / "agents" / "issue-worker.toml"
+        role.write_text("edited\n", encoding="utf-8")
+        code, out, _ = self.run_main("apply", "--accept", "agents/issue-worker.toml")
+        self.assertEqual(code, 0)
+        self.assertEqual(role.read_text(encoding="utf-8"),
+                         (self.plugin / "roles" / "issue-worker.toml").read_text(encoding="utf-8"))
+        self.assertEqual(out.splitlines(), ['{"wrote": "agents/issue-worker.toml"}'])
+
+    def test_apply_names_every_differing_file_after_one_accept_flag(self):
+        self.run_main("apply")
+        for name in ("issue-worker", "ci-watcher"):
+            (self.home / "agents" / f"{name}.toml").write_text("edited\n", encoding="utf-8")
+        _, _, err = self.run_main("apply")
+        accepted = err.split("--accept ")[1].split()
+        code, _, _ = self.run_main("apply", "--accept", *accepted)
+        self.assertEqual(code, 0)
+        self.assertEqual(self.run_main("check")[0], 0)
+
+    def test_apply_rejects_an_accepted_file_that_the_plan_does_not_hold(self):
+        code, _, err = self.run_main("apply", "--accept", "config.toml")
+        self.assertEqual(code, 1)
+        self.assertIn("not in the plan: config.toml", err)
+        self.assertFalse((self.home / "config.toml").exists())
+
+    def test_plan_shows_a_diff_for_each_file_and_writes_nothing(self):
+        code, out, _ = self.run_main("plan")
+        self.assertEqual(code, 0)
+        self.assertIn("+++ b/issue-flow.config.toml", out)
+        self.assertIn("+++ b/agents/ci-watcher.toml", out)
+        self.assertEqual(self.files(), {})
+
+    def test_check_reports_each_file_missing_in_an_empty_home(self):
+        code, out, _ = self.run_main("check")
+        self.assertEqual(code, 1)
+        lines = out.splitlines()
+        self.assertEqual(len(lines), 1 + len(ROLE_NAMES))
+        self.assertTrue(all(line.split()[1] == "missing" for line in lines))
+        self.assertEqual(self.files(), {})
+
+    def test_check_reports_ok_after_apply(self):
+        self.run_main("apply")
+        code, out, _ = self.run_main("check")
+        self.assertEqual(code, 0)
+        self.assertIn("issue-flow.config.toml", out)
+        self.assertTrue(all(line.split()[1] == "ok" for line in out.splitlines()))
+
+    def test_check_reports_stale_after_one_byte_changes_in_the_profile_file(self):
+        self.run_main("apply")
+        profile = self.home / "issue-flow.config.toml"
+        profile.write_bytes(profile.read_bytes() + b" ")
+        code, out, _ = self.run_main("check")
+        self.assertEqual(code, 1)
+        self.assertEqual(out.splitlines()[0].split(), ["issue-flow.config.toml", "stale"])
+
+    def test_uses_dot_codex_in_the_home_directory_when_codex_home_is_not_set(self):
+        fake_home = self.home.parent / "user"
+        fake_home.mkdir()
+        with mock.patch.dict(os.environ, {"HOME": str(fake_home)}):
+            del os.environ["CODEX_HOME"]
+            self.run_main("apply")
+        self.assertTrue((fake_home / ".codex" / "issue-flow.config.toml").is_file())
+        self.assertEqual(self.files(), {})
+
+    def test_rejects_project_and_user_together(self):
+        with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            setup_project.main(["plan", "--user", "--project", str(self.home)])
+
+    def test_rejects_apply_project_without_accept(self):
+        with redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            setup_project.main(["apply", "--project", str(self.home)])
+
+    def test_setup_skill_defaults_to_the_user_mode_and_prints_the_terminal_command(self):
+        skill = (ROOT / "skills" / "setup" / "SKILL.md").read_text(encoding="utf-8")
+        self.assertIn("setup_project.py plan --user", skill)
+        self.assertIn("python3 <pluginRoot>/scripts/setup_project.py apply --user", skill)
+        self.assertLess(skill.index("apply --user"), skill.index("--project"))
+
+    def test_readme_shows_the_one_time_setup_then_the_per_project_flow(self):
+        readme = (ROOT / "README.md").read_text(encoding="utf-8")
+        marks = ["codex plugin add issue-flow@issue-flow-codex", "/hooks",
+                 "setup_project.py apply --user", "codex -p issue-flow -a never",
+                 "$issue-flow:project-planner"]
+        positions = [readme.index(mark) for mark in marks]
+        self.assertEqual(positions, sorted(positions))
 
 
 if __name__ == "__main__":

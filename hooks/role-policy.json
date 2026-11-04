@@ -19,6 +19,7 @@
     "tools": ["^apply_patch$", "spawn_agent$"]
   },
   "issue_worker": {
+    "patch_only_under": "..",
     "spawn_roles": ["issue_worker"]
   }
 }

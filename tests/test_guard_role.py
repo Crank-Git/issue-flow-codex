@@ -40,6 +40,11 @@ def patch(role, *paths):
     return payload(APPLY_PATCH, role, tool_input={"command": text})
 
 
+def worker_patch(cwd, command):
+    return payload(APPLY_PATCH, "issue_worker", cwd=cwd,
+                   tool_input={"command": command})
+
+
 def spawn(role, spawned):
     return payload(BASH, role, tool_name="collaborationspawn_agent",
                    tool_input={"task_name": "t", "agent_type": spawned, "fork_turns": "none",
@@ -81,7 +86,30 @@ class RoleGuardTest(unittest.TestCase):
         self.assertDenied(patch("code_auditor", "note.txt"), "code_auditor", "apply_patch")
 
     def test_allows_apply_patch_for_issue_worker(self):
-        self.assertAllowed(patch("issue_worker", "note.txt"))
+        self.assertAllowed(worker_patch(
+            "/repo/.worktrees/worker_17",
+            "*** Begin Patch\n*** Add File: note.txt\n+x\n*** End Patch",
+        ))
+
+    def test_denies_issue_worker_patch_in_the_project_checkout(self):
+        self.assertDenied(worker_patch(
+            "/repo/.worktrees/worker_17",
+            "*** Begin Patch\n*** Add File: /repo/skills/note.txt\n+x\n*** End Patch",
+        ), "worktree", "/repo/skills/note.txt")
+
+    def test_allows_issue_worker_patch_in_a_project_worktree(self):
+        self.assertAllowed(worker_patch(
+            "/repo/.worktrees/worker_17",
+            "*** Begin Patch\n*** Add File: /repo/.worktrees/worker_18/note.txt\n+x\n*** End Patch",
+        ))
+
+    def test_denies_issue_worker_patch_that_escapes_the_project_worktrees(self):
+        for directive in ("Add File", "Update File", "Delete File", "Move to"):
+            with self.subTest(directive=directive):
+                self.assertDenied(worker_patch(
+                    "/repo/.worktrees/worker_17",
+                    f"*** Begin Patch\n*** {directive}: ../../skills/note.txt\n*** End Patch",
+                ), "worktree")
 
     def test_denies_spawn_of_issue_worker_from_issue_worker(self):
         self.assertDenied(spawn("issue_worker", "issue_worker"), "issue_worker", "spawn")

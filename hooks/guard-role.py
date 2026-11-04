@@ -65,6 +65,9 @@ def violation(payload, rule):
     if scratch and tool == "apply_patch":
         outside = outside_scratch(arguments.get("command", ""), payload.get("cwd", ""), scratch)
         if outside:
+            if payload.get("agent_type") == "issue_worker":
+                return ("the worktree rule permits apply_patch only under the project worktrees "
+                        f"directory (.worktrees/), not {', '.join(outside)}")
             return f"apply_patch may write only below {scratch}, not {', '.join(outside)}"
     if re.search("spawn_agent$", tool) and arguments.get("agent_type") in rule.get("spawn_roles", []):
         return f"the role may not spawn the role {arguments['agent_type']}"

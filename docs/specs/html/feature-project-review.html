@@ -173,9 +173,9 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li>FR-project-review-3 — Each role file sets <code>model</code> per the table in Behaviour rules.
 </li>
-<li>FR-project-review-4 — The review PM checks with <code>codex mcp list</code> that a server named <code>playwright</code> exists before it spawns a browser role.
+<li>FR-project-review-4 — Before it spawns a browser role, the review PM checks with <code>codex mcp get playwright</code> that the server exists and sets <code>default_tools_approval_mode</code> to <code>approve</code>.
 </li>
-<li>FR-project-review-5 — When the <code>playwright</code> server is missing, the review PM shows the operator the command <code>codex mcp add playwright -- npx -y @playwright/mcp@&lt;pinned version&gt;</code> and stops.
+<li>FR-project-review-5 — When the check fails, the review PM shows the operator the command <code>codex mcp add playwright -- npx -y @playwright/mcp@&lt;pinned version&gt; --output-dir .worktrees/review/playwright-mcp</code> and the <code>default_tools_approval_mode = "approve"</code> key, and stops.
 </li>
 <li>FR-project-review-6 — The review PM never runs <code>codex mcp add</code> itself.
 </li>
@@ -213,7 +213,7 @@ body.rv-open .layout { padding-right:21rem; }
 <ol>
 <li>The operator starts <code>$issue-flow:project-review</code>.
 </li>
-<li>If the <code>playwright</code> server is missing, the review PM shows the command and stops.
+<li>If the <code>playwright</code> server is missing or has no approval key, the review PM shows the fix and stops.
 </li>
 <li>The review PM starts the app in a sandbox with the project's <code>run</code> skill.
 </li>
@@ -255,7 +255,7 @@ body.rv-open .layout { padding-right:21rem; }
 </ul>
 <h3 id="project-review-interfaces">Interfaces</h3>
 <ul>
-<li><strong>MCP configuration:</strong> <code>codex mcp add &lt;NAME&gt; -- &lt;COMMAND&gt;...</code>, <code>codex mcp list</code>. Verified against: <code>codex mcp --help</code> (codex-cli 0.166.0).
+<li><strong>MCP configuration:</strong> <code>codex mcp add &lt;NAME&gt; -- &lt;COMMAND&gt;...</code>, <code>codex mcp list</code>, <code>codex mcp get &lt;NAME&gt;</code>. Verified against: <code>codex mcp --help</code> and <code>codex mcp get --help</code> (codex-cli 0.166.0). The approval key is <code>codex-harness.md</code> fact 22.
 </li>
 <li><strong>MCP tool names in hooks:</strong> <code>mcp__&lt;server&gt;__&lt;tool&gt;</code>. Verified against: source <code>codex-rs/core/src/tools/handlers/mcp.rs:139-140</code> (commit <code>dbaead01</code>).
 </li>

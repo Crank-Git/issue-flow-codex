@@ -269,9 +269,9 @@ body.rv-open .layout { padding-right:21rem; }
 <tr><td>Project review</td><td><a href="html/feature-project-review.html">05-project-review</a></td><td>Epic 5</td><td>none</td></tr>
 <tr><td>Mirror and sync</td><td><a href="html/feature-mirror-and-sync.html">06-mirror-and-sync</a></td><td>Epic 6</td><td>none</td></tr>
 <tr><td>Spawn limits</td><td><a href="html/feature-spawn-limits.html">07-spawn-limits</a></td><td>Epic 7</td><td>none</td></tr>
-<tr><td>Criteria check and escalation</td><td><a href="html/feature-criteria-check.html">08-criteria-check</a></td><td>Epic 7</td><td>none</td></tr>
+<tr><td>Criteria check and escalation</td><td><a href="html/feature-criteria-check.html">08-criteria-check</a></td><td>Epic 8</td><td>none</td></tr>
 <tr><td>Run budget and usage report</td><td><a href="html/feature-run-budget.html">09-run-budget</a></td><td>Epic 7</td><td>none</td></tr>
-<tr><td>Worker model eval</td><td><a href="html/feature-worker-model-eval.html">10-worker-model-eval</a></td><td>Epic 8</td><td>none</td></tr>
+<tr><td>Worker model eval</td><td><a href="html/feature-worker-model-eval.html">10-worker-model-eval</a></td><td>Epic 9</td><td>none</td></tr>
 </table></div>
 <p>The port is a command-line plugin. It has no screens, so the spec has no mockups.</p>
 <h2 id="architecture-stack">Architecture &amp; stack</h2>
@@ -454,8 +454,9 @@ body.rv-open .layout { padding-right:21rem; }
 <tr><td>Epic 4: Spec skills</td><td>The four spec skills run in Codex and write a Codex scaffold.</td><td>04-spec-skills</td><td>Epic 1</td><td><code>$issue-flow:project-planner</code> produces an approved spec package on a test project.</td></tr>
 <tr><td>Epic 5: Project review</td><td>The review PM and the four review roles run in Codex.</td><td>05-project-review</td><td>Epic 3</td><td><code>$issue-flow:project-review</code> files findings and lands a manual PR on a test bed.</td></tr>
 <tr><td>Epic 6: Mirror and sync</td><td><code>repo-mirror</code> works, the upstream sync is automated, and v0.1.0 ships.</td><td>06-mirror-and-sync</td><td>Epic 4, Epic 5</td><td>A scheduled CI job opens an issue for a new upstream tag. The marketplace serves v0.1.0.</td></tr>
-<tr><td>Epic 7: Spend control</td><td>The spawn guard limits the roles, the workers of an issue, and the run quota. The port is on upstream 0.21.0 with the criteria check and the escalation.</td><td>07-spawn-limits, 08-criteria-check, 09-run-budget</td><td>Epic 6</td><td>One end-to-end run on the GitHub test bed with <code>runBudgetPercent: 3</code> merges a two-member batch, runs one check for each sub-issue, and spawns no subagent outside the allowlist.</td></tr>
-<tr><td>Epic 8: Worker model eval</td><td>The worker model is chosen from measured results.</td><td>10-worker-model-eval</td><td>Epic 7</td><td><code>evals/BASELINE.md</code> holds both worker models and the checker. The operator records the worker model decision.</td></tr>
+<tr><td>Epic 7: Spawn limits and run budget</td><td>The spawn guard limits the roles, the workers of an issue, and the run quota. <code>usage.py</code> reports the tokens of a run.</td><td>07-spawn-limits, 09-run-budget</td><td>Epic 6</td><td>The unit tests of both guards pass. One end-to-end run on the GitHub test bed with <code>runBudgetPercent: 3</code> spawns no subagent outside the allowlist and stops at the budget.</td></tr>
+<tr><td>Epic 8: Upstream 0.21.0 sync</td><td>The port is on upstream 0.21.0, with the criteria check, one rework round, and one escalation.</td><td>08-criteria-check</td><td>Epic 7</td><td>The lock check passes on <code>issue-flow--v0.21.0</code>. One end-to-end run on the GitHub test bed merges a two-member batch with one check for each sub-issue.</td></tr>
+<tr><td>Epic 9: Worker model eval</td><td>The worker model is chosen from measured results.</td><td>10-worker-model-eval</td><td>Epic 7, Epic 8</td><td><code>evals/BASELINE.md</code> holds both worker models and the checker. The operator records the worker model decision.</td></tr>
 </table></div>
 <h2 id="milestones">Milestones</h2>
 <ol>
@@ -469,7 +470,7 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li><strong>M4 — Release (Epic 6).</strong> Shippable means: v0.1.0 is in the marketplace and the upstream sync runs on a schedule.
 </li>
-<li><strong>M5 — Spend control (Epics 7 and 8).</strong> Shippable means: v0.2.0 is in the marketplace with the spawn limits, the criteria check, and the run budget, and the worker model decision is recorded. The target date is 2026-12-08, the end of the operator's Codex plan. The live Codex runs of M5 use at most 10% of the weekly quota in total.
+<li><strong>M5 — Spend control (Epics 7 to 9).</strong> Shippable means: v0.2.0 is in the marketplace with the spawn limits, the criteria check, and the run budget, and the worker model decision is recorded. The target date is 2026-12-08, the end of the operator's Codex plan. The live Codex runs of M5 use at most 10% of the weekly quota in total.
 </li>
 </ol>
 <h2 id="assumptions" class="callout-h">Assumptions</h2>
@@ -505,7 +506,7 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 </ul>
 <h2 id="issue-map">Issue map</h2>
-<p>Created by spec-to-issues on 2026-11-03 in <code>Crank-Git/issue-flow-codex</code>.</p>
+<p>Created by spec-to-issues on 2026-11-03 in <code>Crank-Git/issue-flow-codex</code>. Epics 7 to 9 created on 2026-11-21.</p>
 <div class="table-wrap"><table>
 <tr><th>Epic</th><th>Epic issue</th><th>Sub-issues</th></tr>
 <tr><td>Epic 0: Foundation</td><td>#1</td><td>#8, #9, #10, #11, #12</td></tr>
@@ -515,6 +516,9 @@ body.rv-open .layout { padding-right:21rem; }
 <tr><td>Epic 4: Spec skills</td><td>#5</td><td>#30, #31, #32, #33, #34</td></tr>
 <tr><td>Epic 5: Project review</td><td>#6</td><td>#35, #36, #37, #38</td></tr>
 <tr><td>Epic 6: Mirror and sync</td><td>#7</td><td>#39, #40, #41, #42</td></tr>
+<tr><td>Epic 7: Spawn limits and run budget</td><td>#134</td><td>#135, #136, #137, #138, #139</td></tr>
+<tr><td>Epic 8: Upstream 0.21.0 sync</td><td>#140</td><td>#141, #142, #143, #144, #145</td></tr>
+<tr><td>Epic 9: Worker model eval</td><td>#146</td><td>#147, #148, #149, #150</td></tr>
 </table></div>
 <div class="table-wrap"><table>
 <tr><th>Requirements</th><th>Issue</th></tr>
@@ -554,6 +558,20 @@ body.rv-open .layout { padding-right:21rem; }
 <tr><td>FR-mirror-and-sync-6, FR-mirror-and-sync-7, FR-mirror-and-sync-8, FR-mirror-and-sync-9</td><td>#40</td></tr>
 <tr><td>FR-mirror-and-sync-10, FR-mirror-and-sync-11, FR-mirror-and-sync-12</td><td>#41</td></tr>
 <tr><td>FR-mirror-and-sync-13, FR-mirror-and-sync-14, FR-mirror-and-sync-15</td><td>#42</td></tr>
+<tr><td>FR-spawn-limits-1, FR-spawn-limits-2, FR-spawn-limits-3, FR-spawn-limits-4, FR-spawn-limits-5, FR-spawn-limits-6, FR-spawn-limits-7, FR-spawn-limits-8, FR-spawn-limits-11, FR-spawn-limits-12, FR-spawn-limits-13, FR-spawn-limits-17</td><td>#135</td></tr>
+<tr><td>FR-spawn-limits-9, FR-spawn-limits-14, FR-spawn-limits-15, FR-spawn-limits-16, FR-spawn-limits-18, FR-spawn-limits-19, FR-spawn-limits-23, FR-spawn-limits-24, FR-spawn-limits-27, FR-spawn-limits-28</td><td>#136</td></tr>
+<tr><td>FR-spawn-limits-10, FR-spawn-limits-20, FR-spawn-limits-21, FR-spawn-limits-22, FR-spawn-limits-25, FR-spawn-limits-26, FR-spawn-limits-29, FR-spawn-limits-30</td><td>#137</td></tr>
+<tr><td>FR-run-budget-1, FR-run-budget-2, FR-run-budget-3, FR-run-budget-4, FR-run-budget-5, FR-run-budget-6, FR-run-budget-7, FR-run-budget-8, FR-run-budget-9, FR-run-budget-10, FR-run-budget-11, FR-run-budget-12, FR-run-budget-13, FR-run-budget-14, FR-run-budget-15</td><td>#138</td></tr>
+<tr><td>FR-run-budget-16, FR-run-budget-17, FR-run-budget-18, FR-run-budget-19, FR-run-budget-20, FR-run-budget-21, FR-run-budget-22, FR-run-budget-23, FR-run-budget-24, FR-run-budget-25, FR-run-budget-26, FR-run-budget-27, FR-run-budget-28, FR-run-budget-29, FR-run-budget-30, FR-run-budget-31</td><td>#139</td></tr>
+<tr><td>FR-criteria-check-1, FR-criteria-check-2, FR-criteria-check-3, FR-criteria-check-4, FR-criteria-check-5, FR-criteria-check-6, FR-criteria-check-7</td><td>#141</td></tr>
+<tr><td>FR-criteria-check-8, FR-criteria-check-9, FR-criteria-check-10, FR-criteria-check-11, FR-criteria-check-14, FR-criteria-check-15</td><td>#142</td></tr>
+<tr><td>FR-criteria-check-12, FR-criteria-check-13, FR-criteria-check-16, FR-criteria-check-17, FR-criteria-check-18, FR-criteria-check-19, FR-criteria-check-20, FR-criteria-check-21, FR-criteria-check-22, FR-criteria-check-23, FR-criteria-check-24, FR-criteria-check-37</td><td>#143</td></tr>
+<tr><td>FR-criteria-check-25, FR-criteria-check-26, FR-criteria-check-27, FR-criteria-check-28, FR-criteria-check-30, FR-criteria-check-31, FR-criteria-check-35, FR-criteria-check-36</td><td>#144</td></tr>
+<tr><td>FR-criteria-check-29, FR-criteria-check-32, FR-criteria-check-33, FR-criteria-check-34</td><td>#145</td></tr>
+<tr><td>FR-worker-model-eval-1, FR-worker-model-eval-2, FR-worker-model-eval-3, FR-worker-model-eval-4, FR-worker-model-eval-6</td><td>#147</td></tr>
+<tr><td>FR-worker-model-eval-5, FR-worker-model-eval-7, FR-worker-model-eval-8, FR-worker-model-eval-9, FR-worker-model-eval-10, FR-worker-model-eval-11, FR-worker-model-eval-12, FR-worker-model-eval-13, FR-worker-model-eval-14, FR-worker-model-eval-15, FR-worker-model-eval-16, FR-worker-model-eval-17</td><td>#148</td></tr>
+<tr><td>FR-worker-model-eval-18, FR-worker-model-eval-19, FR-worker-model-eval-20, FR-worker-model-eval-21</td><td>#149</td></tr>
+<tr><td>FR-worker-model-eval-22, FR-worker-model-eval-23, FR-worker-model-eval-24, FR-worker-model-eval-25, FR-worker-model-eval-26, FR-worker-model-eval-27, FR-worker-model-eval-28</td><td>#150</td></tr>
 </table></div>
 <h2 id="changelog">Changelog</h2>
 <ul>
@@ -590,6 +608,8 @@ body.rv-open .layout { padding-right:21rem; }
 <li>2026-11-21 — Spend control, change round 1 (draft). The operator reported a run that used about 1.35 weekly quotas. The measurement is on the new page <a href="html/page-spend-analysis.html">Quota use of an operator run</a>. Operator answers: the spawn guard limits the roles and the workers of an issue (five at most: build, two checkpoints, escalation, one escalation checkpoint); the port syncs to upstream 0.21.0 with the criteria check, one rework round, and one escalation to <code>gpt-6.1-sol</code> at effort <code>high</code>; the run budget is optional, and drains the run before it stops; the spec skills tell the operator to start a new session for the loop; a worker model eval decides <code>gpt-6-luna</code> against <code>gpt-6.1-sol</code>. The live Codex runs of Epics 7 and 8 use at most 10% of the weekly quota. New features 07 to 10, Epics 7 and 8, milestone M5.
 </li>
 <li>2026-11-21 — Spend control, review round 1: approved. Operator ruling: the run budget is off by default; when the operator turns it on, the suggested value is 15%.
+</li>
+<li>2026-11-21 — spec-to-issues: the planned Epic 7 held three features and too many sub-issues for one batch. It is now Epic 7 (Features 07 and 09), Epic 8 (Feature 08), and Epic 9 (Feature 10, formerly Epic 8). Scope is unchanged.
 </li>
 </ul><nav class="pager">
 <span></span>

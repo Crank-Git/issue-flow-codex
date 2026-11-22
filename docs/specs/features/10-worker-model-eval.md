@@ -2,8 +2,8 @@
 id: worker-model-eval
 feature: Worker model eval
 epic: "Epic 9: Worker model eval"
-status: planned
-issues: []
+status: issued
+issues: [147, 148, 149, 150]
 mockups: []
 ---
 

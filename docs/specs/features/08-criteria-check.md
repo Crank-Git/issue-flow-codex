@@ -2,8 +2,8 @@
 id: criteria-check
 feature: Criteria check and escalation
 epic: "Epic 8: Upstream 0.21.0 sync"
-status: planned
-issues: []
+status: issued
+issues: [141, 142, 143, 144, 145]
 mockups: []
 ---
 

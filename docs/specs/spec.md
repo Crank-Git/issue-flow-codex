@@ -346,7 +346,7 @@ Secrets: the forge tokens live in the `gh` and `tea` credential stores. No file 
 
 ## Issue map
 
-Created by spec-to-issues on 2026-11-03 in `Crank-Git/issue-flow-codex`.
+Created by spec-to-issues on 2026-11-03 in `Crank-Git/issue-flow-codex`. Epics 7 to 9 created on 2026-11-21.
 
 | Epic | Epic issue | Sub-issues |
 |---|---|---|
@@ -357,6 +357,9 @@ Created by spec-to-issues on 2026-11-03 in `Crank-Git/issue-flow-codex`.
 | Epic 4: Spec skills | #5 | #30, #31, #32, #33, #34 |
 | Epic 5: Project review | #6 | #35, #36, #37, #38 |
 | Epic 6: Mirror and sync | #7 | #39, #40, #41, #42 |
+| Epic 7: Spawn limits and run budget | #134 | #135, #136, #137, #138, #139 |
+| Epic 8: Upstream 0.21.0 sync | #140 | #141, #142, #143, #144, #145 |
+| Epic 9: Worker model eval | #146 | #147, #148, #149, #150 |
 
 | Requirements | Issue |
 |---|---|
@@ -396,6 +399,20 @@ Created by spec-to-issues on 2026-11-03 in `Crank-Git/issue-flow-codex`.
 | FR-mirror-and-sync-6, FR-mirror-and-sync-7, FR-mirror-and-sync-8, FR-mirror-and-sync-9 | #40 |
 | FR-mirror-and-sync-10, FR-mirror-and-sync-11, FR-mirror-and-sync-12 | #41 |
 | FR-mirror-and-sync-13, FR-mirror-and-sync-14, FR-mirror-and-sync-15 | #42 |
+| FR-spawn-limits-1, FR-spawn-limits-2, FR-spawn-limits-3, FR-spawn-limits-4, FR-spawn-limits-5, FR-spawn-limits-6, FR-spawn-limits-7, FR-spawn-limits-8, FR-spawn-limits-11, FR-spawn-limits-12, FR-spawn-limits-13, FR-spawn-limits-17 | #135 |
+| FR-spawn-limits-9, FR-spawn-limits-14, FR-spawn-limits-15, FR-spawn-limits-16, FR-spawn-limits-18, FR-spawn-limits-19, FR-spawn-limits-23, FR-spawn-limits-24, FR-spawn-limits-27, FR-spawn-limits-28 | #136 |
+| FR-spawn-limits-10, FR-spawn-limits-20, FR-spawn-limits-21, FR-spawn-limits-22, FR-spawn-limits-25, FR-spawn-limits-26, FR-spawn-limits-29, FR-spawn-limits-30 | #137 |
+| FR-run-budget-1, FR-run-budget-2, FR-run-budget-3, FR-run-budget-4, FR-run-budget-5, FR-run-budget-6, FR-run-budget-7, FR-run-budget-8, FR-run-budget-9, FR-run-budget-10, FR-run-budget-11, FR-run-budget-12, FR-run-budget-13, FR-run-budget-14, FR-run-budget-15 | #138 |
+| FR-run-budget-16, FR-run-budget-17, FR-run-budget-18, FR-run-budget-19, FR-run-budget-20, FR-run-budget-21, FR-run-budget-22, FR-run-budget-23, FR-run-budget-24, FR-run-budget-25, FR-run-budget-26, FR-run-budget-27, FR-run-budget-28, FR-run-budget-29, FR-run-budget-30, FR-run-budget-31 | #139 |
+| FR-criteria-check-1, FR-criteria-check-2, FR-criteria-check-3, FR-criteria-check-4, FR-criteria-check-5, FR-criteria-check-6, FR-criteria-check-7 | #141 |
+| FR-criteria-check-8, FR-criteria-check-9, FR-criteria-check-10, FR-criteria-check-11, FR-criteria-check-14, FR-criteria-check-15 | #142 |
+| FR-criteria-check-12, FR-criteria-check-13, FR-criteria-check-16, FR-criteria-check-17, FR-criteria-check-18, FR-criteria-check-19, FR-criteria-check-20, FR-criteria-check-21, FR-criteria-check-22, FR-criteria-check-23, FR-criteria-check-24, FR-criteria-check-37 | #143 |
+| FR-criteria-check-25, FR-criteria-check-26, FR-criteria-check-27, FR-criteria-check-28, FR-criteria-check-30, FR-criteria-check-31, FR-criteria-check-35, FR-criteria-check-36 | #144 |
+| FR-criteria-check-29, FR-criteria-check-32, FR-criteria-check-33, FR-criteria-check-34 | #145 |
+| FR-worker-model-eval-1, FR-worker-model-eval-2, FR-worker-model-eval-3, FR-worker-model-eval-4, FR-worker-model-eval-6 | #147 |
+| FR-worker-model-eval-5, FR-worker-model-eval-7, FR-worker-model-eval-8, FR-worker-model-eval-9, FR-worker-model-eval-10, FR-worker-model-eval-11, FR-worker-model-eval-12, FR-worker-model-eval-13, FR-worker-model-eval-14, FR-worker-model-eval-15, FR-worker-model-eval-16, FR-worker-model-eval-17 | #148 |
+| FR-worker-model-eval-18, FR-worker-model-eval-19, FR-worker-model-eval-20, FR-worker-model-eval-21 | #149 |
+| FR-worker-model-eval-22, FR-worker-model-eval-23, FR-worker-model-eval-24, FR-worker-model-eval-25, FR-worker-model-eval-26, FR-worker-model-eval-27, FR-worker-model-eval-28 | #150 |
 
 ## Changelog
 

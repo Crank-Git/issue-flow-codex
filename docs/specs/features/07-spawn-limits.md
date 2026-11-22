@@ -2,8 +2,8 @@
 id: spawn-limits
 feature: Spawn limits
 epic: "Epic 7: Spawn limits and run budget"
-status: planned
-issues: []
+status: issued
+issues: [135, 136, 137]
 mockups: []
 ---
 

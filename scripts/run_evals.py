@@ -165,7 +165,8 @@ def fake_gh_dir(sandbox):
 
 def build_sandbox(case):
     """Create the temp dir, the fixture repo with a local bare origin, and the tracker."""
-    sandbox = tempfile.mkdtemp(prefix="ife-")
+    # macOS temp dirs sit behind a symlink (/var -> /private/var), and git reports the resolved path.
+    sandbox = os.path.realpath(tempfile.mkdtemp(prefix="ife-"))
     shutil.copytree(ROOT, plugin_dir(sandbox), ignore=PLUGIN_COPY_IGNORE)
     shutil.copytree(os.path.join(ROOT, "evals", "fakegh"), fake_gh_dir(sandbox))
     repo = os.path.join(sandbox, "repo")
@@ -226,6 +227,7 @@ def make_worktree(case, suite, repo, brief, head_sha):
     A worker gets `.worktrees/issue-<n>` on the branch of its brief. A checker gets
     `.worktrees/check-<n>`, detached at the commit under review.
     """
+    repo = os.path.realpath(repo)
     number = re.search(r"#(\d+)", brief_field(brief, "issue") or "")
     if not number:
         raise CaseError(f"{case['name']}: the brief has no issue number")
@@ -326,6 +328,8 @@ def dispatcher_prompt(case, suite, head_sha, worktree, plugin):
     The case prompt is the upstream prompt for Claude Code, and its brief is what carries over.
     The brief names the sandbox copy of the plugin as `pluginRoot`, and the worktree of the run.
     """
+    plugin = os.path.realpath(plugin)
+    worktree = os.path.realpath(worktree)
     brief = brief_of(case).replace("{plugin_dir}", plugin)
     if head_sha:
         brief = brief.replace("{head_sha}", head_sha)
@@ -356,7 +360,7 @@ def dispatcher_prompt(case, suite, head_sha, worktree, plugin):
 def exec_argv(repo, last_message, prompt):
     """Fact 11: `codex exec` has no `-a` flag, so approval comes from `-c approval_policy="never"`."""
     return [*shlex.split(os.environ.get("IFE_CODEX", "codex")), "exec", "-m", DISPATCHER_MODEL, "--json",
-            "-c", 'approval_policy="never"', "-C", repo, "-o", last_message, prompt]
+            "-c", 'approval_policy="never"', "-C", os.path.realpath(repo), "-o", last_message, prompt]
 
 
 def run_codex(argv, cwd, env, timeout_s):

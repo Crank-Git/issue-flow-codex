@@ -257,7 +257,10 @@ source of your worktree rules.
   `branch:`. Run one command with `workdir` set to the `worktree` path:
   `git rev-parse --show-toplevel && git branch --show-current`.
   - The path does not exist, the command fails, or the toplevel differs from the `worktree`
-    path → return `blocked` at once. Write no file and run no other command.
+    path → return `blocked` at once. Compare resolved paths, not raw strings: a path can
+    pass through a symlink (on macOS `/var` is a symlink to `/private/var`). Run
+    `pwd -P` with `workdir` set to the `worktree` path and compare its output with the
+    toplevel. Only a difference between the two resolved paths blocks you. Write no file and run no other command.
   - The branch differs from the `branch` in your brief → return `blocked` at once. Do not
     switch branches and do not reset it.
   - Both match → this path is your worktree root. Report it as `worktree` in your verdict.

@@ -192,6 +192,29 @@ class ExecTest(RunnerCase):
         self.assertEqual(saw["plugin_has"], {"roles": True, "evals": False, "git": False})
 
 
+class SymlinkedTempTest(RunnerCase):
+    def test_brief_worktree_equals_git_toplevel_under_a_symlinked_tmpdir(self):
+        real = self.tmp / "real-tmp"
+        real.mkdir()
+        link = self.tmp / "link-tmp"
+        link.symlink_to(real)
+        case = run_evals.load_cases(str(ROOT / "evals"), "worker", CASE)[0]
+        with mock.patch.dict(os.environ, {"TMPDIR": str(link)}):
+            tempfile.tempdir = None
+            self.addCleanup(setattr, tempfile, "tempdir", None)
+            sandbox, repo = run_evals.build_sandbox(case)
+        self.addCleanup(shutil.rmtree, sandbox, ignore_errors=True)
+        state = run_evals.start_state(case, sandbox, repo)
+        brief = run_evals.brief_of(case).replace("{plugin_dir}", run_evals.plugin_dir(sandbox))
+        worktree = run_evals.make_worktree(case, "worker", repo, brief, state["head_sha"])
+        toplevel = subprocess.run(["git", "rev-parse", "--show-toplevel"], cwd=worktree,
+                                  capture_output=True, text=True, check=True).stdout.strip()
+        self.assertEqual(worktree, toplevel)
+        self.assertEqual(sandbox, os.path.realpath(sandbox))
+        argv = run_evals.exec_argv(repo, "out.txt", "prompt")
+        self.assertEqual(argv[argv.index("-C") + 1], os.path.realpath(repo))
+
+
 class RecordTest(RunnerCase):
     def test_record_holds_the_fields_and_passing_graders_of_a_run(self):
         code = self.run_suite("worker-pass")

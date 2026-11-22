@@ -51,7 +51,9 @@ gives you its absolute path and checks out `branch` in it. Set `workdir` to this
 every command. Do not create or move a worktree. Do not fetch, switch, or merge branches.
 
 First, run `git rev-parse --show-toplevel && git branch --show-current` with `workdir`
-set to the supplied path. If the path or branch does not match the brief, stop and return
+set to the supplied path, and run `pwd -P` there. Compare resolved paths, not raw strings:
+a path can pass through a symlink (on macOS `/var` is a symlink to `/private/var`). If the
+path, resolved, or the branch does not match the brief, stop and return
 `partial` with the error in `notesForPM`.
 
 Read the explorers' `screenshotDir` and `walkthroughs` outside this worktree. Write all

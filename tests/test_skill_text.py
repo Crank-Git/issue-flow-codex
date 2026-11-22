@@ -1067,3 +1067,15 @@ class WorkerRoleBatchGateFixTextTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class WorktreeCheckResolvesSymlinksTextTest(unittest.TestCase):
+    def test_worker_compares_resolved_paths(self):
+        text = agent_section("issue-worker.md", "- **Check the worktree before any work.**", "- **Run every shell command")
+        self.assertIn("pwd -P", text)
+        self.assertIn("symlink", text)
+
+    def test_scribe_compares_resolved_paths(self):
+        text = agent_section("review-scribe.md", "First, run `git rev-parse", "Read the explorers'")
+        self.assertIn("pwd -P", text)
+        self.assertIn("symlink", text)

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the live Codex conformance probes P1 to P12 and write conformance-report.md.
+"""Run the live Codex conformance probes P1 to P13 and write conformance-report.md.
 
 Each probe runs `codex exec` in a new temporary CODEX_HOME. The operator's
 auth.json is linked into that home, never copied. The run uses the operator's
@@ -20,6 +20,8 @@ import subprocess
 import sys
 import tempfile
 from pathlib import Path
+
+import usage
 
 ROOT = Path(__file__).resolve().parent.parent
 FIXTURES = ROOT / "tests" / "fixtures" / "conformance"
@@ -341,7 +343,28 @@ def p12():
         return {1, 2} <= turns and bool(followups), f"verdict turns {sorted(t for t in turns if t)}, followup_task calls {len(followups)}"
 
 
-PROBES = {f"P{i}": fn for i, fn in enumerate((p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12), 1)}
+def rollout_quota(home):
+    """Return the quota sample (used_percent, resets_at) of the last token_count event under `home`, or None.
+
+    Reads the rollout files that a probe session wrote. This is the parser that P13 and
+    scripts/usage.py share, so a drift in the rollout format fails the probe.
+    """
+    for path in sorted(Path(home).glob("sessions/**/rollout-*.jsonl")):
+        event = usage.last_token_count(path)
+        sample = usage.quota_sample(event) if event else None
+        if sample:
+            return sample
+    return None
+
+
+def p13():
+    with probe_env() as env:
+        env.exec("Reply with the word ready.")
+        sample = rollout_quota(env.home)
+        return sample is not None, f"token_count rate_limits.primary (used_percent, resets_at): {sample}"
+
+
+PROBES = {f"P{i}": fn for i, fn in enumerate((p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13), 1)}
 
 
 def check_codex():

@@ -1077,6 +1077,36 @@ upstream_sha256 = ""
 notes = "port-only: live worker apply_patch payload inside a worktree (#108, gate #111)"
 
 [[file]]
+path = "scripts/usage.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: ported from upstream scripts/usage.py at issue-flow--v0.21.0 (#138)"
+
+[[file]]
+path = "tests/test_usage.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: rollout usage report (#138)"
+
+[[file]]
+path = "tests/fixtures/rollouts/2026/10/01/rollout-2026-10-01T09-00-00-00000000-0000-7000-8000-000000000003.jsonl"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: synthetic rollout fixture (#138)"
+
+[[file]]
+path = "tests/fixtures/rollouts/2026/11/20/rollout-2026-11-20T10-00-00-00000000-0000-7000-8000-000000000001.jsonl"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: synthetic rollout fixture (#138)"
+
+[[file]]
+path = "tests/fixtures/rollouts/2026/11/20/rollout-2026-11-20T10-05-00-00000000-0000-7000-8000-000000000002.jsonl"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: synthetic rollout fixture (#138)"
+
+[[file]]
 path = "docs/specs/features/07-spawn-limits.md"
 mode = "new"
 upstream_sha256 = ""

@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Run the live Codex conformance probes P1 to P13 and write conformance-report.md.
+"""Run the live Codex conformance probes P1 to P14 and write conformance-report.md.
 
 Each probe runs `codex exec` in a new temporary CODEX_HOME. The operator's
 auth.json is linked into that home, never copied. The run uses the operator's
@@ -364,7 +364,44 @@ def p13():
         return sample is not None, f"token_count rate_limits.primary (used_percent, resets_at): {sample}"
 
 
-PROBES = {f"P{i}": fn for i, fn in enumerate((p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13), 1)}
+def rollout_models(home):
+    """Return the `turn_context.model` of every turn in the rollouts under `home`, in file order.
+
+    Lines that are not JSON objects are skipped, because a rollout can end in a partial line.
+    """
+    models = []
+    for path in sorted(Path(home).glob("sessions/**/rollout-*.jsonl")):
+        for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
+            try:
+                record = json.loads(line)
+            except json.JSONDecodeError:
+                continue
+            payload = record.get("payload") if isinstance(record, dict) else None
+            if record.get("type") == "turn_context" and isinstance(payload, dict) and payload.get("model"):
+                models.append(payload["model"])
+    return models
+
+
+ESCALATION_MODEL = "gpt-6.1-sol"
+
+
+def p14():
+    """FR-criteria-check-29: a spawn `model` beats the model in the role file."""
+    with probe_env() as env:
+        env.exec(
+            f"Use spawn_agent with agent_type \"escalation_probe\", fork_turns \"none\", "
+            f"model \"{ESCALATION_MODEL}\" and reasoning_effort \"high\", with the task: reply with only "
+            "{\"ok\": 1}. Wait for the subagent with wait_agent, then reply done."
+        )
+        spawns = hook_events(env, "PreToolUse", "spawn_agent")
+        fields = sorted({k for s in spawns for k in s.get("tool_input", {}) if k in ("model", "reasoning_effort")})
+        models = rollout_models(env.home)
+        return ESCALATION_MODEL in models, (
+            f"turn_context models {models}; the role file sets {MODEL}; "
+            f"PreToolUse tool_input carries {fields}")
+
+
+PROBES = {f"P{i}": fn for i, fn in enumerate((p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14), 1)}
 
 
 def check_codex():

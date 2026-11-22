@@ -1183,3 +1183,9 @@ path = "scripts/pricing.json"
 mode = "dropped"
 upstream_sha256 = "e29dc7ccda8f684db3a64928ca42f0a8a93f9343eb02697eb572f51e2e0b9eb4"
 notes = "Codex plan quota has no price per token"
+
+[[file]]
+path = "tests/fixtures/conformance/roles/escalation_probe.toml"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: model precedence probe P14 (#145)"

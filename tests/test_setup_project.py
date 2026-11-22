@@ -223,6 +223,14 @@ class SetupProjectTest(unittest.TestCase):
         self.assertFalse((self.project / ".codex").exists())
         self.assertTrue((self.project / ".gitignore").exists())
 
+    def test_rejects_non_string_escalation_model(self):
+        for key in ("escalationModel", "escalationEffort"):
+            with self.subTest(key=key):
+                (self.project / ".issue-flow.codex.json").write_text(json.dumps({key: 5}), encoding="utf-8")
+                with self.assertRaises(setup_project.SetupError) as raised:
+                    self.apply()
+                self.assertIn(key, str(raised.exception))
+
     def test_rejects_a_file_that_the_plan_does_not_hold(self):
         with self.assertRaises(setup_project.SetupError):
             self.apply(accept=["README.md"])

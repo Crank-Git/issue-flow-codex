@@ -12,6 +12,12 @@ The cases come from the upstream repository `Sniper7Kills-LLC/claude-plugins`
 `verbatim` entries of `upstream.lock` record the upstream path and the SHA-256 of each file,
 and `python3 scripts/upstream_sync.py --check` fails when a copy differs.
 
+Exception: the `case.json` and `tracker.json` files of the 11 worker cases come from upstream
+`dev` at commit `c7b95d29dd0c221a4d1df60de7435ca20c9a5ea7` (upstream PR #126), because no tag
+holds them yet. In the old brief, `batch: standalone` disagreed with `ci: skip`. The new brief
+names a single-member batch, and each tracker holds its `type:batch` issue. These 22 files are
+`patched` in `upstream.lock` until the next upstream tag.
+
 The upstream cases are under the MIT license:
 
 ```

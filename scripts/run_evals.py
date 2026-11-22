@@ -792,12 +792,48 @@ def summarize(records):
             "cases": {name: summarize_group([r for r in records if r["case"] == name]) for name in cases}}
 
 
-def quota_exceeded(results):
+def quota_limit(text):
+    """Return the limit of `--max-quota-percent` as a float, or None for `off`."""
+    if text == "off":
+        return None
+    try:
+        return float(text)
+    except ValueError:
+        raise argparse.ArgumentTypeError(f"{text!r} is not a number or 'off'") from None
+
+
+def quota_samples(out, records):
+    """Return the time-ordered (used_percent, resets_at) samples of the root rollouts of `records`.
+
+    Only a root rollout holds the account-wide `rate_limits` of its run (see scripts/usage.py).
+    """
+    timed = []
+    for record in records:
+        pattern = os.path.join(out, record["case"], f"run-{record['run']}", "rollouts", "rollout-*.jsonl")
+        for path in sorted(glob.glob(pattern)):
+            row = usage.read_rollout(path)
+            if row["role"] == "root":
+                timed.extend(row["samples"])
+    timed.sort(key=lambda sample: (sample[0] is None, sample[0]))
+    return [(used, resets) for _, used, resets in timed]
+
+
+def quota_exceeded(results, out, limit):
     """Return a reason to stop before the next run, or None.
 
-    This is the place of the quota stop. #149 fills it: it reads the quota samples in
-    `<out>/<case>/run-<n>/rollouts/` and the records in `results`.
+    The share counts the samples of the runs of this invocation only (FR-18, FR-19). Without
+    a sample after the first run the share is unknown, so the runner stops instead of
+    running without a limit.
     """
+    if limit is None or not results["records"]:
+        return None
+    samples = quota_samples(out, results["records"])
+    if not samples:
+        return ("no quota samples in the rollouts of the earlier runs; "
+                "start again with --max-quota-percent off to run without a limit")
+    share = usage.quota_share(samples)
+    if share >= limit:
+        return f"quota share {share:g}% of this invocation is at or above the limit of {limit:g}%"
     return None
 
 
@@ -829,6 +865,8 @@ def main(argv=None):
     parser.add_argument("--out", help="the results directory (default evals/results/<UTC time>)")
     parser.add_argument("--worker-model", help="model of the role that the suite spawns; set in the isolated role copy")
     parser.add_argument("--worker-effort", choices=EFFORTS, help="model_reasoning_effort of that role copy")
+    parser.add_argument("--max-quota-percent", type=quota_limit, default=3.0, metavar="P|off",
+                        help="stop before a new run when this invocation used P%% of the weekly quota (default 3)")
     parser.add_argument("--keep", action="store_true", help="keep each sandbox for inspection")
     parser.add_argument("--evals-dir", default=os.path.join(ROOT, "evals"), help=argparse.SUPPRESS)
     args = parser.parse_args(argv)
@@ -852,7 +890,7 @@ def main(argv=None):
                "partial": False, "stop_reason": None, "records": []}
     plan = [(case, k) for case in cases for k in range(1, (args.runs or case.get("runs", 1)) + 1)]
     for index, (case, run_number) in enumerate(plan):
-        reason = quota_exceeded(results)
+        reason = quota_exceeded(results, out, args.max_quota_percent)
         if reason:
             results.update(partial=True, stop_reason=reason)
             print(f"stopped: {reason}; {len(plan) - index} run(s) not started")
@@ -865,7 +903,8 @@ def main(argv=None):
 
     results["finished"] = datetime.datetime.now(datetime.timezone.utc).strftime("%Y%m%dT%H%M%SZ")
     write_json(os.path.join(out, "results.json"), results)
-    summary = summarize(results["records"])
+    summary = {**summarize(results["records"]), "partial": results["partial"],
+               "stop_reason": results["stop_reason"]}
     write_json(os.path.join(out, "summary.json"), summary)
     suite = summary["suite"]
     print(f"\n{suite['passed']} pass, {suite['failed']} fail, {suite['errors']} error of {suite['runs']} runs; "

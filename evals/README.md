@@ -73,7 +73,8 @@ account, so run it only on request.
 
 ```
 python3 scripts/run_evals.py --suite worker|checker [--case <glob>] [--tag <tag>] [--runs N]
-    [--out <dir>] [--worker-model <id>] [--worker-effort <level>] [--keep]
+    [--out <dir>] [--worker-model <id>] [--worker-effort <level>] [--max-quota-percent <p>|off]
+    [--keep]
 ```
 
 Each run has a new sandbox: a git repo with a local bare origin, the case tracker, the fake
@@ -102,3 +103,18 @@ The `outcome` is `pass` (every grader passed), `fail`, or `error`. A run is an `
 times out, when `codex` exits non-zero with no events, or when the sandbox refuses a command of
 the agent. `summary.json` counts errors apart from failures. Its pass rate, hidden-test pass
 rate, and mean input and output tokens take only the runs that are not an `error`.
+
+### Quota limit
+
+`--max-quota-percent <p>` stops the runner before a new run when the runs of this invocation
+used `<p>` percent or more of the weekly quota. The default is 3. `off` removes the limit.
+The runner joins the `rate_limits` samples of the root rollouts of the earlier runs, sorts
+them by time, and computes the share with `quota_share` of `scripts/usage.py`.
+
+When the limit stops the runner, `summary.json` has `"partial": true` and `stop_reason`, and
+the exit code is 1. When the rollouts of run 1 hold no quota sample, the runner stops before
+run 2 and asks for `--max-quota-percent off`.
+
+The limit is approximate. `used_percent` is a whole number, and the check runs between runs.
+One invocation can use the limit plus one run plus up to 1 point. The share also misses the
+quota that run 1 used before its first sample.

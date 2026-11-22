@@ -1,11 +1,11 @@
 #!/usr/bin/env python3
-"""PreToolUse guard: refuse a worker spawn that inherits the PM session or has no worker role.
+"""PreToolUse guard: refuse a spawn that inherits the PM session, has no plugin role, or breaks a spawn limit.
 
 Wired by `hooks/hooks.json` with the matcher `spawn_agent$`. Codex sends a V2 spawn to
 this hook with a `tool_name` that ends in `spawn_agent` (live: `collaborationspawn_agent`)
 and a `tool_input` with `task_name`, `fork_turns`, `message`, and `agent_type` (only when set).
 
-Two rules, both on readable fields:
+Two rules apply to every spawn, both on readable fields:
 
 1. Deny a spawn whose `fork_turns` is not `"none"`. An omitted `fork_turns` means `"all"`.
    A subagent then inherits the whole PM session, and nothing in that session tells it to
@@ -16,12 +16,19 @@ Two rules, both on readable fields:
    FR-worker-dispatch-10 and -11) unless `agent_type` is `issue_worker`. Without the role,
    the role guard and the role's model do not apply.
 
+A payload with no `agent_id` is a PM spawn (codex-harness fact 19). A PM spawn also meets
+the limits of docs/specs/features/07-spawn-limits.md: a role allowlist, a `task_name` pattern
+for each role, no reused name, and no gap in a worker chain. `hooks/spawn_state.py` keeps the
+names of the session in `$PLUGIN_DATA`. Without `PLUGIN_DATA`, the reuse and chain rules
+do not apply.
+
 The guard never reads `message`. Upstream detected a handoff brief by its field labels in
 the prompt, but live Codex 0.166.0 delivers `tool_input.message` to the hook as an encrypted
 token (docs/specs/pages/codex-harness.md, fact 13), so a label match cannot fire.
 
 Fail open: a parse error, a non-object payload, or a non-object `tool_input` exits 0 with
-no output. A guard against a runaway worker must never be the reason work cannot start.
+no output. A state file that cannot be written allows the spawn and prints one line to
+stderr. A guard against a runaway worker must never be the reason work cannot start.
 Codex rejects an `ask` decision, so the guard only denies.
 
 `ISSUE_FLOW_SPAWN_GUARD=off` disables the guard. Hooks read the environment at session
@@ -33,7 +40,28 @@ import os
 import re
 import sys
 
+from spawn_state import read_names, record
+
 WORKER_NAME = re.compile(r"worker_\d+(_c\d+)?")
+
+# Each pattern is a full match. `<n>`, `<pr>` and `<k>` are decimal, `<sha7>` is 7 hex digits.
+ROLE_PATTERNS = {
+    "issue_worker": (r"worker_\d+(_c1|_c2|_e1|_e1_c1)?",
+                     "worker_<n>, worker_<n>_c1, worker_<n>_c2, worker_<n>_e1, worker_<n>_e1_c1"),
+    "criteria_checker": (r"check_\d+(_[234])?", "check_<n>, check_<n>_2, check_<n>_3, check_<n>_4"),
+    "ci_watcher": (r"(ci_\d+|deploy_[0-9a-f]{7}|suite_\d+)(_r2)?",
+                   "ci_<pr>, ci_<pr>_r2, deploy_<sha7>, deploy_<sha7>_r2, suite_<n>, suite_<n>_r2"),
+    "deploy_verifier": (r"verify_deploy_[0-9a-f]{7}", "verify_deploy_<sha7>"),
+    "explorer": (r"(locate_\d+_\d+|docs_\d+|crosscheck_\d+|batchreview_\d+)",
+                 "locate_<n>_<k>, docs_<n>, crosscheck_<n>, batchreview_<n>"),
+    "code_auditor": (r"code_auditor", "code_auditor"),
+    "ux_explorer": (r"ux_[a-z0-9_]+", "ux_<slug>"),
+    "review_scribe": (r"review_scribe(_\d+)?", "review_scribe, review_scribe_<k>"),
+}
+
+# FR-spawn-limits-12: a worker name needs a spawn of its predecessor.
+WORKER_PARTS = re.compile(r"(worker_\d+)(_c1|_c2|_e1_c1|_e1)?")
+WORKER_PREDECESSOR = {"_c1": "", "_e1": "", "_c2": "_c1", "_e1_c1": "_e1"}
 
 FORK_REASON = (
     "issue-flow spawn guard: this spawn_agent call has fork_turns FORK_TURNS. A subagent "
@@ -47,8 +75,63 @@ ROLE_REASON = (
     "AGENT_TYPE. Call spawn_agent again and pass agent_type \"issue_worker\"."
 )
 
+ALLOWLIST_REASON = (
+    "issue-flow spawn guard: agent_type AGENT_TYPE is not a plugin role (task_name TASK_NAME). "
+    "Allowed agent_type values: " + ", ".join(ROLE_PATTERNS) + ". Call spawn_agent again "
+    "with one of them."
+)
 
-def decide(payload):
+PATTERN_REASON = (
+    "issue-flow spawn guard: task_name TASK_NAME does not match agent_type AGENT_TYPE. "
+    "Allowed patterns: PATTERNS."
+)
+
+CAP_NOTE = (
+    " One issue uses at most five workers. Label the issue status:blocked and comment with "
+    "the chain of remaining notes."
+)
+
+REUSE_REASON = (
+    "issue-flow spawn guard: task_name TASK_NAME was used by an earlier spawn in this session "
+    "(agent_type AGENT_TYPE). Allowed patterns: PATTERNS. Use the next name of the chain."
+)
+
+CHAIN_REASON = (
+    "issue-flow spawn guard: task_name TASK_NAME needs an earlier spawn of PREDECESSOR in "
+    "this session (agent_type AGENT_TYPE). Allowed patterns: PATTERNS."
+)
+
+
+def fill(template, task_name, agent_type, patterns="", predecessor=""):
+    """Return `template` with its placeholders replaced."""
+    return (template.replace("TASK_NAME", str(task_name)).replace("AGENT_TYPE", agent_type)
+            .replace("PATTERNS", patterns).replace("PREDECESSOR", predecessor))
+
+
+def check_pm_spawn(tool_input, used_names):
+    """Return the deny reason for a PM spawn, or None. `used_names` is None without state."""
+    task_name = tool_input.get("task_name")
+    agent_type = tool_input.get("agent_type")
+    shown_type = "omitted" if agent_type is None else json.dumps(agent_type)
+    if agent_type not in ROLE_PATTERNS:
+        return fill(ALLOWLIST_REASON, task_name, shown_type)
+    pattern, patterns = ROLE_PATTERNS[agent_type]
+    if not isinstance(task_name, str) or not re.fullmatch(pattern, task_name):
+        note = CAP_NOTE if agent_type == "issue_worker" else ""
+        return fill(PATTERN_REASON, task_name, shown_type, patterns) + note
+    if used_names is None:
+        return None
+    if task_name in used_names:
+        return fill(REUSE_REASON, task_name, shown_type, patterns)
+    parts = WORKER_PARTS.fullmatch(task_name)
+    if agent_type == "issue_worker" and parts.group(2):
+        predecessor = parts.group(1) + WORKER_PREDECESSOR[parts.group(2)]
+        if predecessor not in used_names:
+            return fill(CHAIN_REASON, task_name, shown_type, patterns, predecessor)
+    return None
+
+
+def decide(payload, used_names=None):
     """Return the deny reason, or None to stay out of the way."""
     if not str(payload.get("tool_name", "")).endswith("spawn_agent"):
         return None
@@ -64,7 +147,22 @@ def decide(payload):
     if isinstance(task_name, str) and WORKER_NAME.fullmatch(task_name) and agent_type != "issue_worker":
         shown = "omitted" if agent_type is None else json.dumps(agent_type)
         return ROLE_REASON.replace("TASK_NAME", task_name, 1).replace("AGENT_TYPE", shown, 1)
+    if "agent_id" not in payload:
+        return check_pm_spawn(tool_input, used_names)
+    # A later rule for the PM spawn (the run budget) goes after check_pm_spawn.
     return None
+
+
+def record_allowed(payload):
+    """Record the task name of an allowed PM spawn. A write error allows the spawn."""
+    tool_input = payload.get("tool_input")
+    if (not isinstance(tool_input, dict) or "agent_id" in payload
+            or not str(payload.get("tool_name", "")).endswith("spawn_agent")):
+        return
+    try:
+        record(payload.get("session_id"), tool_input.get("task_name"))
+    except OSError as error:
+        print(f"issue-flow spawn guard: cannot record the spawn: {error}", file=sys.stderr)
 
 
 def main():
@@ -72,10 +170,13 @@ def main():
         return
     try:
         payload = json.load(sys.stdin)
-        reason = decide(payload) if isinstance(payload, dict) else None
+        if not isinstance(payload, dict):
+            return
+        reason = decide(payload, read_names(payload.get("session_id")))
     except Exception:  # fail open, see the module docstring
         return
     if not reason:
+        record_allowed(payload)
         return
     json.dump(
         {

@@ -18,7 +18,7 @@ Facts that agents need and that live outside the code. Names only. Never put a s
 ## Test beds
 
 - GitHub test bed: `Crank-Git/issue-flow-codex-testbed`, private. Consumers read the name from `ISSUE_FLOW_TESTBED_GITHUB`.
-- Gitea test bed: `e/issue-flow-codex-testbed`, private, on the `tea` login `telescope` (`https://telescope.lan`, Gitea 1.25.3). Consumers read the name from `ISSUE_FLOW_TESTBED_GITEA` and the server from `GITEA_SERVER_URL`. The server is the operator's real Gitea: the reset script touches only this one repository.
+- Gitea test bed: `e/issue-flow-codex-testbed`, private, on the `tea` login `telescope` (Gitea 1.25.3). Consumers read the name from `ISSUE_FLOW_TESTBED_GITEA` and the server URL from `GITEA_SERVER_URL`. Set `GITEA_SERVER_URL` before a Gitea reset: its default is the placeholder `https://gitea.example.internal`. The server is the operator's real Gitea: the reset script touches only this one repository.
 - Seed: `testbed/seed/` holds the seed project and `testbed/seed/issues.json`, one epic and five sub-issues.
 - Reset: `python3 scripts/testbed-reset.py --forge github|gitea`. The script reads `ISSUE_FLOW_TESTBED_GITHUB` and `ISSUE_FLOW_TESTBED_GITEA`, defaults to the two names above, and touches no other repository. It exits 1 before any remote call when a repository name does not end in `-testbed`. It does these steps in order:
   1. Reuse the repository, or create it when it is missing.

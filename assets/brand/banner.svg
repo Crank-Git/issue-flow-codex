@@ -1,0 +1,23 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 900 250" role="img" aria-labelledby="title">
+  <title id="title">issue-flow-codex: a terminal running python3 -B scripts/setup_project.py check --user, which reports issue-flow.config.toml ok and agents/ci-watcher.toml ok, with more lines after.</title>
+  <style>
+    text { font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, "Liberation Mono", monospace; font-size: 21px; white-space: pre; }
+    .name { font-size: 50px; font-weight: 700; fill: #e6edf3; }
+    .sub { fill: #8b949e; }
+    .prompt { fill: #7ee787; }
+    .cmd { fill: #e6edf3; }
+    .answer { fill: #ffa657; }
+    .cursor { fill: #7ee787; animation: blink 1.2s steps(2, start) infinite; }
+    @keyframes blink { to { visibility: hidden; } }
+    @media (prefers-reduced-motion: reduce) { .cursor { animation: none; } }
+  </style>
+  <rect x="1" y="1" width="898" height="248" rx="10" fill="#0d1117" stroke="#30363d" stroke-width="2"/>
+  <text class="name" x="36" y="70">issue-flow-codex</text>
+  <text class="sub" x="540" y="68">Codex port of issue-flow</text>
+  <text x="36" y="114"><tspan class="prompt">$ </tspan><tspan class="cmd">python3 -B scripts/setup_project.py check --user</tspan></text>
+  <text class="answer" x="36" y="146" xml:space="preserve">issue-flow.config.toml           ok</text>
+  <text class="answer" x="36" y="174" xml:space="preserve">agents/ci-watcher.toml           ok</text>
+  <text class="sub" x="36" y="202">…</text>
+  <text class="prompt" x="36" y="234">$</text>
+  <rect class="cursor" x="60" y="217" width="12" height="22"/>
+</svg>

@@ -4,8 +4,9 @@ This repository is the Codex port of issue-flow. Upstream is the Claude Code plu
 `issue-flow` by sniper7kills (MIT), in `Sniper7Kills-LLC/claude-plugins`. The port runs
 the same autonomous issue loop as a native Codex CLI plugin.
 
-Current state: the spec is approved (2026-11-03). No code exists yet. Epic 0 imports
-upstream `issue-flow--v0.17.0` and builds the test harness.
+Current state: the spec is approved. The plugin is built, and the release workflow tags
+each port release as `issue-flow-codex--v<version>`. The port tracks the upstream tag in
+`upstream.lock`.
 
 ## Design
 
@@ -57,7 +58,7 @@ The `test` skill runs the first three. A change is done when all three pass.
 
 Read the matching file before you write:
 
-- `docs/rules/ste.md` — before you write any prose, code comment, docstring, test name, issue, or PR body.
+- `docs/rules/ste.md` — before you write any prose, code comment, docstring, test name, issue, or PR body. `README.md` is exempt; US English still applies.
 - `docs/rules/quality.md` — before you write or review Python in `scripts/`, `hooks/`, or `tests/`.
 - `docs/rules/external-apis.md` — before you write anything that depends on Codex, `gh`, `tea`, GitHub Actions, or upstream behavior.
 
@@ -94,4 +95,4 @@ Read the matching file before you write:
   planned earns no line. A test that asserts per-member bookkeeping agreement re-creates
   the churn the filing gate exists to prevent, and fails review here.
 
-The full policy is `references/finding-policy.md` (after the Epic 0 import).
+The full policy is `references/finding-policy.md`.

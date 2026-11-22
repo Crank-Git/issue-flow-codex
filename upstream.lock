@@ -132,7 +132,7 @@ notes = "Becomes a role file; Playwright tool names."
 path = "agents/issue-worker.md"
 mode = "rewritten"
 upstream_sha256 = "bcd39c9d9b9fdc74eeb46b2ccd6c4e7570c66f79e17db3b3aae809f4e0b7e43f"
-notes = "Front-matter becomes `roles/issue-worker.toml`. Rewrite: the toolbox section, the four spawn rules (lines 162-236), the worktree boundary (lines 237-350), and the CI watch in the runbook."
+notes = "Front-matter becomes `roles/issue-worker.toml`. Rewrite: the toolbox section, the four spawn rules (lines 162-236), the worktree boundary (lines 237-350), and the CI watch in the runbook. Turn budget: checkpoint only at the budget; verify step runs the conventions test command once."
 
 [[file]]
 path = "agents/review-scribe.md"
@@ -474,7 +474,7 @@ notes = "Docstring paths."
 path = "skills/issue-flow/SKILL.md"
 mode = "rewritten"
 upstream_sha256 = "c9481ee53f4c2ce6717a3ecf41170c05785a03dc03cc5b2be379d22dc5a1a3d8"
-notes = "Two roles (31-56), core invariants (88-122), Phase 0 (123-321), Stage B launch (about 590-620), Stage C notification and messaging (621-786), Stage D deployment verification, Stage E status (870-897), hard rules (995-1023)."
+notes = "Two roles (31-56), core invariants (88-122), Phase 0 (123-321), Stage B launch (about 590-620), Stage C notification and messaging (621-786), Stage D deployment verification, Stage E status (870-897), hard rules (995-1023). Spawn limits: Phase 0 and C2 no-CI suite as a `ci_watcher`, Stage B whole-issue brief, C1 checkpoint chain, recovery names."
 
 [[file]]
 path = "skills/issue-flow/references/batching.md"
@@ -498,7 +498,7 @@ notes = "Watcher and verifier subagents; serialized Playwright MCP dispatch."
 path = "skills/issue-flow/references/issue-worker.md"
 mode = "rewritten"
 upstream_sha256 = "529ec4148e032323c10d7a37944dfbf3cec35ae0544dcba66efd8dd7359953e1"
-notes = "The spawn call (1-30) and messaging (110-187)."
+notes = "The spawn call (1-30) and messaging (110-187). Spawn limits: whole-issue brief, fixed checkpoint chain names."
 
 [[file]]
 path = "skills/issue-flow/references/labels.md"
@@ -924,7 +924,7 @@ notes = "port-only: Epic 2 batch-gate live run report (#3)"
 path = "agents/ci-watcher.md"
 mode = "new"
 upstream_sha256 = ""
-notes = "Port-only file. Upstream waits in a background shell; Codex waits in this role. Built into `roles/ci-watcher.toml`."
+notes = "Port-only file. Upstream waits in a background shell; Codex waits in this role. Adds the suite brief. Built into `roles/ci-watcher.toml`."
 
 [[file]]
 path = "roles/ci-watcher.toml"

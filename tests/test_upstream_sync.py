@@ -1,7 +1,9 @@
 """Tests for scripts/upstream_sync.py. No test uses the network."""
 
 import contextlib
+import hashlib
 import io
+import os
 import shutil
 import subprocess
 import sys
@@ -224,6 +226,108 @@ class SyncTest(unittest.TestCase):
         self.assertEqual((self.root / "verbatim.txt").read_text(), "local edit\n")
         self.assertEqual((self.root / "upstream.lock").read_bytes(), old_lock)
         self.assertFalse((self.root / "sync-report.md").exists())
+
+
+class UpstreamPathTest(unittest.TestCase):
+    """An entry with `upstream_path` maps to a file outside `issue-flow/`."""
+
+    def setUp(self):
+        self.tmp = Path(tempfile.mkdtemp())
+        self.addCleanup(shutil.rmtree, self.tmp)
+        self.upstream = self.tmp / "upstream"
+        case = self.upstream / "evals" / "worker" / "case"
+        case.mkdir(parents=True)
+        (self.upstream / "evals" / "fakegh").mkdir()
+        (case / "case.json").write_text('{"v": 1}\n')
+        (self.upstream / "evals" / "fakegh" / "gh").write_text("#!/bin/sh\nexit 1\n")
+        (self.upstream / "evals" / "fakegh" / "gh").chmod(0o755)
+        (self.upstream / "evals" / "other").mkdir()
+        (self.upstream / "evals" / "other" / "skip.txt").write_text("not imported\n")
+        (self.upstream / "issue-flow").mkdir()
+        (self.upstream / "issue-flow" / "keep.md").write_text("keep\n")
+        self.old_commit = self.commit("v1")
+        (case / "case.json").write_text('{"v": 2}\n')
+        self.new_commit = self.commit("v2")
+        self.root = self.tmp / "port"
+        self.root.mkdir()
+        (self.root / "keep.md").write_text("keep\n")
+        entries = [{"path": "keep.md", "mode": "verbatim",
+                    "upstream_sha256": hashlib.sha256(b"keep\n").hexdigest(), "notes": ""}]
+        (self.root / "upstream.lock").write_text(
+            upstream_sync.serialize_lock(str(self.upstream), "v1", self.old_commit, entries))
+        init_repo(self.root)
+        subprocess.run(GIT + ["commit", "-q", "-m", "port"], cwd=self.root, check=True)
+
+    def commit(self, tag):
+        for args in (["init", "-q"], ["add", "-A"], ["commit", "-q", "-m", tag], ["tag", tag]):
+            subprocess.run(GIT + args, cwd=self.upstream, check=True)
+        return subprocess.run(["git", "rev-parse", "HEAD"], cwd=self.upstream, check=True,
+                              capture_output=True, text=True).stdout.strip()
+
+    def lock(self):
+        return tomllib.loads((self.root / "upstream.lock").read_text())
+
+    def run_tool(self, *options):
+        return run_main([*options, "--root", str(self.root), "--repository", str(self.upstream)])
+
+    def commit_port(self):
+        subprocess.run(GIT + ["add", "-A"], cwd=self.root, check=True)
+        subprocess.run(GIT + ["commit", "-q", "-m", "evals"], cwd=self.root, check=True)
+
+    def test_serialize_writes_upstream_path_only_when_an_entry_has_one(self):
+        entries = [{"path": "a", "mode": "new", "upstream_sha256": "", "notes": ""},
+                   {"path": "b", "mode": "verbatim", "upstream_sha256": "x", "notes": "",
+                    "upstream_path": "evals/b"}]
+        text = upstream_sync.serialize_lock("r", "v1", "c", entries)
+        self.assertEqual(tomllib.loads(text)["file"], entries)
+        self.assertEqual(text.count("upstream_path"), 1)
+
+    def test_import_evals_copies_the_case_files_and_appends_lock_entries(self):
+        before = self.lock()["file"]
+        self.assertEqual(self.run_tool("--import-evals", "v1"), (0, ""))
+        files = self.lock()["file"]
+        self.assertEqual(files[:len(before)], before)
+        added = {entry["path"]: entry for entry in files[len(before):]}
+        self.assertEqual(sorted(added), ["evals/fakegh/gh", "evals/worker/case/case.json"])
+        entry = added["evals/worker/case/case.json"]
+        self.assertEqual((entry["mode"], entry["upstream_path"]),
+                         ("verbatim", "evals/worker/case/case.json"))
+        self.assertEqual(entry["upstream_sha256"], hashlib.sha256(b'{"v": 1}\n').hexdigest())
+        self.assertTrue(os.access(self.root / "evals" / "fakegh" / "gh", os.X_OK))
+        self.assertFalse((self.root / "evals" / "other").exists())
+        init_repo(self.root)
+        self.assertEqual(self.run_tool("--check"), (0, ""))
+
+    def test_import_evals_refuses_a_tag_other_than_the_lock_tag(self):
+        code, err = self.run_tool("--import-evals", "v2")
+        self.assertEqual(code, 1)
+        self.assertIn("v1", err)
+        self.assertFalse((self.root / "evals").exists())
+
+    def test_sync_copies_a_verbatim_file_from_its_upstream_path(self):
+        self.run_tool("--import-evals", "v1")
+        self.commit_port()
+        self.assertEqual(self.run_tool("--to", "v2"), (0, ""))
+        target = self.root / "evals" / "worker" / "case" / "case.json"
+        self.assertEqual(target.read_text(), '{"v": 2}\n')
+        entry = next(e for e in self.lock()["file"] if e["path"] == "evals/worker/case/case.json")
+        self.assertEqual(entry["upstream_sha256"], hashlib.sha256(b'{"v": 2}\n').hexdigest())
+        self.assertEqual(entry["upstream_path"], "evals/worker/case/case.json")
+        self.assertEqual(self.run_tool("--check"), (0, ""))
+
+    def test_sync_reports_a_changed_patched_file_that_has_an_upstream_path(self):
+        self.run_tool("--import-evals", "v1")
+        lock = self.lock()
+        for entry in lock["file"]:
+            if entry["path"] == "evals/worker/case/case.json":
+                entry["mode"] = "patched"
+        (self.root / "upstream.lock").write_text(
+            upstream_sync.serialize_lock(lock["repository"], lock["tag"], lock["commit"], lock["file"]))
+        self.commit_port()
+        self.assertEqual(self.run_tool("--to", "v2", "--report-only"), (0, ""))
+        report = (self.root / "sync-report.md").read_text()
+        self.assertIn("evals/worker/case/case.json", report)
+        self.assertIn('+{"v": 2}', report)
 
 
 class SerializeTest(unittest.TestCase):

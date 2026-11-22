@@ -108,4 +108,6 @@ the markdown reaches the TOML.
 | `scripts/build_roles.py` | Role TOML from the upstream agent markdown. | 02, 05 |
 | `skills/setup/SKILL.md` | The setup skill. | 01 |
 | `hooks/guard-role.py`, `hooks/role-policy.json` | The role guard. | 01 |
+| `evals/worker/**`, `evals/checker/**`, `evals/fakegh/gh` | Upstream eval cases, the fake `gh`, and the fixtures. `verbatim`, with `upstream_path` in `upstream.lock`. | 10 |
+| `evals/README.md` | The source, the tag, and the MIT notice of the eval cases. | 10 |
 | `.agents/plugins/marketplace.json` | The Codex marketplace. | 01 |

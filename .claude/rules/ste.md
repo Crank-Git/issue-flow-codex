@@ -14,3 +14,5 @@ paths:
 # Writing standard
 
 Read `docs/rules/ste.md` before you write prose, a code comment, a docstring, or a test name here.
+
+`README.md` is exempt from STE. US English still applies.

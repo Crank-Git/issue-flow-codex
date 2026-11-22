@@ -35,6 +35,9 @@ this repository ports (skills, references, agent instructions) already follows i
 
 Rewriting evidence destroys it. Rewriting a quote misrepresents the person.
 
+**Exempt from STE:** `README.md`. It is the public front page, and the maintainer writes
+it in their own voice. US English still applies.
+
 ---
 
 ## 2 — The rules

@@ -226,7 +226,7 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li>All seven upstream skills work in Codex: <code>issue-flow</code>, <code>spec-to-issues</code>, <code>project-planner</code>, <code>project-inherit</code>, <code>spec-update</code>, <code>project-review</code>, and <code>repo-mirror</code>.
 </li>
-<li>All five upstream roles work in Codex: <code>issue_worker</code>, <code>ux_explorer</code>, <code>deploy_verifier</code>, <code>review_scribe</code>, and <code>code_auditor</code>.
+<li>All six upstream roles work in Codex: <code>issue_worker</code>, <code>criteria_checker</code>, <code>ux_explorer</code>, <code>deploy_verifier</code>, <code>review_scribe</code>, and <code>code_auditor</code>. The port adds two roles: <code>ci_watcher</code> and <code>issue_worker_escalated</code>.
 </li>
 <li>A project stays compatible with upstream: a Claude Code PM and a Codex PM can work the same tracker as co-operators.
 </li>
@@ -579,7 +579,7 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li>2026-11-03 — Review round 1: approved. The maintainer confirmed one PM per login for v1, the default models (<code>gpt-6.1-sol</code> for the PM and workers, <code>gpt-6-luna</code> for helpers), and the scaffold proposal.
 </li>
-<li>2026-11-03 — Epic 0 batch gate (PR #50). The Gitea test bed moved from the stale <code>testgitea</code> login to <code>e/issue-flow-codex-testbed</code> on <code>https://telescope.lan</code> (operator decision). The operator deferred the live Gitea reset to #49, because the <code>telescope</code> token has no issue scope. The reset script now refuses a repository whose name does not end in <code>-testbed</code>.
+<li>2026-11-03 — Epic 0 batch gate (PR #50). The Gitea test bed moved from the stale <code>testgitea</code> login to <code>e/issue-flow-codex-testbed</code> on the operator's Gitea server (operator decision). The operator deferred the live Gitea reset to #49, because the <code>telescope</code> token has no issue scope. The reset script now refuses a repository whose name does not end in <code>-testbed</code>.
 </li>
 <li>2026-11-03 — Epic 1 batch gate (PR #57). A live run showed that Codex encrypts <code>tool_input.message</code> in the spawn hook payload. The operator ruled on #17: the spawn guard denies every spawn whose <code>fork_turns</code> is not <code>"none"</code>, and a <code>worker_&lt;n&gt;</code> spawn without <code>agent_type: issue_worker</code>. FR-plugin-packaging-29 to 31 changed to match. The preflight hook prints its <code>ran</code> line in every session and runs within a 40 s budget.
 </li>
@@ -622,6 +622,8 @@ body.rv-open .layout { padding-right:21rem; }
 <li>2026-11-22 — Epic 9 gate decision (operator delegated it to the PM, rule fixed in #150 before the results): the default <code>workerModel</code> is <code>gpt-6-luna</code> at effort <code>medium</code>, and the default escalation is <code>gpt-6.1-sol</code> at effort <code>medium</code> (FR-worker-model-eval-26, 27). The hidden-test pass rate is 100% for <code>gpt-6-luna</code> and 95% for <code>gpt-6.1-sol</code>, and no case failed on both <code>gpt-6-luna</code> runs. <code>gpt-6-luna</code> used about 1.75 times the mean input tokens and about 1.5 times the mean output tokens of <code>gpt-6.1-sol</code>, and the eval cannot measure the quota cost of each model at a resolution of 1 point. Results: <code>evals/candidates/150-worker-model/</code> and <code>evals/BASELINE.md</code>. Open question for the operator (FR-worker-model-eval-28): the checker passed 10 of 11 cases on <code>gpt-6-luna</code>, and the one fail was a dispatcher write error, not a checker error. Keep the checker on <code>gpt-6-luna</code>?
 </li>
 <li>2026-11-22 — Operator decision on FR-worker-model-eval-28: the criteria checker stays on <code>gpt-6-luna</code>. The worker eval cases now use the upstream brief fix of upstream PR #126 (commit <code>c7b95d2</code>): each brief names a single-member batch, so <code>batch</code> agrees with <code>ci: skip</code>. The 22 changed case files are <code>patched</code> in <code>upstream.lock</code> until the next upstream tag. The Feature 10 results were measured on the old brief.
+</li>
+<li>2026-11-22 — README decision (operator): <code>README.md</code> is exempt from STE, and US English still applies. <code>README.md</code> becomes <code>rewritten</code> in <code>upstream.lock</code>, and the upstream reference body moves to <code>docs/how-it-works.md</code>, changed for Codex. Goal 3 now names the six upstream roles of <code>issue-flow--v0.21.0</code> and the two port roles. The public repository holds no internal host name: the Gitea server comes from <code>GITEA_SERVER_URL</code>.
 </li>
 </ul><nav class="pager">
 <span></span>

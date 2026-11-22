@@ -173,7 +173,7 @@ def plan_files(project, plugin_root, with_default_permissions):
         raise SetupError(f".issue-flow.codex.json is not valid JSON: {exc}") from exc
     if not isinstance(codex, dict):
         raise SetupError(".issue-flow.codex.json must contain an object")
-    for key in ("workerModel", "workerEffort", "helperModel"):
+    for key in ("workerModel", "workerEffort", "helperModel", "escalationModel", "escalationEffort"):
         if key in codex and not isinstance(codex[key], str):
             raise SetupError(f".issue-flow.codex.json: {key} must be a string")
     for role in sorted((plugin_root / "roles").glob("*.toml")):

@@ -66,6 +66,23 @@ class RolloutQuotaTest(unittest.TestCase):
             self.assertIsNone(conformance.rollout_quota(tmp))
 
 
+class RolloutModelsTest(unittest.TestCase):
+    def test_reads_the_turn_context_models_of_each_rollout_under_the_home(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            day = Path(tmp) / "sessions" / "2026" / "11" / "20"
+            day.mkdir(parents=True)
+            lines = [{"type": "session_meta", "payload": {"id": "x"}},
+                     {"type": "turn_context", "payload": {"model": "gpt-6-luna"}}]
+            (day / "rollout-a.jsonl").write_text("\n".join(json.dumps(x) for x in lines) + "\nnot json\n")
+            (day / "rollout-b.jsonl").write_text(
+                json.dumps({"type": "turn_context", "payload": {"model": "gpt-6.1-sol"}}) + "\n")
+            self.assertEqual(conformance.rollout_models(tmp), ["gpt-6-luna", "gpt-6.1-sol"])
+
+    def test_returns_an_empty_list_without_a_rollout(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(conformance.rollout_models(tmp), [])
+
+
 class MainTest(unittest.TestCase):
     def test_exits_2_when_codex_is_not_on_path(self):
         err = io.StringIO()

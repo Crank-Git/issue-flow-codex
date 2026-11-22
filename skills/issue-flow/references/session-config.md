@@ -185,12 +185,14 @@ keeps only upstream keys, in the upstream format.
 | `workerModel` | `gpt-6.1-sol` | The model each issue-worker runs on. |
 | `workerEffort` | `medium` | The reasoning effort of each issue-worker. |
 | `helperModel` | `gpt-6-luna` | The model of helpers, including the CI watcher. |
+| `escalationModel` | `gpt-6.1-sol` | The model of an escalation spawn (`worker_<n>_e1` and `worker_<n>_e1_c1`). Only these spawns set `model`. |
+| `escalationEffort` | `high` | The reasoning effort of an escalation spawn. Only these spawns set `reasoning_effort`. |
 | `waitMs` | `600000` | The longest time in milliseconds that one `wait_agent` call blocks. |
 | `runBudgetPercent` | `null` (no budget) | An integer from 1 to 100: the share of the weekly quota that one run may use. The spawn guard denies each new `issue_worker` and `explorer` spawn at that share. When the operator turns the budget on without a value, save `15`. The answer `off` saves `null`. |
 
 ```json
 { "version": 1, "pluginVersion": "0.1.0", "pmModel": "gpt-6.1-sol", "workerModel": "gpt-6.1-sol", "workerEffort": "medium",
-  "helperModel": "gpt-6-luna", "waitMs": 600000, "runBudgetPercent": null }
+  "helperModel": "gpt-6-luna", "escalationModel": "gpt-6.1-sol", "escalationEffort": "high", "waitMs": 600000, "runBudgetPercent": null }
 ```
 
 The keys are flat. There is no nested `codex` object.

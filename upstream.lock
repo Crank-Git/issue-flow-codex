@@ -1189,3 +1189,9 @@ path = "roles/criteria-checker.toml"
 mode = "new"
 upstream_sha256 = ""
 notes = "Port-only role generated from agents/criteria-checker.md. Model gpt-6-luna, effort medium (FR-criteria-check-9); helperModel does not apply."
+
+[[file]]
+path = "tests/fixtures/conformance/roles/escalation_probe.toml"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: model precedence probe P14 (#145)"

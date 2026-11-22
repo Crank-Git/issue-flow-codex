@@ -170,6 +170,19 @@ class WorktreeTest(unittest.TestCase):
         result = run_script("remove", "--project", str(self.project), "--task", "check_19")
         self.assertEqual(result.returncode, 1)
 
+    def test_refuses_to_remove_a_detached_worktree_with_an_unpushed_commit(self):
+        self.create_detached()
+        tree = self.project / ".worktrees" / "check_19"
+        git(tree, "config", "user.email", "test@example.invalid")
+        git(tree, "config", "user.name", "Test")
+        (tree / "new.txt").write_text("x\n")
+        git(tree, "add", "new.txt")
+        git(tree, "commit", "-q", "-m", "work")
+        result = run_script("remove", "--project", str(self.project), "--task", "check_19")
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(len(result.stderr.splitlines()), 1)
+        self.assertTrue(tree.exists())
+
     def commit_work(self):
         git(self.tree, "config", "user.email", "test@example.invalid")
         git(self.tree, "config", "user.name", "Test")

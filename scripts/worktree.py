@@ -17,8 +17,9 @@ local git exclude file.
 
 `remove` exits 1 and changes nothing when the worktree has an uncommitted
 change or a commit that no remote-tracking ref holds. Otherwise it removes the
-worktree and deletes its branch. A detached check worktree has no branch and no
-commit of its own: `remove` skips both checks and deletes no branch. With `--merged`, `remove` skips the commit check: the PM passes it
+worktree and deletes its branch. A detached check worktree has no branch: `remove`
+deletes none, and it runs the same commit check, because a commit on no branch and no
+remote ref is lost with the tree. With `--merged`, `remove` skips the commit check: the PM passes it
 only after it has verified the sub-merge. It still refuses uncommitted changes.
 
 Every failure exits nonzero with one line on stderr.
@@ -98,10 +99,9 @@ def cmd_remove(args):
     branch = git(tree, "branch", "--show-current")
     # A commit that no remote-tracking ref holds is lost when the branch goes.
     # After a verified squash sub-merge the branch commits are on no remote ref,
-    # so the PM passes --merged to skip this check. A detached check worktree has
-    # no branch to lose, so it skips the check.
-    if branch and not args.merged and git(
-            tree, "rev-list", "--count", "HEAD", "--not", "--remotes") != "0":
+    # so the PM passes --merged to skip this check. A detached tree is checked too:
+    # a commit made on it is on no branch and is lost with the tree.
+    if not args.merged and git(tree, "rev-list", "--count", "HEAD", "--not", "--remotes") != "0":
         raise WorktreeError(f"{tree} has commits that no remote holds")
     # `-f -f` overrides the lock that the harness leaves on a worker's tree.
     git(project, "worktree", "remove", "-f", "-f", str(tree))

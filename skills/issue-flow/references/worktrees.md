@@ -41,8 +41,8 @@ launch rules of Stage B. The guard does not create or move a worktree.
   its branch. Pass `--merged` only after the PM has verified the sub-merge. A squash merge
   leaves the branch commits on no remote ref, so without the flag the script refuses. The
   flag skips the unpushed-commit check only. The script still refuses uncommitted changes.
-  A detached check worktree has no branch: `remove` skips the unpushed-commit check and
-  deletes no branch.
+  A detached check worktree has no branch: `remove` deletes none, and it still refuses a
+  commit that no remote holds.
 
 `create` reuses a **local** branch when one exists, and else makes the branch from
 `--base`. A branch that exists only on the remote is not reused. For a rework spawn or a

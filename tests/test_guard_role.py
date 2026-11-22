@@ -173,6 +173,21 @@ class RoleGuardTest(unittest.TestCase):
             with self.subTest(role=role):
                 self.assertDenied(patch(role, "note.txt"), role, "apply_patch")
 
+    def test_denies_apply_patch_for_criteria_checker(self):
+        self.assertDenied(patch("criteria_checker", "note.txt"), "criteria_checker", "apply_patch")
+
+    def test_denies_bash_prefixes_for_criteria_checker(self):
+        for command in ("git commit -m x", "git push origin x", "git rebase main", "git reset --hard",
+                        "git stash", "gh pr view 1", "tea pr list", "  git commit -m x"):
+            with self.subTest(command=command):
+                self.assertDenied(bash("criteria_checker", command), "criteria_checker")
+
+    def test_allows_git_diff_for_criteria_checker(self):
+        for command in ("git diff --stat origin/dev...HEAD", "git checkout -q --detach abc123",
+                        "git -C . fetch origin", "teapot --help"):
+            with self.subTest(command=command):
+                self.assertAllowed(bash("criteria_checker", command))
+
     def test_allows_playwright_tools_for_ux_explorer(self):
         self.assertAllowed(payload(BASH, "ux_explorer", tool_name="mcp__playwright__browser_click"))
 

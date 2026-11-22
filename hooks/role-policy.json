@@ -11,6 +11,10 @@
     "tools": ["^apply_patch$"],
     "bash_prefixes": ["git commit", "git push"]
   },
+  "criteria_checker": {
+    "tools": ["^apply_patch$"],
+    "bash_prefixes": ["git commit", "git push", "git rebase", "git reset", "git stash", "gh", "tea"]
+  },
   "ux_explorer": {
     "patch_only_under": ".worktrees/review/",
     "bash_prefixes": ["git"]

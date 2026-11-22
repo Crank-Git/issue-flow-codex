@@ -1,6 +1,6 @@
 repository = "https://github.com/Sniper7Kills-LLC/claude-plugins"
-tag = "issue-flow--v0.17.0"
-commit = "03faf580b53e8187758eb18cf9944c2bf0c273fe"
+tag = "issue-flow--v0.21.0"
+commit = "39f2261b11cc1a5c6cf75ee1310bc2419767644f"
 
 [[file]]
 path = ".agents/plugins/marketplace.json"
@@ -29,7 +29,7 @@ notes = "Port-only file."
 [[file]]
 path = ".claude-plugin/plugin.json"
 mode = "dropped"
-upstream_sha256 = "b1a7778a57bb6640532545de9959e4935ace24861f8f91a7d114b88a5970ea10"
+upstream_sha256 = "232befb0e4c3521ccc091867d8f8baf41281467020c5dd48f6ed5c00317976de"
 notes = "replaced by .codex-plugin/plugin.json"
 
 [[file]]
@@ -113,7 +113,7 @@ notes = "MIT text with the upstream and port copyright lines."
 [[file]]
 path = "README.md"
 mode = "patched"
-upstream_sha256 = "6f5cf3ddd736fba8e560324c4bf141d28ce77dfd655b7a1e361ad9b678bfd384"
+upstream_sha256 = "eb672e5a074eabfdd3c58238b4070705823e1d8a13064934b9f21bac006e55c4"
 notes = "Port header credits upstream and the license; adds the Codex install steps."
 
 [[file]]
@@ -131,7 +131,7 @@ notes = "Becomes a role file; Playwright tool names."
 [[file]]
 path = "agents/issue-worker.md"
 mode = "rewritten"
-upstream_sha256 = "bcd39c9d9b9fdc74eeb46b2ccd6c4e7570c66f79e17db3b3aae809f4e0b7e43f"
+upstream_sha256 = "c46000354800304f1b6c1d50944345a6d440a294ee768f1d0f03c01a0746e5d0"
 notes = "Front-matter becomes `roles/issue-worker.toml`. Rewrite: the toolbox section, the four spawn rules (lines 162-236), the worktree boundary (lines 237-350), and the CI watch in the runbook. Turn budget: checkpoint only at the budget; verify step runs the conventions test command once."
 
 [[file]]
@@ -341,7 +341,7 @@ notes = "port-only: wait_agent timeout guard (#66)"
 [[file]]
 path = "hooks/guard-spawn.py"
 mode = "rewritten"
-upstream_sha256 = "4f505785d867897653f7ad3bbc261fe9489e9d9a7d331e9005910064a4b80b84"
+upstream_sha256 = "24a9b73d993343d5d917947540ac87c848cf97f602f9e65cb7b7125095c60888"
 notes = "V2 spawn rules on `fork_turns`, `task_name`, `agent_type`. The brief detection is dropped: `message` is encrypted. Role allowlist, task_name patterns, reuse and worker chain rules for a PM spawn (#135). Run budget rule (#139)."
 
 [[file]]
@@ -473,7 +473,7 @@ notes = "Docstring paths."
 [[file]]
 path = "skills/issue-flow/SKILL.md"
 mode = "rewritten"
-upstream_sha256 = "c9481ee53f4c2ce6717a3ecf41170c05785a03dc03cc5b2be379d22dc5a1a3d8"
+upstream_sha256 = "85a1e36eb0dad721a84156d839128f7b5783cbe378c31c0255efec5d4b5a25c5"
 notes = "Two roles (31-56), core invariants (88-122), Phase 0 (123-321), Stage B launch (about 590-620), Stage C notification and messaging (621-786), Stage D deployment verification, Stage E status (870-897), hard rules (995-1023). Spawn limits: Phase 0 and C2 no-CI suite as a `ci_watcher`, Stage B whole-issue brief, C1 checkpoint chain, recovery names."
 
 [[file]]
@@ -497,7 +497,7 @@ notes = "Watcher and verifier subagents; serialized Playwright MCP dispatch."
 [[file]]
 path = "skills/issue-flow/references/issue-worker.md"
 mode = "rewritten"
-upstream_sha256 = "529ec4148e032323c10d7a37944dfbf3cec35ae0544dcba66efd8dd7359953e1"
+upstream_sha256 = "1124a6ad26a4a93cc86762c822079cc3dcd2c68ac482a105816ec517b6e6f8d2"
 notes = "The spawn call (1-30) and messaging (110-187). Spawn limits: whole-issue brief, fixed checkpoint chain names."
 
 [[file]]
@@ -515,7 +515,7 @@ notes = "The one rule (8-26), what is safe (27-42), specialist reviewers and the
 [[file]]
 path = "skills/issue-flow/references/session-config.md"
 mode = "patched"
-upstream_sha256 = "ec0f2de6db60a0999cdf301f8fd8632debc4576b62d9dd530b632e81e21aa697"
+upstream_sha256 = "c5dbe73558242061fe43b44297592db47d82fe24af57b3e9bd23b7df683270b7"
 notes = "Plain-text questions; the `codex` block."
 
 [[file]]
@@ -527,7 +527,7 @@ notes = "`AGENTS.md`; `$issue-flow:` names."
 [[file]]
 path = "skills/issue-flow/references/worktrees.md"
 mode = "rewritten"
-upstream_sha256 = "da35fdad1ae30b73b0e9feb04cf24847680f06def63b7dda344c91f424004d17"
+upstream_sha256 = "95c95ad5f319c601e3f7c8603dd9b50066108390614f349ce993126adf2800d9"
 notes = "Everything except teardown and parked worktrees (276-359)."
 
 [[file]]
@@ -1078,8 +1078,8 @@ notes = "port-only: live worker apply_patch payload inside a worktree (#108, gat
 
 [[file]]
 path = "scripts/usage.py"
-mode = "new"
-upstream_sha256 = ""
+mode = "rewritten"
+upstream_sha256 = "7b85a815c2902aaa8eb29511d1e950d0b52d854dab9679cd400ebf656806e21e"
 notes = "Ported from upstream scripts/usage.py (issue-flow--v0.21.0); reads Codex rollouts."
 
 [[file]]
@@ -1171,3 +1171,15 @@ path = "hooks/budget_state.py"
 mode = "new"
 upstream_sha256 = ""
 notes = "port-only: store the quota samples of a PM session for the run budget (#139)"
+
+[[file]]
+path = "agents/criteria-checker.md"
+mode = "rewritten"
+upstream_sha256 = "bbe26aa9e93fb6ecb7e3be856d09095ca63aecd73406f8f914822c0c28b02de8"
+notes = "Front-matter becomes `roles/criteria-checker.toml`. The role file lands with the criteria-check feature (#142)."
+
+[[file]]
+path = "scripts/pricing.json"
+mode = "dropped"
+upstream_sha256 = "e29dc7ccda8f684db3a64928ca42f0a8a93f9343eb02697eb572f51e2e0b9eb4"
+notes = "Codex plan quota has no price per token"

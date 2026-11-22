@@ -158,6 +158,12 @@ class GuardSpawnTest(HookCase):
             with self.subTest(task_name=name):
                 self.assertDenied(spawn(task_name=name, agent_type=agent_type))
 
+    def test_allows_a_scribe_re_run_under_a_suffixed_name(self):
+        name = "review_scribe_2026-11-22-checkout-flow"
+        self.assertAllowed(spawn(task_name=name, agent_type="review_scribe"))
+        self.assertAllowed(spawn(task_name=name + "-2", agent_type="review_scribe"))
+        self.assertDenied(spawn(task_name=name, agent_type="review_scribe"))
+
     def test_denies_a_second_fix_without_the_first(self):
         reason = self.assertDenied(spawn(task_name="fix_134_2", agent_type="issue_worker"))
         self.assertIn("fix_134", reason)

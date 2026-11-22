@@ -150,3 +150,13 @@ class ProjectReviewDispatchTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class ProjectReviewScribeRerunNameTest(unittest.TestCase):
+    def test_a_scribe_re_run_takes_the_next_suffix_because_the_guard_denies_a_reused_name(self):
+        text = " ".join(SKILL.read_text().split())
+        phase4 = text.split("# Phase 4", 1)[1].split("# Phase 5", 1)[0]
+
+        self.assertIn("review_scribe_<RUN_ID>-2", phase4)
+        self.assertIn("review_scribe_<RUN_ID>-3", phase4)
+        self.assertIn("denies a reused name", phase4)

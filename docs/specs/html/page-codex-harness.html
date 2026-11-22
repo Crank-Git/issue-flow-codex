@@ -261,6 +261,10 @@ body.rv-open .layout { padding-right:21rem; }
 <li><strong>A spawn <code>model</code> does not override the role file model.</strong> Probe P14 spawned the role <code>escalation_probe</code> (role file model <code>gpt-6-luna</code>) with spawn <code>model: "gpt-6.1-sol"</code> and <code>reasoning_effort: "high"</code>. Result: <code>P14  fail  turn_context models ['gpt-6-luna', 'gpt-6-luna']; the role file sets gpt-6-luna; PreToolUse tool_input carries ['model', 'reasoning_effort']</code>. The PreToolUse hook sees both fields, and Codex ignores them. A model that differs from the role file model needs a role file of its own. Evidence: live, 2026-11-22, codex-cli 0.167.1, <code>scripts/conformance.py</code> probe P14 (#145).
 </li>
 </ol>
+<ol>
+<li><strong><code>allow_login_shell = false</code> makes tool commands run in a non-login shell.</strong> The key is a root key of <code>config.toml</code>; its default is <code>true</code>. When it is <code>false</code>, a tool call with <code>login = true</code> is rejected, and a call without <code>login</code> uses a non-login shell. In the #148 smoke run, the operator's profile (Homebrew shellenv in <code>~/.zprofile</code>) put the real <code>gh</code> first on <code>PATH</code> in the tool shell, so the fake <code>gh</code> was never called. The runner sets the key in the isolated <code>config.toml</code> and sets <code>ZDOTDIR</code> to a directory whose <code>.zshenv</code> and <code>.zprofile</code> put the fake <code>gh</code> first. Evidence: https://learn.chatgpt.com/docs/config-file/config-reference (retrieved 2026-11-22); the key name is in the <code>ConfigToml</code> strings of codex-cli 0.167.1. Live check (2026-11-22, codex-cli 0.167.1, <code>gpt-6-luna</code>): with the key and <code>ZDOTDIR</code> set, the smoke run of <code>worker-easy-negative-qty</code> called the fake <code>gh</code> (<code>issue view 2</code> first) and the worker returned <code>ready-to-merge</code>. The run alone does not show which of the two settings fixed it.
+</li>
+</ol>
 <p>The profile used in facts 8 and 9:</p>
 <pre class="code"><code>default_permissions = "gitw"
 
@@ -293,6 +297,8 @@ enabled = true</code></pre>
 <li><strong>Background processes do not notify the model on exit.</strong> Source: <code>core/src/unified_exec/async_watcher.rs:155-160</code>. The default background timeout is 300 s. Source: <code>core/src/unified_exec/mod.rs:66-75</code>.
 </li>
 <li><strong>Compaction.</strong> After compaction, Codex queues SessionStart with <code>source = "compact"</code>. Source: <code>core/src/session/mod.rs:4783</code>.
+</li>
+<li><strong><code>auth.json</code> is written through a temporary file and a rename.</strong> <code>FileAuthStorage::save</code> resolves a symlink at <code>auth.json</code> with <code>read_link</code> (up to 40 hops), writes <code>.auth-*</code> in the directory of the target, and renames it over the target. The link stays and the target file is replaced. Source: <code>login/src/auth/storage.rs</code> and <code>storage_file.rs</code> on the <code>main</code> branch of openai/codex (read 2026-11-22). The installed <code>codex-cli 0.167.1</code> binary holds <code>login/src/auth/storage.rs</code> but its strings do not show the write method, so the link handling of 0.167.1 is not confirmed. The runner copies a replaced <code>auth.json</code> back to the operator's file (<code>restore_auth</code> in <code>scripts/run_evals.py</code>).
 </li>
 </ul>
 <h2 id="codex-harness-known-codex-issues-that-touch-the-port">Known Codex issues that touch the port</h2>

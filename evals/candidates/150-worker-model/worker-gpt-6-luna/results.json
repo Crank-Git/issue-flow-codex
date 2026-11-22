@@ -1,0 +1,1278 @@
+{
+  "suite": "worker",
+  "worker_model": "gpt-6-luna",
+  "worker_effort": "medium",
+  "dispatcher_model": "gpt-6-luna",
+  "started": "20261122T092011Z",
+  "finished": "20261122T101659Z",
+  "partial": false,
+  "stop_reason": null,
+  "records": [
+    {
+      "case": "worker-easy-low-stock-boundary",
+      "run": 1,
+      "suite": "worker",
+      "worker_model": "gpt-6-luna",
+      "worker_effort": "medium",
+      "dispatcher_model": "gpt-6-luna",
+      "graders": [
+        {
+          "type": "hidden_tests",
+          "passed": true,
+          "detail": "hidden tests on refs/heads/issue/1-low-stock-boundary 44502f0f: pass: Ran 2 tests in 0.024s | OK"
+        },
+        {
+          "type": "verdict",
+          "passed": true,
+          "detail": "outcome ready-to-merge, 2 criteria"
+        },
+        {
+          "type": "diff_scope",
+          "passed": true,
+          "detail": "refs/heads/issue/1-low-stock-boundary changes 2 path(s), all allowed"
+        },
+        {
+          "type": "gh_log",
+          "passed": true,
+          "detail": "0 expected, 1 forbidden"
+        }
+      ],
+      "outcome": "pass",
+      "error": null,
+      "duration_s": 128.432,
+      "usage": {
+        "calls": 25,
+        "input": 871320,
+        "cached_input": 831872,
+        "output": 5839,
+        "reasoning": 1520
+      },
+      "rollouts": [
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-d6pe8pib/codex-home/sessions/2026/11/22/rollout-2026-11-22T04-20-12-01a2028e-5547-7402-8009-e9f2261dce28.jsonl",
+          "id": "01a2028e-5547-7402-8009-e9f2261dce28",
+          "role": "root",
+          "model": "gpt-6-luna",
+          "calls": 4
+        },
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-d6pe8pib/codex-home/sessions/2026/11/22/rollout-2026-11-22T04-20-23-01a2028e-81f9-78d0-bcd9-da524a511635.jsonl",
+          "id": "01a2028e-81f9-78d0-bcd9-da524a511635",
+          "role": "issue_worker",
+          "model": "gpt-6-luna",
+          "calls": 21
+        }
+      ],
+      "last_message": "ready-to-merge: PR #2 is open as a draft against main.",
+      "sandbox": null
+    },
+    {
+      "case": "worker-easy-low-stock-boundary",
+      "run": 2,
+      "suite": "worker",
+      "worker_model": "gpt-6-luna",
+      "worker_effort": "medium",
+      "dispatcher_model": "gpt-6-luna",
+      "graders": [
+        {
+          "type": "hidden_tests",
+          "passed": true,
+          "detail": "hidden tests on refs/heads/issue/1-low-stock-boundary 92c6ce74: pass: Ran 2 tests in 0.028s | OK"
+        },
+        {
+          "type": "verdict",
+          "passed": true,
+          "detail": "outcome ready-to-merge, 2 criteria"
+        },
+        {
+          "type": "diff_scope",
+          "passed": true,
+          "detail": "refs/heads/issue/1-low-stock-boundary changes 4 path(s), all allowed"
+        },
+        {
+          "type": "gh_log",
+          "passed": true,
+          "detail": "0 expected, 1 forbidden"
+        }
+      ],
+      "outcome": "pass",
+      "error": null,
+      "duration_s": 154.21,
+      "usage": {
+        "calls": 27,
+        "input": 994920,
+        "cached_input": 931840,
+        "output": 7041,
+        "reasoning": 1901
+      },
+      "rollouts": [
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-olhhlbg_/codex-home/sessions/2026/11/22/rollout-2026-11-22T04-22-21-01a20290-4bfe-7990-9a8d-b55d537ea1cb.jsonl",
+          "id": "01a20290-4bfe-7990-9a8d-b55d537ea1cb",
+          "role": "root",
+          "model": "gpt-6-luna",
+          "calls": 4
+        },
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-olhhlbg_/codex-home/sessions/2026/11/22/rollout-2026-11-22T04-22-31-01a20290-75eb-79a0-8e30-ec1fd1e45b20.jsonl",
+          "id": "01a20290-75eb-79a0-8e30-ec1fd1e45b20",
+          "role": "issue_worker",
+          "model": "gpt-6-luna",
+          "calls": 23
+        }
+      ],
+      "last_message": "ready-to-merge \u2014 draft PR #2 opened.",
+      "sandbox": null
+    },
+    {
+      "case": "worker-easy-negative-qty",
+      "run": 1,
+      "suite": "worker",
+      "worker_model": "gpt-6-luna",
+      "worker_effort": "medium",
+      "dispatcher_model": "gpt-6-luna",
+      "graders": [
+        {
+          "type": "hidden_tests",
+          "passed": true,
+          "detail": "hidden tests on refs/heads/issue/2-reject-negative-qty ee9eeb2c: pass: Ran 2 tests in 0.000s | OK"
+        },
+        {
+          "type": "verdict",
+          "passed": true,
+          "detail": "outcome ready-to-merge, 2 criteria"
+        },
+        {
+          "type": "diff_scope",
+          "passed": true,
+          "detail": "refs/heads/issue/2-reject-negative-qty changes 2 path(s), all allowed"
+        },
+        {
+          "type": "gh_log",
+          "passed": true,
+          "detail": "0 expected, 1 forbidden"
+        }
+      ],
+      "outcome": "pass",
+      "error": null,
+      "duration_s": 92.346,
+      "usage": {
+        "calls": 20,
+        "input": 672779,
+        "cached_input": 616704,
+        "output": 4101,
+        "reasoning": 418
+      },
+      "rollouts": [
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-h58902gl/codex-home/sessions/2026/11/22/rollout-2026-11-22T04-24-55-01a20292-a7fb-7ba0-918d-83490116f4a6.jsonl",
+          "id": "01a20292-a7fb-7ba0-918d-83490116f4a6",
+          "role": "root",
+          "model": "gpt-6-luna",
+          "calls": 4
+        },
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-h58902gl/codex-home/sessions/2026/11/22/rollout-2026-11-22T04-25-06-01a20292-d2f1-75c0-b0bc-eaa8a2064e5c.jsonl",
+          "id": "01a20292-d2f1-75c0-b0bc-eaa8a2064e5c",
+          "role": "issue_worker",
+          "model": "gpt-6-luna",
+          "calls": 16
+        }
+      ],
+      "last_message": "ready-to-merge \u2014 PR #3.",
+      "sandbox": null
+    },
+    {
+      "case": "worker-easy-negative-qty",
+      "run": 2,
+      "suite": "worker",
+      "worker_model": "gpt-6-luna",
+      "worker_effort": "medium",
+      "dispatcher_model": "gpt-6-luna",
+      "graders": [
+        {
+          "type": "hidden_tests",
+          "passed": true,
+          "detail": "hidden tests on refs/heads/issue/2-reject-negative-qty 1df4abb3: pass: Ran 2 tests in 0.000s | OK"
+        },
+        {
+          "type": "verdict",
+          "passed": true,
+          "detail": "outcome ready-to-merge, 2 criteria"
+        },
+        {
+          "type": "diff_scope",
+          "passed": true,
+          "detail": "refs/heads/issue/2-reject-negative-qty changes 3 path(s), all allowed"
+        },
+        {
+          "type": "gh_log",
+          "passed": true,
+          "detail": "0 expected, 1 forbidden"
+        }
+      ],
+      "outcome": "pass",
+      "error": null,
+      "duration_s": 92.028,
+      "usage": {
+        "calls": 19,
+        "input": 605460,
+        "cached_input": 544128,
+        "output": 4104,
+        "reasoning": 518
+      },
+      "rollouts": [
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-qhbr92eb/codex-home/sessions/2026/11/22/rollout-2026-11-22T04-26-28-01a20294-123d-7ea0-b516-e7ae7b9778e5.jsonl",
+          "id": "01a20294-123d-7ea0-b516-e7ae7b9778e5",
+          "role": "root",
+          "model": "gpt-6-luna",
+          "calls": 4
+        },
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-qhbr92eb/codex-home/sessions/2026/11/22/rollout-2026-11-22T04-26-38-01a20294-3c84-7041-8fd1-c463ef9ecad6.jsonl",
+          "id": "01a20294-3c84-7041-8fd1-c463ef9ecad6",
+          "role": "issue_worker",
+          "model": "gpt-6-luna",
+          "calls": 15
+        }
+      ],
+      "last_message": "ready-to-merge",
+      "sandbox": null
+    },
+    {
+      "case": "worker-hard-ambiguous-tax",
+      "run": 1,
+      "suite": "worker",
+      "worker_model": "gpt-6-luna",
+      "worker_effort": "medium",
+      "dispatcher_model": "gpt-6-luna",
+      "graders": [
+        {
+          "type": "verdict",
+          "passed": true,
+          "detail": "outcome needs-feedback, 1 criteria"
+        },
+        {
+          "type": "diff_scope",
+          "passed": true,
+          "detail": "no commits beyond the fixture"
+        },
+        {
+          "type": "gh_log",
+          "passed": true,
+          "detail": "0 expected, 2 forbidden"
+        }
+      ],
+      "outcome": "pass",
+      "error": null,
+      "duration_s": 61.394,
+      "usage": {
+        "calls": 11,
+        "input": 304006,
+        "cached_input": 252672,
+        "output": 2867,
+        "reasoning": 841
+      },
+      "rollouts": [
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-cz9ma95m/codex-home/sessions/2026/11/22/rollout-2026-11-22T04-28-00-01a20295-7b33-7c42-be6e-b99d8e5444a0.jsonl",
+          "id": "01a20295-7b33-7c42-be6e-b99d8e5444a0",
+          "role": "root",
+          "model": "gpt-6-luna",
+          "calls": 4
+        },
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-cz9ma95m/codex-home/sessions/2026/11/22/rollout-2026-11-22T04-28-11-01a20295-a4aa-79b2-91b5-6045458eaf8a.jsonl",
+          "id": "01a20295-a4aa-79b2-91b5-6045458eaf8a",
+          "role": "issue_worker",
+          "model": "gpt-6-luna",
+          "calls": 7
+        }
+      ],
+      "last_message": "needs-feedback",
+      "sandbox": null
+    },
+    {
+      "case": "worker-hard-ambiguous-tax",
+      "run": 2,
+      "suite": "worker",
+      "worker_model": "gpt-6-luna",
+      "worker_effort": "medium",
+      "dispatcher_model": "gpt-6-luna",
+      "graders": [
+        {
+          "type": "verdict",
+          "passed": true,
+          "detail": "outcome needs-feedback, 1 criteria"
+        },
+        {
+          "type": "diff_scope",
+          "passed": true,
+          "detail": "no commits beyond the fixture"
+        },
+        {
+          "type": "gh_log",
+          "passed": true,
+          "detail": "0 expected, 2 forbidden"
+        }
+      ],
+      "outcome": "pass",
+      "error": null,
+      "duration_s": 54.61,
+      "usage": {
+        "calls": 11,
+        "input": 305608,
+        "cached_input": 260352,
+        "output": 2358,
+        "reasoning": 437
+      },
+      "rollouts": [
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-9wa2diaa/codex-home/sessions/2026/11/22/rollout-2026-11-22T04-29-02-01a20296-6c2c-7271-9c18-f85572b03564.jsonl",
+          "id": "01a20296-6c2c-7271-9c18-f85572b03564",
+          "role": "root",
+          "model": "gpt-6-luna",
+          "calls": 4
+        },
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-9wa2diaa/codex-home/sessions/2026/11/22/rollout-2026-11-22T04-29-13-01a20296-9947-7632-a091-509b27dabf95.jsonl",
+          "id": "01a20296-9947-7632-a091-509b27dabf95",
+          "role": "issue_worker",
+          "model": "gpt-6-luna",
+          "calls": 7
+        }
+      ],
+      "last_message": "needs-feedback \u2014 the issue does not specify the tax rate or how to obtain it.",
+      "sandbox": null
+    },
+    {
+      "case": "worker-hard-error-lines",
+      "run": 1,
+      "suite": "worker",
+      "worker_model": "gpt-6-luna",
+      "worker_effort": "medium",
+      "dispatcher_model": "gpt-6-luna",
+      "graders": [
+        {
+          "type": "hidden_tests",
+          "passed": true,
+          "detail": "hidden tests on refs/heads/issue/7-stock-file-errors fdf0503d: pass: Ran 4 tests in 0.093s | OK"
+        },
+        {
+          "type": "verdict",
+          "passed": false,
+          "detail": "outcome 'needs-feedback', expected 'ready-to-merge'"
+        },
+        {
+          "type": "diff_scope",
+          "passed": true,
+          "detail": "refs/heads/issue/7-stock-file-errors changes 5 path(s), all allowed"
+        },
+        {
+          "type": "gh_log",
+          "passed": true,
+          "detail": "0 expected, 1 forbidden"
+        }
+      ],
+      "outcome": "fail",
+      "error": null,
+      "duration_s": 164.375,
+      "usage": {
+        "calls": 23,
+        "input": 766538,
+        "cached_input": 726272,
+        "output": 7622,
+        "reasoning": 2083
+      },
+      "rollouts": [
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-sraf8ovx/codex-home/sessions/2026/11/22/rollout-2026-11-22T04-29-57-01a20297-4293-7e21-a6c5-498a35bd20a0.jsonl",
+          "id": "01a20297-4293-7e21-a6c5-498a35bd20a0",
+          "role": "root",
+          "model": "gpt-6-luna",
+          "calls": 5
+        },
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-sraf8ovx/codex-home/sessions/2026/11/22/rollout-2026-11-22T04-30-09-01a20297-71c4-7023-9e0a-566299b55745.jsonl",
+          "id": "01a20297-71c4-7023-9e0a-566299b55745",
+          "role": "issue_worker",
+          "model": "gpt-6-luna",
+          "calls": 18
+        }
+      ],
+      "last_message": "needs-feedback \u2014 implementation is complete, but the brief conflicts on standalone versus CI-skipped batch instructions.",
+      "sandbox": null
+    },
+    {
+      "case": "worker-hard-error-lines",
+      "run": 2,
+      "suite": "worker",
+      "worker_model": "gpt-6-luna",
+      "worker_effort": "medium",
+      "dispatcher_model": "gpt-6-luna",
+      "graders": [
+        {
+          "type": "hidden_tests",
+          "passed": true,
+          "detail": "hidden tests on refs/heads/issue/7-stock-file-errors c7de035d: pass: Ran 4 tests in 0.099s | OK"
+        },
+        {
+          "type": "verdict",
+          "passed": true,
+          "detail": "outcome ready-to-merge, 4 criteria"
+        },
+        {
+          "type": "diff_scope",
+          "passed": true,
+          "detail": "refs/heads/issue/7-stock-file-errors changes 5 path(s), all allowed"
+        },
+        {
+          "type": "gh_log",
+          "passed": true,
+          "detail": "0 expected, 1 forbidden"
+        }
+      ],
+      "outcome": "pass",
+      "error": null,
+      "duration_s": 206.157,
+      "usage": {
+        "calls": 35,
+        "input": 1458858,
+        "cached_input": 1378688,
+        "output": 9961,
+        "reasoning": 2381
+      },
+      "rollouts": [
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-ulki65_f/codex-home/sessions/2026/11/22/rollout-2026-11-22T04-32-42-01a20299-c67f-73f1-aee9-7b623e039c72.jsonl",
+          "id": "01a20299-c67f-73f1-aee9-7b623e039c72",
+          "role": "root",
+          "model": "gpt-6-luna",
+          "calls": 4
+        },
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-ulki65_f/codex-home/sessions/2026/11/22/rollout-2026-11-22T04-32-52-01a20299-f074-7c11-80c0-40533c9277d4.jsonl",
+          "id": "01a20299-f074-7c11-80c0-40533c9277d4",
+          "role": "issue_worker",
+          "model": "gpt-6-luna",
+          "calls": 31
+        }
+      ],
+      "last_message": "ready-to-merge (draft PR #8).",
+      "sandbox": null
+    },
+    {
+      "case": "worker-hard-location",
+      "run": 1,
+      "suite": "worker",
+      "worker_model": "gpt-6-luna",
+      "worker_effort": "medium",
+      "dispatcher_model": "gpt-6-luna",
+      "graders": [
+        {
+          "type": "hidden_tests",
+          "passed": true,
+          "detail": "hidden tests on refs/heads/issue/6-stock-location c271de5b: pass: Ran 5 tests in 0.118s | OK"
+        },
+        {
+          "type": "verdict",
+          "passed": true,
+          "detail": "outcome ready-to-merge, 6 criteria"
+        },
+        {
+          "type": "diff_scope",
+          "passed": true,
+          "detail": "refs/heads/issue/6-stock-location changes 7 path(s), all allowed"
+        },
+        {
+          "type": "gh_log",
+          "passed": true,
+          "detail": "0 expected, 1 forbidden"
+        }
+      ],
+      "outcome": "pass",
+      "error": null,
+      "duration_s": 191.822,
+      "usage": {
+        "calls": 26,
+        "input": 1009594,
+        "cached_input": 959744,
+        "output": 9295,
+        "reasoning": 1882
+      },
+      "rollouts": [
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-p5802ul_/codex-home/sessions/2026/11/22/rollout-2026-11-22T04-36-09-01a2029c-ede1-7100-a020-d6b4d6f98dc9.jsonl",
+          "id": "01a2029c-ede1-7100-a020-d6b4d6f98dc9",
+          "role": "root",
+          "model": "gpt-6-luna",
+          "calls": 4
+        },
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-p5802ul_/codex-home/sessions/2026/11/22/rollout-2026-11-22T04-36-19-01a2029d-18a5-7bd3-8912-53f961910888.jsonl",
+          "id": "01a2029d-18a5-7bd3-8912-53f961910888",
+          "role": "issue_worker",
+          "model": "gpt-6-luna",
+          "calls": 22
+        }
+      ],
+      "last_message": "ready-to-merge: PR #7 is ready to merge.",
+      "sandbox": null
+    },
+    {
+      "case": "worker-hard-location",
+      "run": 2,
+      "suite": "worker",
+      "worker_model": "gpt-6-luna",
+      "worker_effort": "medium",
+      "dispatcher_model": "gpt-6-luna",
+      "graders": [
+        {
+          "type": "hidden_tests",
+          "passed": true,
+          "detail": "hidden tests on refs/heads/issue/6-stock-location 53108017: pass: Ran 5 tests in 0.129s | OK"
+        },
+        {
+          "type": "verdict",
+          "passed": true,
+          "detail": "outcome ready-to-merge, 6 criteria"
+        },
+        {
+          "type": "diff_scope",
+          "passed": true,
+          "detail": "refs/heads/issue/6-stock-location changes 7 path(s), all allowed"
+        },
+        {
+          "type": "gh_log",
+          "passed": true,
+          "detail": "0 expected, 1 forbidden"
+        }
+      ],
+      "outcome": "pass",
+      "error": null,
+      "duration_s": 224.063,
+      "usage": {
+        "calls": 31,
+        "input": 1315030,
+        "cached_input": 1256448,
+        "output": 10436,
+        "reasoning": 1819
+      },
+      "rollouts": [
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-csvczw0k/codex-home/sessions/2026/11/22/rollout-2026-11-22T04-39-21-01a2029f-dd46-7db1-b71d-93dab3a2b1b3.jsonl",
+          "id": "01a2029f-dd46-7db1-b71d-93dab3a2b1b3",
+          "role": "root",
+          "model": "gpt-6-luna",
+          "calls": 4
+        },
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-csvczw0k/codex-home/sessions/2026/11/22/rollout-2026-11-22T04-39-32-01a202a0-0b0b-7c31-b395-3760400493ef.jsonl",
+          "id": "01a202a0-0b0b-7c31-b395-3760400493ef",
+          "role": "issue_worker",
+          "model": "gpt-6-luna",
+          "calls": 27
+        }
+      ],
+      "last_message": "ready-to-merge",
+      "sandbox": null
+    },
+    {
+      "case": "worker-medium-csv-format",
+      "run": 1,
+      "suite": "worker",
+      "worker_model": "gpt-6-luna",
+      "worker_effort": "medium",
+      "dispatcher_model": "gpt-6-luna",
+      "graders": [
+        {
+          "type": "hidden_tests",
+          "passed": true,
+          "detail": "hidden tests on refs/heads/issue/3-list-csv-format cb20512f: pass: Ran 3 tests in 0.075s | OK"
+        },
+        {
+          "type": "verdict",
+          "passed": true,
+          "detail": "outcome ready-to-merge, 4 criteria"
+        },
+        {
+          "type": "diff_scope",
+          "passed": true,
+          "detail": "refs/heads/issue/3-list-csv-format changes 4 path(s), all allowed"
+        },
+        {
+          "type": "gh_log",
+          "passed": true,
+          "detail": "0 expected, 1 forbidden"
+        }
+      ],
+      "outcome": "pass",
+      "error": null,
+      "duration_s": 134.08,
+      "usage": {
+        "calls": 27,
+        "input": 930606,
+        "cached_input": 868480,
+        "output": 6126,
+        "reasoning": 780
+      },
+      "rollouts": [
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-s79s903n/codex-home/sessions/2026/11/22/rollout-2026-11-22T04-43-06-01a202a3-4a85-7643-86a3-9d181db79e78.jsonl",
+          "id": "01a202a3-4a85-7643-86a3-9d181db79e78",
+          "role": "root",
+          "model": "gpt-6-luna",
+          "calls": 4
+        },
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-s79s903n/codex-home/sessions/2026/11/22/rollout-2026-11-22T04-43-16-01a202a3-7616-7c00-b8bb-d321d4b5e209.jsonl",
+          "id": "01a202a3-7616-7c00-b8bb-d321d4b5e209",
+          "role": "issue_worker",
+          "model": "gpt-6-luna",
+          "calls": 23
+        }
+      ],
+      "last_message": "ready-to-merge.",
+      "sandbox": null
+    },
+    {
+      "case": "worker-medium-csv-format",
+      "run": 2,
+      "suite": "worker",
+      "worker_model": "gpt-6-luna",
+      "worker_effort": "medium",
+      "dispatcher_model": "gpt-6-luna",
+      "graders": [
+        {
+          "type": "hidden_tests",
+          "passed": true,
+          "detail": "hidden tests on refs/heads/issue/3-list-csv-format 3d760de7: pass: Ran 3 tests in 0.075s | OK"
+        },
+        {
+          "type": "verdict",
+          "passed": true,
+          "detail": "outcome ready-to-merge, 4 criteria"
+        },
+        {
+          "type": "diff_scope",
+          "passed": true,
+          "detail": "refs/heads/issue/3-list-csv-format changes 3 path(s), all allowed"
+        },
+        {
+          "type": "gh_log",
+          "passed": true,
+          "detail": "0 expected, 1 forbidden"
+        }
+      ],
+      "outcome": "pass",
+      "error": null,
+      "duration_s": 176.689,
+      "usage": {
+        "calls": 28,
+        "input": 1042906,
+        "cached_input": 998016,
+        "output": 8381,
+        "reasoning": 2087
+      },
+      "rollouts": [
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-324yv56s/codex-home/sessions/2026/11/22/rollout-2026-11-22T04-45-20-01a202a5-581d-7d83-a817-61afc3b197ad.jsonl",
+          "id": "01a202a5-581d-7d83-a817-61afc3b197ad",
+          "role": "root",
+          "model": "gpt-6-luna",
+          "calls": 4
+        },
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-324yv56s/codex-home/sessions/2026/11/22/rollout-2026-11-22T04-45-30-01a202a5-820f-7ac0-84a6-dcb187016ae8.jsonl",
+          "id": "01a202a5-820f-7ac0-84a6-dcb187016ae8",
+          "role": "issue_worker",
+          "model": "gpt-6-luna",
+          "calls": 24
+        }
+      ],
+      "last_message": "ready-to-merge \u2014 draft PR #4 is open.",
+      "sandbox": null
+    },
+    {
+      "case": "worker-medium-money-refactor",
+      "run": 1,
+      "suite": "worker",
+      "worker_model": "gpt-6-luna",
+      "worker_effort": "medium",
+      "dispatcher_model": "gpt-6-luna",
+      "graders": [
+        {
+          "type": "hidden_tests",
+          "passed": true,
+          "detail": "hidden tests on refs/heads/issue/4-format-money 02d9902a: pass: Ran 3 tests in 0.047s | OK"
+        },
+        {
+          "type": "verdict",
+          "passed": true,
+          "detail": "outcome ready-to-merge, 3 criteria"
+        },
+        {
+          "type": "diff_scope",
+          "passed": true,
+          "detail": "refs/heads/issue/4-format-money changes 4 path(s), all allowed"
+        },
+        {
+          "type": "gh_log",
+          "passed": true,
+          "detail": "0 expected, 1 forbidden"
+        }
+      ],
+      "outcome": "pass",
+      "error": null,
+      "duration_s": 154.938,
+      "usage": {
+        "calls": 23,
+        "input": 801693,
+        "cached_input": 760192,
+        "output": 7402,
+        "reasoning": 2216
+      },
+      "rollouts": [
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-df9gjlb2/codex-home/sessions/2026/11/22/rollout-2026-11-22T04-48-17-01a202a8-0c1f-78b1-8fa0-b670556222e7.jsonl",
+          "id": "01a202a8-0c1f-78b1-8fa0-b670556222e7",
+          "role": "root",
+          "model": "gpt-6-luna",
+          "calls": 4
+        },
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-df9gjlb2/codex-home/sessions/2026/11/22/rollout-2026-11-22T04-48-28-01a202a8-37ae-7c91-bd61-15b3aa28218a.jsonl",
+          "id": "01a202a8-37ae-7c91-bd61-15b3aa28218a",
+          "role": "issue_worker",
+          "model": "gpt-6-luna",
+          "calls": 19
+        }
+      ],
+      "last_message": "ready-to-merge \u2014 PR #5.",
+      "sandbox": null
+    },
+    {
+      "case": "worker-medium-money-refactor",
+      "run": 2,
+      "suite": "worker",
+      "worker_model": "gpt-6-luna",
+      "worker_effort": "medium",
+      "dispatcher_model": "gpt-6-luna",
+      "graders": [
+        {
+          "type": "hidden_tests",
+          "passed": true,
+          "detail": "hidden tests on refs/heads/issue/4-format-money c7865932: pass: Ran 3 tests in 0.047s | OK"
+        },
+        {
+          "type": "verdict",
+          "passed": false,
+          "detail": "localChecks names no pre-patch failing run: 'TDD: tests/test_money.py failed before implementation with ModuleNotFoundError for inventory.money. python3 -m unittest: 13 tests passed. git diff --check passe'"
+        },
+        {
+          "type": "diff_scope",
+          "passed": true,
+          "detail": "refs/heads/issue/4-format-money changes 4 path(s), all allowed"
+        },
+        {
+          "type": "gh_log",
+          "passed": true,
+          "detail": "0 expected, 1 forbidden"
+        }
+      ],
+      "outcome": "fail",
+      "error": null,
+      "duration_s": 110.951,
+      "usage": {
+        "calls": 19,
+        "input": 631181,
+        "cached_input": 593024,
+        "output": 5087,
+        "reasoning": 812
+      },
+      "rollouts": [
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-vnnavzna/codex-home/sessions/2026/11/22/rollout-2026-11-22T04-50-53-01a202aa-6b0a-7303-95d0-e7476eab91c6.jsonl",
+          "id": "01a202aa-6b0a-7303-95d0-e7476eab91c6",
+          "role": "root",
+          "model": "gpt-6-luna",
+          "calls": 4
+        },
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-vnnavzna/codex-home/sessions/2026/11/22/rollout-2026-11-22T04-51-03-01a202aa-9526-7303-aa73-004341083259.jsonl",
+          "id": "01a202aa-9526-7303-aa73-004341083259",
+          "role": "issue_worker",
+          "model": "gpt-6-luna",
+          "calls": 15
+        }
+      ],
+      "last_message": "ready-to-merge",
+      "sandbox": null
+    },
+    {
+      "case": "worker-medium-price-parse",
+      "run": 1,
+      "suite": "worker",
+      "worker_model": "gpt-6-luna",
+      "worker_effort": "medium",
+      "dispatcher_model": "gpt-6-luna",
+      "graders": [
+        {
+          "type": "hidden_tests",
+          "passed": true,
+          "detail": "hidden tests on refs/heads/issue/5-total-wrong-value ecf89159: pass: Ran 2 tests in 0.024s | OK"
+        },
+        {
+          "type": "verdict",
+          "passed": true,
+          "detail": "outcome ready-to-merge, 3 criteria"
+        },
+        {
+          "type": "diff_scope",
+          "passed": true,
+          "detail": "refs/heads/issue/5-total-wrong-value changes 4 path(s), all allowed"
+        },
+        {
+          "type": "gh_log",
+          "passed": true,
+          "detail": "0 expected, 1 forbidden"
+        }
+      ],
+      "outcome": "pass",
+      "error": null,
+      "duration_s": 168.137,
+      "usage": {
+        "calls": 30,
+        "input": 1113230,
+        "cached_input": 1057920,
+        "output": 7949,
+        "reasoning": 1835
+      },
+      "rollouts": [
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-nbj69m5e/codex-home/sessions/2026/11/22/rollout-2026-11-22T04-52-44-01a202ac-1e33-7420-ba81-54211f86d6e3.jsonl",
+          "id": "01a202ac-1e33-7420-ba81-54211f86d6e3",
+          "role": "root",
+          "model": "gpt-6-luna",
+          "calls": 4
+        },
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-nbj69m5e/codex-home/sessions/2026/11/22/rollout-2026-11-22T04-52-54-01a202ac-4756-7d02-9564-96d54e2de31e.jsonl",
+          "id": "01a202ac-4756-7d02-9564-96d54e2de31e",
+          "role": "issue_worker",
+          "model": "gpt-6-luna",
+          "calls": 26
+        }
+      ],
+      "last_message": "ready-to-merge \u2014 PR #6 is open.",
+      "sandbox": null
+    },
+    {
+      "case": "worker-medium-price-parse",
+      "run": 2,
+      "suite": "worker",
+      "worker_model": "gpt-6-luna",
+      "worker_effort": "medium",
+      "dispatcher_model": "gpt-6-luna",
+      "graders": [
+        {
+          "type": "hidden_tests",
+          "passed": true,
+          "detail": "hidden tests on refs/heads/issue/5-total-wrong-value e7b997b1: pass: Ran 2 tests in 0.025s | OK"
+        },
+        {
+          "type": "verdict",
+          "passed": true,
+          "detail": "outcome ready-to-merge, 3 criteria"
+        },
+        {
+          "type": "diff_scope",
+          "passed": true,
+          "detail": "refs/heads/issue/5-total-wrong-value changes 3 path(s), all allowed"
+        },
+        {
+          "type": "gh_log",
+          "passed": true,
+          "detail": "0 expected, 1 forbidden"
+        }
+      ],
+      "outcome": "pass",
+      "error": null,
+      "duration_s": 131.138,
+      "usage": {
+        "calls": 25,
+        "input": 854683,
+        "cached_input": 815488,
+        "output": 5851,
+        "reasoning": 1021
+      },
+      "rollouts": [
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-47iyy_kr/codex-home/sessions/2026/11/22/rollout-2026-11-22T04-55-33-01a202ae-b0a9-79f1-8cad-e6e97553f590.jsonl",
+          "id": "01a202ae-b0a9-79f1-8cad-e6e97553f590",
+          "role": "root",
+          "model": "gpt-6-luna",
+          "calls": 4
+        },
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-47iyy_kr/codex-home/sessions/2026/11/22/rollout-2026-11-22T04-55-44-01a202ae-dd9a-7072-8434-6cccef86e598.jsonl",
+          "id": "01a202ae-dd9a-7072-8434-6cccef86e598",
+          "role": "issue_worker",
+          "model": "gpt-6-luna",
+          "calls": 21
+        }
+      ],
+      "last_message": "ready-to-merge: draft PR #6 is open.",
+      "sandbox": null
+    },
+    {
+      "case": "worker-large-hard-one-discount",
+      "run": 1,
+      "suite": "worker",
+      "worker_model": "gpt-6-luna",
+      "worker_effort": "medium",
+      "dispatcher_model": "gpt-6-luna",
+      "graders": [
+        {
+          "type": "hidden_tests",
+          "passed": true,
+          "detail": "hidden tests on refs/heads/issue/22-one-discount eb51f92b: pass: Ran 6 tests in 0.030s | OK"
+        },
+        {
+          "type": "verdict",
+          "passed": true,
+          "detail": "outcome ready-to-merge, 5 criteria"
+        },
+        {
+          "type": "diff_scope",
+          "passed": true,
+          "detail": "refs/heads/issue/22-one-discount changes 5 path(s), all allowed"
+        },
+        {
+          "type": "gh_log",
+          "passed": true,
+          "detail": "0 expected, 1 forbidden"
+        }
+      ],
+      "outcome": "pass",
+      "error": null,
+      "duration_s": 178.324,
+      "usage": {
+        "calls": 27,
+        "input": 1075428,
+        "cached_input": 1000960,
+        "output": 8258,
+        "reasoning": 1735
+      },
+      "rollouts": [
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-p87n54dt/codex-home/sessions/2026/11/22/rollout-2026-11-22T04-57-44-01a202b0-b2b0-7e73-8fee-64ac70ff3d90.jsonl",
+          "id": "01a202b0-b2b0-7e73-8fee-64ac70ff3d90",
+          "role": "root",
+          "model": "gpt-6-luna",
+          "calls": 4
+        },
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-p87n54dt/codex-home/sessions/2026/11/22/rollout-2026-11-22T04-57-55-01a202b0-df1f-7880-b3da-196e781541b0.jsonl",
+          "id": "01a202b0-df1f-7880-b3da-196e781541b0",
+          "role": "issue_worker",
+          "model": "gpt-6-luna",
+          "calls": 23
+        }
+      ],
+      "last_message": "ready-to-merge (PR #23)",
+      "sandbox": null
+    },
+    {
+      "case": "worker-large-hard-one-discount",
+      "run": 2,
+      "suite": "worker",
+      "worker_model": "gpt-6-luna",
+      "worker_effort": "medium",
+      "dispatcher_model": "gpt-6-luna",
+      "graders": [
+        {
+          "type": "hidden_tests",
+          "passed": true,
+          "detail": "hidden tests on refs/heads/issue/22-one-discount 1fa8209b: pass: Ran 6 tests in 0.031s | OK"
+        },
+        {
+          "type": "verdict",
+          "passed": true,
+          "detail": "outcome ready-to-merge, 5 criteria"
+        },
+        {
+          "type": "diff_scope",
+          "passed": true,
+          "detail": "refs/heads/issue/22-one-discount changes 5 path(s), all allowed"
+        },
+        {
+          "type": "gh_log",
+          "passed": true,
+          "detail": "0 expected, 1 forbidden"
+        }
+      ],
+      "outcome": "pass",
+      "error": null,
+      "duration_s": 207.994,
+      "usage": {
+        "calls": 32,
+        "input": 1336890,
+        "cached_input": 1284736,
+        "output": 9898,
+        "reasoning": 2506
+      },
+      "rollouts": [
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-jf08nrez/codex-home/sessions/2026/11/22/rollout-2026-11-22T05-00-43-01a202b3-6d50-7341-8317-91e8210ad9eb.jsonl",
+          "id": "01a202b3-6d50-7341-8317-91e8210ad9eb",
+          "role": "root",
+          "model": "gpt-6-luna",
+          "calls": 4
+        },
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-jf08nrez/codex-home/sessions/2026/11/22/rollout-2026-11-22T05-00-54-01a202b3-985d-7ad0-8f59-763a3c2d441d.jsonl",
+          "id": "01a202b3-985d-7ad0-8f59-763a3c2d441d",
+          "role": "issue_worker",
+          "model": "gpt-6-luna",
+          "calls": 28
+        }
+      ],
+      "last_message": "ready-to-merge \u2014 PR #23 is open as a draft. Verdict saved to `.eval/verdict.json`.",
+      "sandbox": null
+    },
+    {
+      "case": "worker-large-locate-repeated-sku",
+      "run": 1,
+      "suite": "worker",
+      "worker_model": "gpt-6-luna",
+      "worker_effort": "medium",
+      "dispatcher_model": "gpt-6-luna",
+      "graders": [
+        {
+          "type": "hidden_tests",
+          "passed": true,
+          "detail": "hidden tests on refs/heads/issue/23-order-1004-total 4c0572cc: pass: Ran 4 tests in 0.034s | OK"
+        },
+        {
+          "type": "verdict",
+          "passed": true,
+          "detail": "outcome ready-to-merge, 4 criteria"
+        },
+        {
+          "type": "diff_scope",
+          "passed": true,
+          "detail": "refs/heads/issue/23-order-1004-total changes 3 path(s), all allowed"
+        },
+        {
+          "type": "gh_log",
+          "passed": true,
+          "detail": "0 expected, 1 forbidden"
+        }
+      ],
+      "outcome": "pass",
+      "error": null,
+      "duration_s": 156.226,
+      "usage": {
+        "calls": 22,
+        "input": 845736,
+        "cached_input": 779776,
+        "output": 7490,
+        "reasoning": 1671
+      },
+      "rollouts": [
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-rr0fs_5r/codex-home/sessions/2026/11/22/rollout-2026-11-22T05-04-12-01a202b6-9be6-7ee1-afc4-d11b13f1644d.jsonl",
+          "id": "01a202b6-9be6-7ee1-afc4-d11b13f1644d",
+          "role": "root",
+          "model": "gpt-6-luna",
+          "calls": 4
+        },
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-rr0fs_5r/codex-home/sessions/2026/11/22/rollout-2026-11-22T05-04-22-01a202b6-c5dd-72d1-88d3-628e99d5882b.jsonl",
+          "id": "01a202b6-c5dd-72d1-88d3-628e99d5882b",
+          "role": "issue_worker",
+          "model": "gpt-6-luna",
+          "calls": 18
+        }
+      ],
+      "last_message": "Issue #23 is ready to merge; draft PR #24 is open.",
+      "sandbox": null
+    },
+    {
+      "case": "worker-large-locate-repeated-sku",
+      "run": 2,
+      "suite": "worker",
+      "worker_model": "gpt-6-luna",
+      "worker_effort": "medium",
+      "dispatcher_model": "gpt-6-luna",
+      "graders": [
+        {
+          "type": "hidden_tests",
+          "passed": true,
+          "detail": "hidden tests on refs/heads/issue/23-order-1004-total 7bbb48f2: pass: Ran 4 tests in 0.034s | OK"
+        },
+        {
+          "type": "verdict",
+          "passed": true,
+          "detail": "outcome ready-to-merge, 4 criteria"
+        },
+        {
+          "type": "diff_scope",
+          "passed": true,
+          "detail": "refs/heads/issue/23-order-1004-total changes 4 path(s), all allowed"
+        },
+        {
+          "type": "gh_log",
+          "passed": true,
+          "detail": "0 expected, 1 forbidden"
+        }
+      ],
+      "outcome": "pass",
+      "error": null,
+      "duration_s": 239.783,
+      "usage": {
+        "calls": 26,
+        "input": 1043879,
+        "cached_input": 968832,
+        "output": 8684,
+        "reasoning": 2364
+      },
+      "rollouts": [
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-lvd6x222/codex-home/sessions/2026/11/22/rollout-2026-11-22T05-06-48-01a202b9-0035-79f0-ac8e-898c498f48e2.jsonl",
+          "id": "01a202b9-0035-79f0-ac8e-898c498f48e2",
+          "role": "root",
+          "model": "gpt-6-luna",
+          "calls": 4
+        },
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-lvd6x222/codex-home/sessions/2026/11/22/rollout-2026-11-22T05-06-59-01a202b9-2adf-7320-926b-bea1d2258328.jsonl",
+          "id": "01a202b9-2adf-7320-926b-bea1d2258328",
+          "role": "issue_worker",
+          "model": "gpt-6-luna",
+          "calls": 22
+        }
+      ],
+      "last_message": "ready-to-merge (PR #24)",
+      "sandbox": null
+    },
+    {
+      "case": "worker-large-medium-report-midnight",
+      "run": 1,
+      "suite": "worker",
+      "worker_model": "gpt-6-luna",
+      "worker_effort": "medium",
+      "dispatcher_model": "gpt-6-luna",
+      "graders": [
+        {
+          "type": "hidden_tests",
+          "passed": true,
+          "detail": "hidden tests on refs/heads/issue/21-report-midnight b7b9ebdc: pass: Ran 3 tests in 0.030s | OK"
+        },
+        {
+          "type": "verdict",
+          "passed": false,
+          "detail": "outcome 'blocked', expected 'ready-to-merge'"
+        },
+        {
+          "type": "diff_scope",
+          "passed": true,
+          "detail": "refs/heads/issue/21-report-midnight changes 4 path(s), all allowed"
+        },
+        {
+          "type": "gh_log",
+          "passed": true,
+          "detail": "0 expected, 1 forbidden"
+        }
+      ],
+      "outcome": "fail",
+      "error": null,
+      "duration_s": 211.346,
+      "usage": {
+        "calls": 36,
+        "input": 1451730,
+        "cached_input": 1396480,
+        "output": 9924,
+        "reasoning": 3072
+      },
+      "rollouts": [
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-deq11i5m/codex-home/sessions/2026/11/22/rollout-2026-11-22T05-10-49-01a202bc-ab14-7f82-b453-5465029ad163.jsonl",
+          "id": "01a202bc-ab14-7f82-b453-5465029ad163",
+          "role": "root",
+          "model": "gpt-6-luna",
+          "calls": 4
+        },
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-deq11i5m/codex-home/sessions/2026/11/22/rollout-2026-11-22T05-10-59-01a202bc-d51e-7802-a87e-c15804c42895.jsonl",
+          "id": "01a202bc-d51e-7802-a87e-c15804c42895",
+          "role": "issue_worker",
+          "model": "gpt-6-luna",
+          "calls": 32
+        }
+      ],
+      "last_message": "blocked \u2014 fix and tests are pushed, but the standalone CI configuration conflicts with the required `ci: skip` workflow.",
+      "sandbox": null
+    },
+    {
+      "case": "worker-large-medium-report-midnight",
+      "run": 2,
+      "suite": "worker",
+      "worker_model": "gpt-6-luna",
+      "worker_effort": "medium",
+      "dispatcher_model": "gpt-6-luna",
+      "graders": [
+        {
+          "type": "hidden_tests",
+          "passed": true,
+          "detail": "hidden tests on refs/heads/issue/21-report-midnight 3707c0a2: pass: Ran 3 tests in 0.029s | OK"
+        },
+        {
+          "type": "verdict",
+          "passed": true,
+          "detail": "outcome ready-to-merge, 3 criteria"
+        },
+        {
+          "type": "diff_scope",
+          "passed": true,
+          "detail": "refs/heads/issue/21-report-midnight changes 3 path(s), all allowed"
+        },
+        {
+          "type": "gh_log",
+          "passed": true,
+          "detail": "0 expected, 1 forbidden"
+        }
+      ],
+      "outcome": "pass",
+      "error": null,
+      "duration_s": 158.655,
+      "usage": {
+        "calls": 26,
+        "input": 977795,
+        "cached_input": 933248,
+        "output": 7555,
+        "reasoning": 2142
+      },
+      "rollouts": [
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-ah3ujav6/codex-home/sessions/2026/11/22/rollout-2026-11-22T05-14-20-01a202bf-e6c8-7c90-bae2-e845fd2ce66b.jsonl",
+          "id": "01a202bf-e6c8-7c90-bae2-e845fd2ce66b",
+          "role": "root",
+          "model": "gpt-6-luna",
+          "calls": 4
+        },
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-ah3ujav6/codex-home/sessions/2026/11/22/rollout-2026-11-22T05-14-32-01a202c0-1421-7361-b3f6-088ede3b8ef5.jsonl",
+          "id": "01a202c0-1421-7361-b3f6-088ede3b8ef5",
+          "role": "issue_worker",
+          "model": "gpt-6-luna",
+          "calls": 22
+        }
+      ],
+      "last_message": "ready-to-merge (PR #22)",
+      "sandbox": null
+    }
+  ]
+}

@@ -317,7 +317,7 @@ class RunConfigurationTextTest(unittest.TestCase):
 
     def test_session_config_names_all_five_codex_keys_with_defaults(self):
         text = (SKILL_DIR / "references" / "session-config.md").read_text()
-        for key, default in (("pmModel", "gpt-6.1-sol"), ("workerModel", "gpt-6.1-sol"),
+        for key, default in (("pmModel", "gpt-6.1-sol"), ("workerModel", "gpt-6-luna"),
                              ("workerEffort", "medium"), ("helperModel", "gpt-6-luna"),
                              ("waitMs", "600000")):
             with self.subTest(key=key):
@@ -1067,3 +1067,15 @@ class WorkerRoleBatchGateFixTextTest(unittest.TestCase):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+class WorktreeCheckResolvesSymlinksTextTest(unittest.TestCase):
+    def test_worker_compares_resolved_paths(self):
+        text = agent_section("issue-worker.md", "- **Check the worktree before any work.**", "- **Run every shell command")
+        self.assertIn("pwd -P", text)
+        self.assertIn("symlink", text)
+
+    def test_scribe_compares_resolved_paths(self):
+        text = agent_section("review-scribe.md", "First, run `git rev-parse", "Read the explorers'")
+        self.assertIn("pwd -P", text)
+        self.assertIn("symlink", text)

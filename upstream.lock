@@ -112,9 +112,9 @@ notes = "MIT text with the upstream and port copyright lines."
 
 [[file]]
 path = "README.md"
-mode = "patched"
+mode = "rewritten"
 upstream_sha256 = "eb672e5a074eabfdd3c58238b4070705823e1d8a13064934b9f21bac006e55c4"
-notes = "Port header credits upstream and the license; adds the Codex install steps."
+notes = "Rewritten as the port's front page: upstream credit, Codex install, setup, skill table, known limits. The upstream reference body is in docs/how-it-works.md; port upstream changes there."
 
 [[file]]
 path = "agents/code-auditor.md"
@@ -2029,3 +2029,15 @@ path = "evals/candidates/150-worker-model/worker-gpt-6.1-sol/summary.json"
 mode = "new"
 upstream_sha256 = ""
 notes = "Port-only file."
+
+[[file]]
+path = "assets/brand/banner.svg"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file. README banner."
+
+[[file]]
+path = "docs/how-it-works.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file. The reference body of upstream README.md, moved out of README.md and changed for Codex."

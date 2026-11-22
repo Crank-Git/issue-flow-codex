@@ -30,7 +30,8 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 SEED = ROOT / "testbed" / "seed"
 LABELS = ROOT / "skills" / "issue-flow" / "references" / "labels.md"
-GITEA_SERVER = os.environ.get("GITEA_SERVER_URL", "https://telescope.lan")
+# The default is a placeholder, because the public repository holds no internal host name.
+GITEA_SERVER = os.environ.get("GITEA_SERVER_URL", "https://gitea.example.internal")
 GITEA_REPO = os.environ.get("ISSUE_FLOW_TESTBED_GITEA", "e/issue-flow-codex-testbed")
 GITEA_LOGIN = "telescope"
 KEPT_BRANCHES = ("main", "dev")

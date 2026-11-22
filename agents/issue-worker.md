@@ -435,6 +435,7 @@ costs one turn and is always the cheaper error.
      worker or the PM may be driving it concurrently. Default to the `curl` check; drive
      the browser MCP only if your brief grants you exclusive browser access.
 5. **Verify.**
+   - Run the touched tests while you build. Run the `conventions` test command once, before you return `ready-to-merge`.
    - `ci: skip` → run the **full local suite** in the worktree: tests, lint, typecheck,
      build — whatever the conventions name, chained into as few calls as possible. All must
      pass; summarize what ran and the results in `localChecks`. This replaces CI — it is
@@ -545,8 +546,12 @@ of these is true. They are things you can actually notice about your own run:
 - You have pushed three fix rounds against the same failing check.
 - You are re-reading files you already read to remember what you did.
 - A single tool result came back larger than a few hundred lines and you need another.
-- Your local test suite has been run green once and the remaining work is a fresh phase
-  of the issue rather than a finish of the current one.
+
+Return `checkpoint` only when your turn budget is reached. A finished phase, a green
+suite, or a new part of the issue is not a reason to checkpoint.
+
+A phase limit in a brief does not stop the build. Build the whole issue, and state the
+conflict between the brief and the issue in `notesForPM`.
 
 As a rough scale for the same budget: a long issue runs somewhere around 120 tool calls
 before it is worth handing off. Treat that as an estimate, not a counter to track — you
@@ -564,7 +569,8 @@ A checkpoint is **not** a failure and not a blocker. Your branch and PR are push
 durable; the PM re-spawns a worker with `base: <remote>/issue/<number>-<slug>`, which picks
 your branch up exactly where you left it (the checkout block above handles this) with a
 clean context window. Put everything the next worker needs into `remaining` — what is
-done, what is left, and the next concrete step. It cannot see your context, only your
+done, what is left, and the next concrete step. `remaining` names only work that the next
+worker does, never a wait for the PM. The next worker cannot see your context, only your
 branch and your verdict.
 
 ## Return contract (your final message — return ONLY this object)

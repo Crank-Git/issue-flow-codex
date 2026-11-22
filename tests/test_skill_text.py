@@ -280,7 +280,7 @@ class ReworkAndTeardownTest(unittest.TestCase):
         self.assertNotIn("completion notification", text)
 
 
-class BatchGateFixTextTest(unittest.TestCase):
+class ParallelismAndRolesTextTest(unittest.TestCase):
     def test_parallelism_page_names_no_workflow_and_no_claude_plugin_root(self):
         text = (SKILL_DIR / "references" / "parallelism.md").read_text()
         self.assertNotRegex(text, r"\bWorkflow\b")

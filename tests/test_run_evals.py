@@ -10,6 +10,7 @@ import json
 import os
 import shlex
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -105,6 +106,31 @@ class IsolatedHomeTest(RunnerCase):
 
 
 class ExecTest(RunnerCase):
+    def test_login_shell_finds_the_fake_gh_first(self):
+        decoy = self.tmp / "decoy"
+        decoy.mkdir()
+        (decoy / "gh").write_text("#!/bin/sh\n")
+        (decoy / "gh").chmod(0o755)
+        profile_home = self.tmp / "profile-home"
+        profile_home.mkdir()
+        for name in (".zshenv", ".zprofile"):
+            (profile_home / name).write_text(f'export PATH="{decoy}:$PATH"\n')
+        case = run_evals.load_cases(str(ROOT / "evals"), "worker", CASE)[0]
+        sandbox, _ = run_evals.build_sandbox(case)
+        self.addCleanup(shutil.rmtree, sandbox, ignore_errors=True)
+        env = run_evals.sandbox_env(sandbox, str(self.tmp / "codex-home"))
+        env["HOME"] = str(profile_home)
+        zsh = shutil.which("zsh")
+        if not zsh:
+            self.skipTest("zsh is not installed")
+        found = subprocess.run([zsh, "-lc", "command -v gh"], env=env, capture_output=True, text=True)
+        self.assertEqual(found.stdout.strip(), str(ROOT / "evals" / "fakegh" / "gh"))
+
+    def test_config_turns_the_login_shell_off(self):
+        self.run_suite("no-verdict")
+        config = self.fake_saw()["config"]
+        self.assertTrue(config.startswith("allow_login_shell = false\n"))
+
     def test_fake_gh_first_on_path(self):
         self.run_suite("no-verdict")
         saw = self.fake_saw()
@@ -155,7 +181,8 @@ class RecordTest(RunnerCase):
         self.assertEqual([g["type"] for g in record["graders"]], ["hidden_tests", "verdict", "diff_scope", "gh_log"])
         self.assertTrue(all(g["passed"] for g in record["graders"]), record["graders"])
         self.assertEqual((record["usage"]["input"], record["usage"]["output"]), (1000, 100))
-        self.assertTrue(any((self.out / CASE / "run-1" / "rollouts").glob("rollout-root.jsonl")))
+        names = sorted(p.name for p in (self.out / CASE / "run-1" / "rollouts").iterdir())
+        self.assertEqual(names, ["rollout-root.jsonl", "rollout-worker.jsonl"])
 
     def test_missing_verdict_fails_and_keeps_last_message(self):
         code = self.run_suite("no-verdict")

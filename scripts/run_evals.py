@@ -183,6 +183,13 @@ def build_sandbox(case):
     os.makedirs(os.path.join(repo, ".eval"))
     shutil.copyfile(case["tracker_path"], os.path.join(sandbox, "tracker.json"))
     os.makedirs(os.path.join(sandbox, "gh-config"))
+    # A login shell reads the profile of its user, and a profile such as Homebrew shellenv puts
+    # the real gh first on PATH again. Zsh reads the files of ZDOTDIR instead, and these put the fake gh first.
+    zdotdir = os.path.join(sandbox, "zdotdir")
+    os.makedirs(zdotdir)
+    for name in (".zshenv", ".zprofile"):
+        with open(os.path.join(zdotdir, name), "w") as handle:
+            handle.write(f'export PATH="{FAKE_GH_DIR}:$PATH"\n')
     return sandbox, repo
 
 
@@ -238,6 +245,7 @@ def sandbox_env(sandbox, codex_home):
         IFE_GH_LOG=os.path.join(sandbox, "gh-log.jsonl"),
         GH_TOKEN=FAKE_TOKEN, GITHUB_TOKEN=FAKE_TOKEN,
         GH_CONFIG_DIR=os.path.join(sandbox, "gh-config"), GH_PROMPT_DISABLED="1",
+        ZDOTDIR=os.path.join(sandbox, "zdotdir"),
         **GIT_ISOLATION, **SANDBOX_GIT,
     )
     return env
@@ -281,7 +289,8 @@ def build_codex_home(home, suite, worker_model=None, worker_effort=None):
     os.makedirs(os.path.join(home, "agents"))
     os.symlink(operator_auth(), os.path.join(home, "auth.json"))
     with open(os.path.join(home, "config.toml"), "w") as handle:
-        handle.write(conformance.PROFILE)
+        # Codex fact 32: tool commands run in a login shell unless this root key is false.
+        handle.write("allow_login_shell = false\n" + conformance.PROFILE)
     for role in glob.glob(os.path.join(ROOT, "roles", "*.toml")):
         shutil.copy(role, os.path.join(home, "agents", os.path.basename(role)))
     copy = os.path.join(home, "agents", SUITES[suite][1])
@@ -711,11 +720,10 @@ def run_case(case, suite, run_number, args, run_dir):
     for name in ("gh-log.jsonl", "tracker.json"):
         if os.path.exists(os.path.join(sandbox, name)):
             shutil.copyfile(os.path.join(sandbox, name), os.path.join(run_dir, name))
-    # The root rollouts carry the quota samples of the run.
+    # The root rollouts carry the quota samples of the run. The others show why an agent failed.
     os.makedirs(os.path.join(run_dir, "rollouts"), exist_ok=True)
     for row in rollouts:
-        if row["role"] == "root":
-            shutil.copyfile(row["path"], os.path.join(run_dir, "rollouts", os.path.basename(row["path"])))
+        shutil.copyfile(row["path"], os.path.join(run_dir, "rollouts", os.path.basename(row["path"])))
 
     ctx = {"sandbox": sandbox, "repo": repo, "case": case,
            "gh_log": read_jsonl(os.path.join(sandbox, "gh-log.jsonl")), **state}

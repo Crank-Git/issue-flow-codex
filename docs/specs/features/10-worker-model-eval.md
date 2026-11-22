@@ -1,7 +1,7 @@
 ---
 id: worker-model-eval
 feature: Worker model eval
-epic: "Epic 8: Worker model eval"
+epic: "Epic 9: Worker model eval"
 status: planned
 issues: []
 mockups: []
@@ -69,7 +69,7 @@ This feature is `port-only`. The upstream evals live outside the plugin director
 - FR-worker-model-eval-23 — The maintainer runs the checker suite once with `gpt-6-luna` at effort `medium`, with 1 run for each case.
 - FR-worker-model-eval-24 — The results go to `evals/candidates/<issue>-worker-model/<suite>-<model>/`, committed.
 - FR-worker-model-eval-25 — `evals/BASELINE.md` states, for each model: the hidden-test pass rate, the mean input tokens, the mean output tokens, and the cases that failed.
-- FR-worker-model-eval-26 — The operator decides the default `workerModel` at the batch gate of Epic 8. The spec records the decision in the `Models` table and the `Changelog`.
+- FR-worker-model-eval-26 — The operator decides the default `workerModel` at the batch gate of Epic 9. The spec records the decision in the `Models` table and the `Changelog`.
 - FR-worker-model-eval-27 — When the operator chooses `gpt-6-luna`, the default escalation becomes `gpt-6.1-sol` at effort `medium` (Feature 08).
 - FR-worker-model-eval-28 — When the checker pass rate on the checker suite is below 100%, the epic gate records a question for the operator about the checker model.
 
@@ -109,7 +109,7 @@ flowchart TD
     A["Worker suite: sol, 2 runs per case"] --> C["BASELINE.md"]
     B["Worker suite: luna, 2 runs per case"] --> C
     D["Checker suite: luna, 1 run per case"] --> C
-    C --> E{"Operator decides at the Epic 8 gate"}
+    C --> E{"Operator decides at the Epic 9 gate"}
     E -- "luna" --> F["workerModel gpt-6-luna<br/>escalation gpt-6.1-sol medium"]
     E -- "sol" --> G["workerModel gpt-6.1-sol<br/>escalation gpt-6.1-sol high"]
 ```
@@ -125,7 +125,7 @@ The feature has no screens.
 
 ## Behaviour rules
 
-- The eval budget is part of the operator's limit for live Codex runs in Epics 7 and 8: 10% of the weekly quota in total. Each runner invocation has a default limit of 3%.
+- The eval budget is part of the operator's limit for live Codex runs in Epics 7 to 9: 10% of the weekly quota in total. Each runner invocation has a default limit of 3%.
 - The eval never runs in CI. It uses the operator's quota.
 - One run at a time. The machine limit is 3 concurrent background workers, and one `codex exec` run with its worker uses two threads.
 - A case that the upstream runner tagged `large` runs after the small cases, so that a stop by the quota limit keeps the small-case results.

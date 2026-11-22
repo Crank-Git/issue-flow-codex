@@ -1,7 +1,7 @@
 ---
 id: criteria-check
 feature: Criteria check and escalation
-epic: "Epic 7: Spend control"
+epic: "Epic 8: Upstream 0.21.0 sync"
 status: planned
 issues: []
 mockups: []

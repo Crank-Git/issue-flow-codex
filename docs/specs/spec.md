@@ -141,9 +141,9 @@ port action.
 | Project review | [05-project-review](features/05-project-review.md) | Epic 5 | none |
 | Mirror and sync | [06-mirror-and-sync](features/06-mirror-and-sync.md) | Epic 6 | none |
 | Spawn limits | [07-spawn-limits](features/07-spawn-limits.md) | Epic 7 | none |
-| Criteria check and escalation | [08-criteria-check](features/08-criteria-check.md) | Epic 7 | none |
+| Criteria check and escalation | [08-criteria-check](features/08-criteria-check.md) | Epic 8 | none |
 | Run budget and usage report | [09-run-budget](features/09-run-budget.md) | Epic 7 | none |
-| Worker model eval | [10-worker-model-eval](features/10-worker-model-eval.md) | Epic 8 | none |
+| Worker model eval | [10-worker-model-eval](features/10-worker-model-eval.md) | Epic 9 | none |
 
 The port is a command-line plugin. It has no screens, so the spec has no mockups.
 
@@ -312,8 +312,9 @@ Secrets: the forge tokens live in the `gh` and `tea` credential stores. No file 
 | Epic 4: Spec skills | The four spec skills run in Codex and write a Codex scaffold. | 04-spec-skills | Epic 1 | `$issue-flow:project-planner` produces an approved spec package on a test project. |
 | Epic 5: Project review | The review PM and the four review roles run in Codex. | 05-project-review | Epic 3 | `$issue-flow:project-review` files findings and lands a manual PR on a test bed. |
 | Epic 6: Mirror and sync | `repo-mirror` works, the upstream sync is automated, and v0.1.0 ships. | 06-mirror-and-sync | Epic 4, Epic 5 | A scheduled CI job opens an issue for a new upstream tag. The marketplace serves v0.1.0. |
-| Epic 7: Spend control | The spawn guard limits the roles, the workers of an issue, and the run quota. The port is on upstream 0.21.0 with the criteria check and the escalation. | 07-spawn-limits, 08-criteria-check, 09-run-budget | Epic 6 | One end-to-end run on the GitHub test bed with `runBudgetPercent: 3` merges a two-member batch, runs one check for each sub-issue, and spawns no subagent outside the allowlist. |
-| Epic 8: Worker model eval | The worker model is chosen from measured results. | 10-worker-model-eval | Epic 7 | `evals/BASELINE.md` holds both worker models and the checker. The operator records the worker model decision. |
+| Epic 7: Spawn limits and run budget | The spawn guard limits the roles, the workers of an issue, and the run quota. `usage.py` reports the tokens of a run. | 07-spawn-limits, 09-run-budget | Epic 6 | The unit tests of both guards pass. One end-to-end run on the GitHub test bed with `runBudgetPercent: 3` spawns no subagent outside the allowlist and stops at the budget. |
+| Epic 8: Upstream 0.21.0 sync | The port is on upstream 0.21.0, with the criteria check, one rework round, and one escalation. | 08-criteria-check | Epic 7 | The lock check passes on `issue-flow--v0.21.0`. One end-to-end run on the GitHub test bed merges a two-member batch with one check for each sub-issue. |
+| Epic 9: Worker model eval | The worker model is chosen from measured results. | 10-worker-model-eval | Epic 7, Epic 8 | `evals/BASELINE.md` holds both worker models and the checker. The operator records the worker model decision. |
 
 ## Milestones
 
@@ -322,7 +323,7 @@ Secrets: the forge tokens live in the `gh` and `tea` credential stores. No file 
 3. **M2 — Core loop (Epics 2 and 3).** Shippable means: the loop builds and merges a batch on both forges. From M2, the port can build its own later epics.
 4. **M3 — Full parity (Epics 4 and 5).** Shippable means: all seven skills run in Codex.
 5. **M4 — Release (Epic 6).** Shippable means: v0.1.0 is in the marketplace and the upstream sync runs on a schedule.
-6. **M5 — Spend control (Epics 7 and 8).** Shippable means: v0.2.0 is in the marketplace with the spawn limits, the criteria check, and the run budget, and the worker model decision is recorded. The target date is 2026-12-08, the end of the operator's Codex plan. The live Codex runs of M5 use at most 10% of the weekly quota in total.
+6. **M5 — Spend control (Epics 7 to 9).** Shippable means: v0.2.0 is in the marketplace with the spawn limits, the criteria check, and the run budget, and the worker model decision is recorded. The target date is 2026-12-08, the end of the operator's Codex plan. The live Codex runs of M5 use at most 10% of the weekly quota in total.
 
 ## Assumptions
 
@@ -415,3 +416,4 @@ Created by spec-to-issues on 2026-11-03 in `Crank-Git/issue-flow-codex`.
 - 2026-11-04 — Operator ruling on #126: setup is one time per machine. The setup skill defaults to `setup_project.py apply --user`, which writes `$CODEX_HOME/issue-flow.config.toml` and the role files; per-project setup stays an option (ADR 0005). The user-level file also sets the thread limit to 7. The PM's setup check passes on a complete user-level setup, and `worktree.py` keeps `.worktrees/` out of `git status` through the local exclude file. The approval policy stays a separate `-a never` flag. The plugin version is 0.1.1.
 - 2026-11-21 — Spend control, change round 1 (draft). The operator reported a run that used about 1.35 weekly quotas. The measurement is on the new page [Quota use of an operator run](pages/spend-analysis.md). Operator answers: the spawn guard limits the roles and the workers of an issue (five at most: build, two checkpoints, escalation, one escalation checkpoint); the port syncs to upstream 0.21.0 with the criteria check, one rework round, and one escalation to `gpt-6.1-sol` at effort `high`; the run budget is optional, and drains the run before it stops; the spec skills tell the operator to start a new session for the loop; a worker model eval decides `gpt-6-luna` against `gpt-6.1-sol`. The live Codex runs of Epics 7 and 8 use at most 10% of the weekly quota. New features 07 to 10, Epics 7 and 8, milestone M5.
 - 2026-11-21 — Spend control, review round 1: approved. Operator ruling: the run budget is off by default; when the operator turns it on, the suggested value is 15%.
+- 2026-11-21 — spec-to-issues: the planned Epic 7 held three features and too many sub-issues for one batch. It is now Epic 7 (Features 07 and 09), Epic 8 (Feature 08), and Epic 9 (Feature 10, formerly Epic 8). Scope is unchanged.

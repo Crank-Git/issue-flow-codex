@@ -1,7 +1,7 @@
 ---
 id: run-budget
 feature: Run budget and usage report
-epic: "Epic 7: Spend control"
+epic: "Epic 7: Spawn limits and run budget"
 status: planned
 issues: []
 mockups: []

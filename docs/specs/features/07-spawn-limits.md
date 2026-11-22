@@ -1,7 +1,7 @@
 ---
 id: spawn-limits
 feature: Spawn limits
-epic: "Epic 7: Spend control"
+epic: "Epic 7: Spawn limits and run budget"
 status: planned
 issues: []
 mockups: []

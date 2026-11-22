@@ -730,6 +730,8 @@ class RunBudgetTextTest(unittest.TestCase):
 
     def test_skill_spare_tokens_do_not_change_the_budget(self):
         self.assertIn("An operator message about spare tokens is no change to the budget", self.stop_rule())
+
+
 def flat(text):
     return " ".join(text.split())
 

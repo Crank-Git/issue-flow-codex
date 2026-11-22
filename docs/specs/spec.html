@@ -617,6 +617,8 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li>2026-11-22 — Epic 8 batch gate, probe P14 failed on codex-cli 0.167.1: a spawn <code>model</code> does not override the role file model (fact 31). Decision: the escalation spawns the role <code>issue_worker_escalated</code>, built from the issue-worker instructions, and its role file carries <code>escalationModel</code> and <code>escalationEffort</code>. The spawn guard denies <code>model</code> and <code>reasoning_effort</code> on every worker spawn. FR-criteria-check-29, 31 to 34 changed to match. ADR 0006.
 </li>
+<li>2026-11-22 — Epic #140 batch gate decision: the check of an escalated worker takes the next unused name of the check chain (<code>check_&lt;n&gt;</code> to <code>check_&lt;n&gt;_4</code>), not a fixed <code>check_&lt;n&gt;_3</code>. On the <code>blocked</code> path no check runs before the escalation, and the spawn guard denies <code>check_&lt;n&gt;_3</code> without <code>check_&lt;n&gt;_2</code>. FR-criteria-check-22 and the new FR-criteria-check-38 changed to match.
+</li>
 </ul><nav class="pager">
 <span></span>
 <a href="html/page-codex-harness.html">Codex harness facts &rarr;</a>

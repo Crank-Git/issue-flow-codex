@@ -875,12 +875,19 @@ class CriteriaCheckGateTextTest(unittest.TestCase):
             self.assertIn(field, text)
         self.assertIn("Never put the worker's verdict, its `criteria`, its `localChecks`, the PR body, or a comment URL in the brief.", text)
 
-    def test_check_worktree_is_created_detached_and_removed(self):
+    def test_check_worktree_is_created_detached_before_the_checker_spawns(self):
         text = step_1c()
         self.assertIn("worktree.py create --project <dir> --task check_<n> --detach <headSha>", text)
-        self.assertIn("worktree.py remove --project <dir> --task check_<n> --merged", text)
         self.assertLess(text.index("worktree.py create"), text.index("spawn_agent"))
+
+    def test_check_worktree_is_removed_with_merged_after_the_verdict(self):
+        self.assertIn("worktree.py remove --project <dir> --task check_<n> --merged", step_1c())
+
+    def test_stale_check_worktree_removal_uses_merged(self):
+        text = step_1c()
         self.assertIn("A stale check worktree", text)
+        stale = text[text.index("A stale check worktree"):text.index("Spawn the checker")]
+        self.assertIn("worktree.py remove --project <dir> --task check_<n> --merged", stale)
 
     def test_gate_merges_only_the_checked_head_sha(self):
         text = step_1c()
@@ -893,10 +900,11 @@ class CriteriaCheckGateTextTest(unittest.TestCase):
         self.assertIn("`status` and `evidence`", text)
         self.assertIn('"Escalation" (below)', text)
 
-    def test_no_verdict_json_spawns_the_next_check_name_then_keeps_in_review(self):
-        text = step_1c()
-        self.assertIn("`check_<n>_2`", text)
-        self.assertIn("Keep the member `status:in-review`", text)
+    def test_no_verdict_json_spawns_the_next_unused_check_name(self):
+        self.assertIn("spawn the checker once more with the next unused check name", step_1c())
+
+    def test_a_second_answer_with_no_verdict_keeps_the_member_in_review(self):
+        self.assertIn("Keep the member `status:in-review`", step_1c())
 
     def test_check_names_run_out_to_status_blocked(self):
         text = step_1c()
@@ -925,9 +933,6 @@ class CriteriaCheckGateTextTest(unittest.TestCase):
         text = " ".join(section("SKILL.md", "  **Anything that goes back", "### C2").split())
         self.assertIn("a criterion that the check finds `unmet` or `unclear`", text)
 
-
-if __name__ == "__main__":
-    unittest.main()
 
 
 
@@ -979,8 +984,15 @@ class EscalationTextTest(unittest.TestCase):
         self.assertIn("the same `escalation:` field", text)
         self.assertIn("no second `escalated:` comment", text)
 
-    def test_escalated_worker_is_checked_as_check_n_3(self):
-        self.assertIn("`check_<n>_3`", escalation_section())
+    def test_escalated_worker_check_takes_the_next_unused_name(self):
+        text = escalation_section()
+        self.assertIn("next unused name of the check chain", text)
+        self.assertNotIn("`check_<n>_3`.", text)
+
+    def test_escalation_removes_the_worktree_of_the_worker_that_returned_the_verdict(self):
+        text = escalation_section()
+        self.assertIn("`worker_<n>_c1`, or `worker_<n>_c2`", text)
+        self.assertNotIn("--task worker_<n>`)", text)
 
     def test_blocked_bullet_points_to_the_escalation(self):
         text = " ".join(section("SKILL.md", "- **`blocked`**", "- **`checkpoint`**").split())
@@ -1017,3 +1029,28 @@ class EscalationTextTest(unittest.TestCase):
             text = (root / path).read_text()
             self.assertNotIn("escalated to Opus", text, path)
             self.assertNotIn("Opus", text, path)
+
+
+class WorkerRoleBatchGateFixTextTest(unittest.TestCase):
+    def test_the_role_line_names_the_escalation_role_and_no_fixed_model(self):
+        text = agent_section("issue-worker.md", "You run as the Codex role", "All tracker calls")
+        self.assertIn("`issue_worker_escalated` when your brief carries `escalation:`", text)
+        self.assertIn("on the model of your role file", text)
+        self.assertNotIn("gpt-6.1-sol", text)
+
+    def test_a_child_on_a_plugin_role_gets_no_model(self):
+        text = agent_section("issue-worker.md", "### Hard rules for every subagent", "2. **Spawn only")
+        self.assertIn("A child on a plugin role", text)
+        self.assertIn("gets no `model`", text)
+
+    def test_a_child_on_a_built_in_role_keeps_the_helper_model(self):
+        text = agent_section("issue-worker.md", "### Hard rules for every subagent", "2. **Spawn only")
+        self.assertIn('A child on a built-in role takes `model: "gpt-6-luna"`', text)
+
+    def test_the_child_rule_denies_both_worker_roles(self):
+        text = agent_section("issue-worker.md", "### Hard rules for every subagent", "2. **Spawn only")
+        self.assertIn("`issue_worker` or `issue_worker_escalated`", text)
+
+
+if __name__ == "__main__":
+    unittest.main()

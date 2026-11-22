@@ -147,11 +147,17 @@ class WorktreeTest(unittest.TestCase):
             with self.subTest(extra=extra):
                 result = run_script("create", "--project", str(self.project), "--task", "check_19",
                                     "--detach", sha, *extra)
-                self.assertEqual(result.returncode, 2)
+                self.assertEqual(result.returncode, 1)
 
     def test_create_requires_branch_and_base_without_detach(self):
         result = run_script("create", "--project", str(self.project), "--task", "worker_19")
-        self.assertEqual(result.returncode, 2)
+        self.assertEqual(result.returncode, 1)
+
+    def test_a_usage_error_prints_one_stderr_line_and_exits_1(self):
+        result = run_script("create", "--project", str(self.project), "--task", "worker_19")
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(len(result.stderr.splitlines()), 1)
+        self.assertNotIn("usage:", result.stderr)
 
     def test_remove_detached_worktree(self):
         self.create_detached()

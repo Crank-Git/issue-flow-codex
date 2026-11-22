@@ -244,7 +244,7 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li>FR-criteria-check-21 — When the re-check after the rework round still has a criterion <code>unmet</code> or <code>unclear</code>, the PM escalates the issue.
 </li>
-<li>FR-criteria-check-22 — When a checker answer holds no verdict JSON, the PM spawns the checker once more with the next <code>check_&lt;n&gt;_&lt;k&gt;</code> name.
+<li>FR-criteria-check-22 — When a checker answer holds no verdict JSON, the PM spawns the checker once more with the next unused name of the check chain.
 </li>
 <li>FR-criteria-check-23 — When the second checker answer also holds no verdict JSON, the PM keeps the sub-issue <code>status:in-review</code> and names it in the next digest.
 </li>
@@ -281,6 +281,8 @@ body.rv-open .layout { padding-right:21rem; }
 <li>FR-criteria-check-36 — The port uses the comment marker <code>escalated:</code> in place of the upstream <code>escalated to Opus:</code>, because the port escalates to a configured model.
 </li>
 <li>FR-criteria-check-37 — The PM skill text names the checker cost measured by the eval of Feature 10, not the upstream Sonnet cost.
+</li>
+<li>FR-criteria-check-38 — The check of an escalated worker takes the next unused name of the check chain (<code>check_&lt;n&gt;</code>, <code>check_&lt;n&gt;_2</code>, <code>check_&lt;n&gt;_3</code>, <code>check_&lt;n&gt;_4</code>). A <code>blocked</code> escalation has run no check before it, and the spawn guard denies a name when the one before it is unused. When all four names are used, the PM labels the issue <code>status:blocked</code>.
 </li>
 </ul>
 <h3 id="criteria-check-user-flows">User flows</h3>

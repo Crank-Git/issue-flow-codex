@@ -126,7 +126,8 @@ def main():
     args = parser.parse_args()
     if args.command == "create" and (
             (args.branch or args.base) if args.detach else not (args.branch and args.base)):
-        parser.error("give --detach, or give --branch with --base, and not both")
+        print("worktree.py: give --detach, or give --branch with --base, and not both", file=sys.stderr)
+        sys.exit(1)
     try:
         {"create": cmd_create, "remove": cmd_remove}[args.command](args)
     except WorktreeError as error:

@@ -76,7 +76,7 @@ Stage C1 steps 1c and "Escalation to Opus", `skills/issue-flow/references/issue-
 - FR-criteria-check-19 — When the PR head is not the checker's `headSha`, the PM runs a new check before the merge.
 - FR-criteria-check-20 — When a criterion is `unmet` or `unclear`, the PM sends one rework round to the worker with `followup_task`. The message quotes each such criterion with its `status` and `evidence`.
 - FR-criteria-check-21 — When the re-check after the rework round still has a criterion `unmet` or `unclear`, the PM escalates the issue.
-- FR-criteria-check-22 — When a checker answer holds no verdict JSON, the PM spawns the checker once more with the next `check_<n>_<k>` name.
+- FR-criteria-check-22 — When a checker answer holds no verdict JSON, the PM spawns the checker once more with the next unused name of the check chain.
 - FR-criteria-check-23 — When the second checker answer also holds no verdict JSON, the PM keeps the sub-issue `status:in-review` and names it in the next digest.
 - FR-criteria-check-24 — A standalone or hotfix PR gets the same check, with `base` set to `dev`, before the `--squash` merge.
 
@@ -98,6 +98,7 @@ Stage C1 steps 1c and "Escalation to Opus", `skills/issue-flow/references/issue-
 
 - FR-criteria-check-36 — The port uses the comment marker `escalated:` in place of the upstream `escalated to Opus:`, because the port escalates to a configured model.
 - FR-criteria-check-37 — The PM skill text names the checker cost measured by the eval of Feature 10, not the upstream Sonnet cost.
+- FR-criteria-check-38 — The check of an escalated worker takes the next unused name of the check chain (`check_<n>`, `check_<n>_2`, `check_<n>_3`, `check_<n>_4`). A `blocked` escalation has run no check before it, and the spawn guard denies a name when the one before it is unused. When all four names are used, the PM labels the issue `status:blocked`.
 
 ## User flows
 

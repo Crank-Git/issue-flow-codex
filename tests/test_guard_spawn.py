@@ -343,11 +343,19 @@ class ModelGuardTest(HookCase):
         reason = self.assertDenied(spawn(task_name="check_42_3", agent_type="criteria_checker"))
         self.assertIn("check_42_2", reason)
 
-    def test_denies_check_2_without_check_1_and_allows_the_chain_in_order(self):
-        self.assertDenied(spawn(task_name="check_42_2", agent_type="criteria_checker"))
+    def test_denies_check_2_without_check_1(self):
+        reason = self.assertDenied(spawn(task_name="check_42_2", agent_type="criteria_checker"))
+        self.assertIn("check_42", reason)
+
+    def test_allows_the_check_chain_in_order(self):
         for name in ("check_42", "check_42_2", "check_42_3", "check_42_4"):
             with self.subTest(task_name=name):
                 self.assertAllowed(spawn(task_name=name, agent_type="criteria_checker"))
+
+    def test_allows_check_n_for_an_escalated_worker_after_a_blocked_verdict(self):
+        self.assertAllowed(spawn(task_name="worker_7", agent_type="issue_worker"))
+        self.assertAllowed(spawn(task_name="worker_7_e1", agent_type="issue_worker_escalated"))
+        self.assertAllowed(spawn(task_name="check_7", agent_type="criteria_checker"))
 
     def test_worker_name_rule_matches_e1(self):
         for name in ("worker_42_e1", "worker_42_e1_c1"):

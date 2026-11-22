@@ -5,8 +5,8 @@ repo: Crank-Git/issue-flow-codex
 status: approved
 spec_version: 2
 created: 2026-11-03
-approved: 2026-11-03
-html_generated: 2026-11-04
+approved: 2026-11-21
+html_generated: 2026-11-21
 branch_model: dev-and-live
 visibility: public
 features:
@@ -24,11 +24,21 @@ features:
     file: features/05-project-review.md
   - id: mirror-and-sync
     file: features/06-mirror-and-sync.md
+  - id: spawn-limits
+    file: features/07-spawn-limits.md
+  - id: criteria-check
+    file: features/08-criteria-check.md
+  - id: run-budget
+    file: features/09-run-budget.md
+  - id: worker-model-eval
+    file: features/10-worker-model-eval.md
 pages:
   - id: codex-harness
     file: pages/codex-harness.md
   - id: porting-inventory
     file: pages/porting-inventory.md
+  - id: spend-analysis
+    file: pages/spend-analysis.md
 ---
 
 # issue-flow for Codex
@@ -86,6 +96,11 @@ port action.
 | co-operator | noun | A second PM session, in either harness, that works the same tracker. | peer, teammate |
 | batch | noun | A group of issues that share one integration branch and one CI run. | bundle, wave |
 | digest | noun | The periodic status comment that the PM posts on its status issue. | report, summary |
+| criteria checker | noun | A subagent of role `criteria_checker` that tests one branch against the acceptance criteria of its issue, without the worker's verdict. | reviewer, verifier, QA agent |
+| escalation | noun | The one extra attempt at an issue by a worker on `escalationModel` and `escalationEffort`, after a failed re-check or a technical `blocked`. | retry, upgrade, promotion |
+| run budget | noun | The optional limit `runBudgetPercent`: the share of the weekly quota that one PM run can use before the spawn guard refuses new workers. | quota cap, spend limit |
+| usage report | noun | The output of `scripts/usage.py`: the tokens of each thread and the quota share of a run, read from rollout files. | cost report, telemetry |
+| rollout file | noun | The JSONL file in which Codex records one thread of a session, under `$CODEX_HOME/sessions/`. | transcript, session log |
 
 ## Goals
 
@@ -125,6 +140,10 @@ port action.
 | Spec skills | [04-spec-skills](features/04-spec-skills.md) | Epic 4 | none |
 | Project review | [05-project-review](features/05-project-review.md) | Epic 5 | none |
 | Mirror and sync | [06-mirror-and-sync](features/06-mirror-and-sync.md) | Epic 6 | none |
+| Spawn limits | [07-spawn-limits](features/07-spawn-limits.md) | Epic 7 | none |
+| Criteria check and escalation | [08-criteria-check](features/08-criteria-check.md) | Epic 7 | none |
+| Run budget and usage report | [09-run-budget](features/09-run-budget.md) | Epic 7 | none |
+| Worker model eval | [10-worker-model-eval](features/10-worker-model-eval.md) | Epic 8 | none |
 
 The port is a command-line plugin. It has no screens, so the spec has no mockups.
 
@@ -137,10 +156,13 @@ flowchart LR
         PM -->|"spawn_agent / followup_task"| W1["worker<br/>role issue_worker"]
         PM -->|"spawn_agent"| W2["worker<br/>role issue_worker"]
         PM -->|"spawn_agent"| CW["watcher<br/>role ci_watcher"]
+        PM -->|"spawn_agent"| CC["criteria checker<br/>role criteria_checker"]
+        CC -->|"FINAL_ANSWER verdict"| PM
         W1 -->|"FINAL_ANSWER verdict"| PM
         W2 -->|"FINAL_ANSWER verdict"| PM
         CW -->|"FINAL_ANSWER verdict"| PM
         HK["Plugin hooks<br/>SessionStart · PreToolUse"] -.->|"context · deny"| PM
+        RO["rollout files<br/>tokens · used_percent"] -.->|"run budget"| HK
         HK -.->|"role guard"| W1
     end
     W1 -->|"git worktree add"| WT1[".worktrees/issue-n"]
@@ -190,6 +212,8 @@ Why a native plugin beat an external orchestrator: an external script would dupl
 | PM | `gpt-6.1-sol` | The docs call it the "Latest workhorse". The PM makes every decision. |
 | worker | `gpt-6.1-sol`, effort `medium` | A worker writes production code. The operator can lower it in the run configuration. |
 | watcher, code_auditor, worker subagents | `gpt-6-luna` | The docs call it the "most efficient model for focused, high-volume tasks". |
+| criteria checker | `gpt-6-luna`, effort `medium` | The check reads a diff and runs tests. Feature 10 measures it. |
+| escalation worker | `gpt-6.1-sol`, effort `high` | The workers stay on `gpt-6.1-sol` until Feature 10 decides, so the escalation raises the effort. |
 
 Verified against: `codex debug models --bundled` (0.166.0), https://learn.chatgpt.com/docs/models (retrieved 2026-11-03). The operator changes any model in `.issue-flow.json` (Feature 03).
 
@@ -215,6 +239,8 @@ erDiagram
     ISSUE ||--o| SUBAGENT : "is built by"
     BATCH ||--|{ ISSUE : "groups"
     PM_SESSION ||--|| STATUS_ISSUE : "writes digests to"
+    PM_SESSION ||--|{ ROLLOUT_FILE : "is recorded in"
+    PM_SESSION ||--o| SPAWN_STATE : "is limited by"
 ```
 
 | Entity | Fields | Constraints | Lifecycle |
@@ -226,10 +252,12 @@ erDiagram
 | SKILL | `name`, `description`, path | `description` is required by Codex. | Ported per Feature 01-06. |
 | HOOK | event, matcher, command | Matcher syntax per Codex. | Needs hook trust after each plugin update. |
 | ROLE_FILE | `name`, `description`, `model`, `model_reasoning_effort`, `developer_instructions` | Codex ignores `sandbox_mode`, `approval_policy` and `mcp_servers` in a role file. | Copied by the setup skill. |
-| RUN_CONFIG | `.issue-flow.json`, upstream schema only. The Codex-only settings sit in `.issue-flow.codex.json` (Feature 03) | Upstream keys keep upstream meaning. | Written at the run configuration step. |
+| RUN_CONFIG | `.issue-flow.json`, upstream schema only. The Codex-only settings sit in `.issue-flow.codex.json` (Feature 03), with the new keys `escalationModel`, `escalationEffort` (Feature 08), and `runBudgetPercent` (Feature 09) | Upstream keys keep upstream meaning. | Written at the run configuration step. |
 | CODEX_CONFIG | the block between `# issue-flow:begin` and `# issue-flow:end` in `.codex/config.toml` | The setup skill changes only this block. | Written by the setup skill. |
 | PM_SESSION | thread id, operator login | One PM per operator login per tracker. | Ends when the loop stops. |
-| SUBAGENT | `task_name`, role, `agent_status` | `task_name` uses lowercase letters, digits, and underscores. | `pending_init` → `running` → `completed` or `errored`. |
+| SUBAGENT | `task_name`, role, `agent_status` | `task_name` uses lowercase letters, digits, and underscores. A PM spawn uses a role and a `task_name` from the allowlist of Feature 07. | `pending_init` → `running` → `completed` or `errored`. |
+| ROLLOUT_FILE | `session_meta`, `turn_context`, `token_count` events | Written by Codex. The port only reads it (Feature 09, codex-harness fact 30). | One for each thread. Kept by Codex. |
+| SPAWN_STATE | `$PLUGIN_DATA/spawns-<session_id>.json` (`names`), `$PLUGIN_DATA/budget-<session_id>.json` (start `used_percent`, `resets_at`) | One pair for each PM session. Written by the spawn guard only. | Created at the first PM spawn. Never read by another session. |
 | WORKTREE | path `.worktrees/<task_name>`, branch | Inside the project root, ignored by git. | Removed by the PM after the gate. |
 | VERDICT | upstream verdict JSON (`outcome`, `criteria`, `localChecks`, ...) | Same schema as upstream. | Read once by the PM. |
 | ISSUE, BATCH, STATUS_ISSUE | upstream tracker formats | Unchanged from upstream. | Upstream state machine. |
@@ -242,7 +270,7 @@ erDiagram
 - **Writing standard.** Every prose file follows the STE rules in `references/ste.md`, the same as upstream.
 - **Errors.** A script exits nonzero and writes one line to stderr on failure. A hook fails open, as upstream hooks do, except the deny paths of the spawn guard and the role guard.
 - **Performance.** The PM context stays flat: the PM delegates token-heavy reads to subagents, as upstream does. Auto-compaction is expected. Phase 0 recovery rebuilds state from the tracker.
-- **Cost.** Multi-agent runs use quota fast (openai/codex issue #58898). The run configuration shows the models and the concurrency before the loop starts.
+- **Cost.** Multi-agent runs use quota fast (openai/codex issue #58898). The run configuration shows the models and the concurrency before the loop starts. The spawn guard enforces the role set, the worker cap, and the run budget (Features 07 and 09). [Quota use of an operator run](pages/spend-analysis.md) records why.
 
 ## Environments & config
 
@@ -269,6 +297,7 @@ Secrets: the forge tokens live in the `gh` and `tea` credential stores. No file 
 - **Manifest check:** `python3 scripts/validate_manifests.py` checks the plugin manifest, the marketplace file, every `SKILL.md` front-matter, and every role file.
 - **Lock check:** `python3 scripts/upstream_sync.py --check` fails when a `verbatim` file differs from upstream.
 - **Conformance suite:** `python3 scripts/conformance.py` runs live `codex exec` probes in an isolated `CODEX_HOME`. It proves each harness fact that the port uses. It uses the operator's Codex login and quota, so CI does not run it. The maintainer runs it on each new Codex release.
+- **Worker eval:** `python3 scripts/run_evals.py` runs the upstream worker and checker cases on `codex exec` with hidden tests and a quota limit (Feature 10). It uses the operator's quota, so CI does not run it.
 - **End-to-end tests:** the maintainer runs a scripted loop on each test bed. The test bed holds a small app and five seeded issues. The run passes when the loop merges one batch and closes its issues.
 - **Done for a change:** unit tests pass, the manifest check passes, the lock check passes, and the change states which upstream file and section it ports.
 
@@ -283,6 +312,8 @@ Secrets: the forge tokens live in the `gh` and `tea` credential stores. No file 
 | Epic 4: Spec skills | The four spec skills run in Codex and write a Codex scaffold. | 04-spec-skills | Epic 1 | `$issue-flow:project-planner` produces an approved spec package on a test project. |
 | Epic 5: Project review | The review PM and the four review roles run in Codex. | 05-project-review | Epic 3 | `$issue-flow:project-review` files findings and lands a manual PR on a test bed. |
 | Epic 6: Mirror and sync | `repo-mirror` works, the upstream sync is automated, and v0.1.0 ships. | 06-mirror-and-sync | Epic 4, Epic 5 | A scheduled CI job opens an issue for a new upstream tag. The marketplace serves v0.1.0. |
+| Epic 7: Spend control | The spawn guard limits the roles, the workers of an issue, and the run quota. The port is on upstream 0.21.0 with the criteria check and the escalation. | 07-spawn-limits, 08-criteria-check, 09-run-budget | Epic 6 | One end-to-end run on the GitHub test bed with `runBudgetPercent: 3` merges a two-member batch, runs one check for each sub-issue, and spawns no subagent outside the allowlist. |
+| Epic 8: Worker model eval | The worker model is chosen from measured results. | 10-worker-model-eval | Epic 7 | `evals/BASELINE.md` holds both worker models and the checker. The operator records the worker model decision. |
 
 ## Milestones
 
@@ -291,6 +322,7 @@ Secrets: the forge tokens live in the `gh` and `tea` credential stores. No file 
 3. **M2 — Core loop (Epics 2 and 3).** Shippable means: the loop builds and merges a batch on both forges. From M2, the port can build its own later epics.
 4. **M3 — Full parity (Epics 4 and 5).** Shippable means: all seven skills run in Codex.
 5. **M4 — Release (Epic 6).** Shippable means: v0.1.0 is in the marketplace and the upstream sync runs on a schedule.
+6. **M5 — Spend control (Epics 7 and 8).** Shippable means: v0.2.0 is in the marketplace with the spawn limits, the criteria check, and the run budget, and the worker model decision is recorded. The target date is 2026-12-08, the end of the operator's Codex plan. The live Codex runs of M5 use at most 10% of the weekly quota in total.
 
 ## Assumptions
 
@@ -307,7 +339,9 @@ Secrets: the forge tokens live in the `gh` and `tea` credential stores. No file 
 - **Hook trust after each update.** Codex pins plugin hook trust to a hash of the whole plugin. Each plugin update disables the hooks until the operator approves them again. Mitigation: the PM checks at Phase 0 that the hooks ran (Feature 01).
 - **Codex changes fast.** The release notes from 0.129.0 to 0.166.0 show renamed tools and changed defaults. For example, 0.137.0 renamed `assign_task` to `followup_task`. Mitigation: the conformance suite (Feature 00).
 - **Documentation and source disagree.** The plugin docs say plugin hooks work "only for plugins installed manually in Codex desktop". The live test showed plugin hooks running in the CLI. The port relies on the observed behavior and the conformance suite checks it.
-- **Quota.** Concurrency 3 with `gpt-6.1-sol` workers can use a large share of a ChatGPT plan. The operator decides the worker model at each run.
+- **Quota.** Concurrency 3 with `gpt-6.1-sol` workers can use a large share of a ChatGPT plan. One measured run used about 1.35 weekly quotas in 5.5 days ([Quota use of an operator run](pages/spend-analysis.md)). Mitigation: Features 07 to 10.
+- **Rollout format.** The run budget reads Codex rollout files, an internal format. Mitigation: the guard fails open, and a conformance probe reads one `token_count` event (Feature 09).
+- **Spawn model precedence.** The escalation passes `model` on a spawn of a role that sets its own `model`. Which one wins is not recorded. Mitigation: a conformance probe (Feature 08).
 
 ## Issue map
 
@@ -379,3 +413,5 @@ Created by spec-to-issues on 2026-11-03 in `Crank-Git/issue-flow-codex`.
 - 2026-11-03 — Epic 5 and Epic 6 batch gates (PRs #120, #124). The Codex PM built #35-#42 (dogfood run 3). The live gate passed the Epic 5 criteria on the test bed after four port repairs; browser calls need `default_tools_approval_mode = "approve"` (codex-harness facts 22-24). Project review is built. Mirror and sync stays issued until #42's release install passes after the promotion that tags v0.1.0.
 - 2026-11-04 — Promotion PR #125 merged dev into main with operator approval. The release workflow tagged `issue-flow-codex--v0.1.0`, and the release install passed. Mirror and sync is built.
 - 2026-11-04 — Operator ruling on #126: setup is one time per machine. The setup skill defaults to `setup_project.py apply --user`, which writes `$CODEX_HOME/issue-flow.config.toml` and the role files; per-project setup stays an option (ADR 0005). The user-level file also sets the thread limit to 7. The PM's setup check passes on a complete user-level setup, and `worktree.py` keeps `.worktrees/` out of `git status` through the local exclude file. The approval policy stays a separate `-a never` flag. The plugin version is 0.1.1.
+- 2026-11-21 — Spend control, change round 1 (draft). The operator reported a run that used about 1.35 weekly quotas. The measurement is on the new page [Quota use of an operator run](pages/spend-analysis.md). Operator answers: the spawn guard limits the roles and the workers of an issue (five at most: build, two checkpoints, escalation, one escalation checkpoint); the port syncs to upstream 0.21.0 with the criteria check, one rework round, and one escalation to `gpt-6.1-sol` at effort `high`; the run budget is optional, and drains the run before it stops; the spec skills tell the operator to start a new session for the loop; a worker model eval decides `gpt-6-luna` against `gpt-6.1-sol`. The live Codex runs of Epics 7 and 8 use at most 10% of the weekly quota. New features 07 to 10, Epics 7 and 8, milestone M5.
+- 2026-11-21 — Spend control, review round 1: approved. Operator ruling: the run budget is off by default; when the operator turns it on, the suggested value is 15%.

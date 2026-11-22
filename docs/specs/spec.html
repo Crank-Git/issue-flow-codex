@@ -158,6 +158,7 @@ body.rv-open .layout { padding-right:21rem; }
 <h2>Pages</h2><ul>
 <li><a href="html/page-codex-harness.html">Codex harness facts</a></li>
 <li><a href="html/page-porting-inventory.html">Porting inventory</a></li>
+<li><a href="html/page-spend-analysis.html">Quota use of an operator run, November 2026</a></li>
 </ul>
 <h2>Features</h2><ul>
 <li><a href="html/feature-foundation.html">Foundation</a></li>
@@ -167,9 +168,13 @@ body.rv-open .layout { padding-right:21rem; }
 <li><a href="html/feature-spec-skills.html">Spec skills</a></li>
 <li><a href="html/feature-project-review.html">Project review</a></li>
 <li><a href="html/feature-mirror-and-sync.html">Mirror and sync</a></li>
+<li><a href="html/feature-spawn-limits.html">Spawn limits</a></li>
+<li><a href="html/feature-criteria-check.html">Criteria check and escalation</a></li>
+<li><a href="html/feature-run-budget.html">Run budget and usage report</a></li>
+<li><a href="html/feature-worker-model-eval.html">Worker model eval</a></li>
 </ul></aside>
 <main>
-<p class="meta"><span class="badge">approved</span> &nbsp; created 2026-11-03 &nbsp; rendered 2026-11-04</p>
+<p class="meta"><span class="badge">approved</span> &nbsp; created 2026-11-03 &nbsp; rendered 2026-11-21</p>
 <h1>issue-flow for Codex</h1>
 <h1 id="issue-flow-for-codex">issue-flow for Codex</h1>
 <h2 id="overview">Overview</h2>
@@ -209,6 +214,11 @@ body.rv-open .layout { padding-right:21rem; }
 <tr><td>co-operator</td><td>noun</td><td>A second PM session, in either harness, that works the same tracker.</td><td>peer, teammate</td></tr>
 <tr><td>batch</td><td>noun</td><td>A group of issues that share one integration branch and one CI run.</td><td>bundle, wave</td></tr>
 <tr><td>digest</td><td>noun</td><td>The periodic status comment that the PM posts on its status issue.</td><td>report, summary</td></tr>
+<tr><td>criteria checker</td><td>noun</td><td>A subagent of role <code>criteria_checker</code> that tests one branch against the acceptance criteria of its issue, without the worker's verdict.</td><td>reviewer, verifier, QA agent</td></tr>
+<tr><td>escalation</td><td>noun</td><td>The one extra attempt at an issue by a worker on <code>escalationModel</code> and <code>escalationEffort</code>, after a failed re-check or a technical <code>blocked</code>.</td><td>retry, upgrade, promotion</td></tr>
+<tr><td>run budget</td><td>noun</td><td>The optional limit <code>runBudgetPercent</code>: the share of the weekly quota that one PM run can use before the spawn guard refuses new workers.</td><td>quota cap, spend limit</td></tr>
+<tr><td>usage report</td><td>noun</td><td>The output of <code>scripts/usage.py</code>: the tokens of each thread and the quota share of a run, read from rollout files.</td><td>cost report, telemetry</td></tr>
+<tr><td>rollout file</td><td>noun</td><td>The JSONL file in which Codex records one thread of a session, under <code>$CODEX_HOME/sessions/</code>.</td><td>transcript, session log</td></tr>
 </table></div>
 <h2 id="goals">Goals</h2>
 <ol>
@@ -258,6 +268,10 @@ body.rv-open .layout { padding-right:21rem; }
 <tr><td>Spec skills</td><td><a href="html/feature-spec-skills.html">04-spec-skills</a></td><td>Epic 4</td><td>none</td></tr>
 <tr><td>Project review</td><td><a href="html/feature-project-review.html">05-project-review</a></td><td>Epic 5</td><td>none</td></tr>
 <tr><td>Mirror and sync</td><td><a href="html/feature-mirror-and-sync.html">06-mirror-and-sync</a></td><td>Epic 6</td><td>none</td></tr>
+<tr><td>Spawn limits</td><td><a href="html/feature-spawn-limits.html">07-spawn-limits</a></td><td>Epic 7</td><td>none</td></tr>
+<tr><td>Criteria check and escalation</td><td><a href="html/feature-criteria-check.html">08-criteria-check</a></td><td>Epic 7</td><td>none</td></tr>
+<tr><td>Run budget and usage report</td><td><a href="html/feature-run-budget.html">09-run-budget</a></td><td>Epic 7</td><td>none</td></tr>
+<tr><td>Worker model eval</td><td><a href="html/feature-worker-model-eval.html">10-worker-model-eval</a></td><td>Epic 8</td><td>none</td></tr>
 </table></div>
 <p>The port is a command-line plugin. It has no screens, so the spec has no mockups.</p>
 <h2 id="architecture-stack">Architecture &amp; stack</h2>
@@ -267,10 +281,13 @@ body.rv-open .layout { padding-right:21rem; }
         PM --&gt;|"spawn_agent / followup_task"| W1["worker&lt;br/&gt;role issue_worker"]
         PM --&gt;|"spawn_agent"| W2["worker&lt;br/&gt;role issue_worker"]
         PM --&gt;|"spawn_agent"| CW["watcher&lt;br/&gt;role ci_watcher"]
+        PM --&gt;|"spawn_agent"| CC["criteria checker&lt;br/&gt;role criteria_checker"]
+        CC --&gt;|"FINAL_ANSWER verdict"| PM
         W1 --&gt;|"FINAL_ANSWER verdict"| PM
         W2 --&gt;|"FINAL_ANSWER verdict"| PM
         CW --&gt;|"FINAL_ANSWER verdict"| PM
         HK["Plugin hooks&lt;br/&gt;SessionStart · PreToolUse"] -.-&gt;|"context · deny"| PM
+        RO["rollout files&lt;br/&gt;tokens · used_percent"] -.-&gt;|"run budget"| HK
         HK -.-&gt;|"role guard"| W1
     end
     W1 --&gt;|"git worktree add"| WT1[".worktrees/issue-n"]
@@ -333,6 +350,8 @@ body.rv-open .layout { padding-right:21rem; }
 <tr><td>PM</td><td><code>gpt-6.1-sol</code></td><td>The docs call it the "Latest workhorse". The PM makes every decision.</td></tr>
 <tr><td>worker</td><td><code>gpt-6.1-sol</code>, effort <code>medium</code></td><td>A worker writes production code. The operator can lower it in the run configuration.</td></tr>
 <tr><td>watcher, code_auditor, worker subagents</td><td><code>gpt-6-luna</code></td><td>The docs call it the "most efficient model for focused, high-volume tasks".</td></tr>
+<tr><td>criteria checker</td><td><code>gpt-6-luna</code>, effort <code>medium</code></td><td>The check reads a diff and runs tests. Feature 10 measures it.</td></tr>
+<tr><td>escalation worker</td><td><code>gpt-6.1-sol</code>, effort <code>high</code></td><td>The workers stay on <code>gpt-6.1-sol</code> until Feature 10 decides, so the escalation raises the effort.</td></tr>
 </table></div>
 <p>Verified against: <code>codex debug models --bundled</code> (0.166.0), https://learn.chatgpt.com/docs/models (retrieved 2026-11-03). The operator changes any model in <code>.issue-flow.json</code> (Feature 03).</p>
 <h3 id="upstream-tracking">Upstream tracking</h3>
@@ -352,7 +371,9 @@ body.rv-open .layout { padding-right:21rem; }
     SUBAGENT ||--|| VERDICT : "returns"
     ISSUE ||--o| SUBAGENT : "is built by"
     BATCH ||--|{ ISSUE : "groups"
-    PM_SESSION ||--|| STATUS_ISSUE : "writes digests to"</pre></div>
+    PM_SESSION ||--|| STATUS_ISSUE : "writes digests to"
+    PM_SESSION ||--|{ ROLLOUT_FILE : "is recorded in"
+    PM_SESSION ||--o| SPAWN_STATE : "is limited by"</pre></div>
 <div class="table-wrap"><table>
 <tr><th>Entity</th><th>Fields</th><th>Constraints</th><th>Lifecycle</th></tr>
 <tr><td>UPSTREAM_RELEASE</td><td><code>tag</code> (string, for example <code>issue-flow--v0.17.0</code>), <code>commit</code> (SHA)</td><td>One current release per lock.</td><td>Changes on each sync.</td></tr>
@@ -362,10 +383,12 @@ body.rv-open .layout { padding-right:21rem; }
 <tr><td>SKILL</td><td><code>name</code>, <code>description</code>, path</td><td><code>description</code> is required by Codex.</td><td>Ported per Feature 01-06.</td></tr>
 <tr><td>HOOK</td><td>event, matcher, command</td><td>Matcher syntax per Codex.</td><td>Needs hook trust after each plugin update.</td></tr>
 <tr><td>ROLE_FILE</td><td><code>name</code>, <code>description</code>, <code>model</code>, <code>model_reasoning_effort</code>, <code>developer_instructions</code></td><td>Codex ignores <code>sandbox_mode</code>, <code>approval_policy</code> and <code>mcp_servers</code> in a role file.</td><td>Copied by the setup skill.</td></tr>
-<tr><td>RUN_CONFIG</td><td><code>.issue-flow.json</code>, upstream schema only. The Codex-only settings sit in <code>.issue-flow.codex.json</code> (Feature 03)</td><td>Upstream keys keep upstream meaning.</td><td>Written at the run configuration step.</td></tr>
+<tr><td>RUN_CONFIG</td><td><code>.issue-flow.json</code>, upstream schema only. The Codex-only settings sit in <code>.issue-flow.codex.json</code> (Feature 03), with the new keys <code>escalationModel</code>, <code>escalationEffort</code> (Feature 08), and <code>runBudgetPercent</code> (Feature 09)</td><td>Upstream keys keep upstream meaning.</td><td>Written at the run configuration step.</td></tr>
 <tr><td>CODEX_CONFIG</td><td>the block between <code># issue-flow:begin</code> and <code># issue-flow:end</code> in <code>.codex/config.toml</code></td><td>The setup skill changes only this block.</td><td>Written by the setup skill.</td></tr>
 <tr><td>PM_SESSION</td><td>thread id, operator login</td><td>One PM per operator login per tracker.</td><td>Ends when the loop stops.</td></tr>
-<tr><td>SUBAGENT</td><td><code>task_name</code>, role, <code>agent_status</code></td><td><code>task_name</code> uses lowercase letters, digits, and underscores.</td><td><code>pending_init</code> → <code>running</code> → <code>completed</code> or <code>errored</code>.</td></tr>
+<tr><td>SUBAGENT</td><td><code>task_name</code>, role, <code>agent_status</code></td><td><code>task_name</code> uses lowercase letters, digits, and underscores. A PM spawn uses a role and a <code>task_name</code> from the allowlist of Feature 07.</td><td><code>pending_init</code> → <code>running</code> → <code>completed</code> or <code>errored</code>.</td></tr>
+<tr><td>ROLLOUT_FILE</td><td><code>session_meta</code>, <code>turn_context</code>, <code>token_count</code> events</td><td>Written by Codex. The port only reads it (Feature 09, codex-harness fact 30).</td><td>One for each thread. Kept by Codex.</td></tr>
+<tr><td>SPAWN_STATE</td><td><code>$PLUGIN_DATA/spawns-&lt;session_id&gt;.json</code> (<code>names</code>), <code>$PLUGIN_DATA/budget-&lt;session_id&gt;.json</code> (start <code>used_percent</code>, <code>resets_at</code>)</td><td>One pair for each PM session. Written by the spawn guard only.</td><td>Created at the first PM spawn. Never read by another session.</td></tr>
 <tr><td>WORKTREE</td><td>path <code>.worktrees/&lt;task_name&gt;</code>, branch</td><td>Inside the project root, ignored by git.</td><td>Removed by the PM after the gate.</td></tr>
 <tr><td>VERDICT</td><td>upstream verdict JSON (<code>outcome</code>, <code>criteria</code>, <code>localChecks</code>, ...)</td><td>Same schema as upstream.</td><td>Read once by the PM.</td></tr>
 <tr><td>ISSUE, BATCH, STATUS_ISSUE</td><td>upstream tracker formats</td><td>Unchanged from upstream.</td><td>Upstream state machine.</td></tr>
@@ -384,7 +407,7 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li><strong>Performance.</strong> The PM context stays flat: the PM delegates token-heavy reads to subagents, as upstream does. Auto-compaction is expected. Phase 0 recovery rebuilds state from the tracker.
 </li>
-<li><strong>Cost.</strong> Multi-agent runs use quota fast (openai/codex issue #58898). The run configuration shows the models and the concurrency before the loop starts.
+<li><strong>Cost.</strong> Multi-agent runs use quota fast (openai/codex issue #58898). The run configuration shows the models and the concurrency before the loop starts. The spawn guard enforces the role set, the worker cap, and the run budget (Features 07 and 09). <a href="html/page-spend-analysis.html">Quota use of an operator run</a> records why.
 </li>
 </ul>
 <h2 id="environments-config">Environments &amp; config</h2>
@@ -414,6 +437,8 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li><strong>Conformance suite:</strong> <code>python3 scripts/conformance.py</code> runs live <code>codex exec</code> probes in an isolated <code>CODEX_HOME</code>. It proves each harness fact that the port uses. It uses the operator's Codex login and quota, so CI does not run it. The maintainer runs it on each new Codex release.
 </li>
+<li><strong>Worker eval:</strong> <code>python3 scripts/run_evals.py</code> runs the upstream worker and checker cases on <code>codex exec</code> with hidden tests and a quota limit (Feature 10). It uses the operator's quota, so CI does not run it.
+</li>
 <li><strong>End-to-end tests:</strong> the maintainer runs a scripted loop on each test bed. The test bed holds a small app and five seeded issues. The run passes when the loop merges one batch and closes its issues.
 </li>
 <li><strong>Done for a change:</strong> unit tests pass, the manifest check passes, the lock check passes, and the change states which upstream file and section it ports.
@@ -429,6 +454,8 @@ body.rv-open .layout { padding-right:21rem; }
 <tr><td>Epic 4: Spec skills</td><td>The four spec skills run in Codex and write a Codex scaffold.</td><td>04-spec-skills</td><td>Epic 1</td><td><code>$issue-flow:project-planner</code> produces an approved spec package on a test project.</td></tr>
 <tr><td>Epic 5: Project review</td><td>The review PM and the four review roles run in Codex.</td><td>05-project-review</td><td>Epic 3</td><td><code>$issue-flow:project-review</code> files findings and lands a manual PR on a test bed.</td></tr>
 <tr><td>Epic 6: Mirror and sync</td><td><code>repo-mirror</code> works, the upstream sync is automated, and v0.1.0 ships.</td><td>06-mirror-and-sync</td><td>Epic 4, Epic 5</td><td>A scheduled CI job opens an issue for a new upstream tag. The marketplace serves v0.1.0.</td></tr>
+<tr><td>Epic 7: Spend control</td><td>The spawn guard limits the roles, the workers of an issue, and the run quota. The port is on upstream 0.21.0 with the criteria check and the escalation.</td><td>07-spawn-limits, 08-criteria-check, 09-run-budget</td><td>Epic 6</td><td>One end-to-end run on the GitHub test bed with <code>runBudgetPercent: 3</code> merges a two-member batch, runs one check for each sub-issue, and spawns no subagent outside the allowlist.</td></tr>
+<tr><td>Epic 8: Worker model eval</td><td>The worker model is chosen from measured results.</td><td>10-worker-model-eval</td><td>Epic 7</td><td><code>evals/BASELINE.md</code> holds both worker models and the checker. The operator records the worker model decision.</td></tr>
 </table></div>
 <h2 id="milestones">Milestones</h2>
 <ol>
@@ -441,6 +468,8 @@ body.rv-open .layout { padding-right:21rem; }
 <li><strong>M3 — Full parity (Epics 4 and 5).</strong> Shippable means: all seven skills run in Codex.
 </li>
 <li><strong>M4 — Release (Epic 6).</strong> Shippable means: v0.1.0 is in the marketplace and the upstream sync runs on a schedule.
+</li>
+<li><strong>M5 — Spend control (Epics 7 and 8).</strong> Shippable means: v0.2.0 is in the marketplace with the spawn limits, the criteria check, and the run budget, and the worker model decision is recorded. The target date is 2026-12-08, the end of the operator's Codex plan. The live Codex runs of M5 use at most 10% of the weekly quota in total.
 </li>
 </ol>
 <h2 id="assumptions" class="callout-h">Assumptions</h2>
@@ -468,7 +497,11 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li><strong>Documentation and source disagree.</strong> The plugin docs say plugin hooks work "only for plugins installed manually in Codex desktop". The live test showed plugin hooks running in the CLI. The port relies on the observed behavior and the conformance suite checks it.
 </li>
-<li><strong>Quota.</strong> Concurrency 3 with <code>gpt-6.1-sol</code> workers can use a large share of a ChatGPT plan. The operator decides the worker model at each run.
+<li><strong>Quota.</strong> Concurrency 3 with <code>gpt-6.1-sol</code> workers can use a large share of a ChatGPT plan. One measured run used about 1.35 weekly quotas in 5.5 days (<a href="html/page-spend-analysis.html">Quota use of an operator run</a>). Mitigation: Features 07 to 10.
+</li>
+<li><strong>Rollout format.</strong> The run budget reads Codex rollout files, an internal format. Mitigation: the guard fails open, and a conformance probe reads one <code>token_count</code> event (Feature 09).
+</li>
+<li><strong>Spawn model precedence.</strong> The escalation passes <code>model</code> on a spawn of a role that sets its own <code>model</code>. Which one wins is not recorded. Mitigation: a conformance probe (Feature 08).
 </li>
 </ul>
 <h2 id="issue-map">Issue map</h2>
@@ -553,6 +586,10 @@ body.rv-open .layout { padding-right:21rem; }
 <li>2026-11-04 — Promotion PR #125 merged dev into main with operator approval. The release workflow tagged <code>issue-flow-codex--v0.1.0</code>, and the release install passed. Mirror and sync is built.
 </li>
 <li>2026-11-04 — Operator ruling on #126: setup is one time per machine. The setup skill defaults to <code>setup_project.py apply --user</code>, which writes <code>$CODEX_HOME/issue-flow.config.toml</code> and the role files; per-project setup stays an option (ADR 0005). The user-level file also sets the thread limit to 7. The PM's setup check passes on a complete user-level setup, and <code>worktree.py</code> keeps <code>.worktrees/</code> out of <code>git status</code> through the local exclude file. The approval policy stays a separate <code>-a never</code> flag. The plugin version is 0.1.1.
+</li>
+<li>2026-11-21 — Spend control, change round 1 (draft). The operator reported a run that used about 1.35 weekly quotas. The measurement is on the new page <a href="html/page-spend-analysis.html">Quota use of an operator run</a>. Operator answers: the spawn guard limits the roles and the workers of an issue (five at most: build, two checkpoints, escalation, one escalation checkpoint); the port syncs to upstream 0.21.0 with the criteria check, one rework round, and one escalation to <code>gpt-6.1-sol</code> at effort <code>high</code>; the run budget is optional, and drains the run before it stops; the spec skills tell the operator to start a new session for the loop; a worker model eval decides <code>gpt-6-luna</code> against <code>gpt-6.1-sol</code>. The live Codex runs of Epics 7 and 8 use at most 10% of the weekly quota. New features 07 to 10, Epics 7 and 8, milestone M5.
+</li>
+<li>2026-11-21 — Spend control, review round 1: approved. Operator ruling: the run budget is off by default; when the operator turns it on, the suggested value is 15%.
 </li>
 </ul><nav class="pager">
 <span></span>

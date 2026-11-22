@@ -4,13 +4,16 @@
 `--import <tag>` copies every file under `issue-flow/` of the upstream tag to the
 same path at the repository root, and writes `upstream.lock`.
 `--to <tag>` copies `verbatim` files and updates the lock after it writes a report.
+`--import-evals <tag>` copies the upstream eval cases (`EVAL_SOURCES`) and appends one
+`verbatim` entry per file. The tag must be the lock's tag.
 `--check` needs no network. It compares each `verbatim` file with the lock. It also
 fails and names each tracked file (`git ls-files`) that has no lock entry. The lock
 file needs no entry of its own.
 
 The lock records one `[[file]]` table per path. `mode` is one of `verbatim`,
 `patched`, `rewritten`, `dropped`, or `new`. A `new` entry has an empty
-`upstream_sha256`, and `--check` ignores it.
+`upstream_sha256`, and `--check` ignores it. An entry may carry `upstream_path`, the path
+of its source in the upstream repository. Without it the source is `issue-flow/<path>`.
 """
 
 import argparse
@@ -27,6 +30,8 @@ from pathlib import Path
 
 UPSTREAM_REPOSITORY = "https://github.com/Sniper7Kills-LLC/claude-plugins"
 UPSTREAM_PREFIX = "issue-flow"
+# These upstream directories sit outside `issue-flow/`, so their entries carry `upstream_path`.
+EVAL_SOURCES = ("evals/worker", "evals/checker", "evals/fakegh")
 ROOT = Path(__file__).resolve().parent.parent
 INVENTORY = "docs/specs/pages/porting-inventory.md"
 LOCK = "upstream.lock"
@@ -57,7 +62,8 @@ def serialize_lock(repository, tag, commit, entries):
     for entry in entries:
         lines += ["", "[[file]]"]
         lines += [f"{key} = {toml_string(entry[key])}"
-                  for key in ("path", "mode", "upstream_sha256", "notes")]
+                  for key in ("path", "mode", "upstream_sha256", "notes", "upstream_path")
+                  if key in entry]
     return "\n".join(lines) + "\n"
 
 
@@ -106,6 +112,37 @@ def cmd_import(root, inventory, repository, tag):
     (root / LOCK).write_text(serialize_lock(repository, tag, commit, entries), encoding="utf-8")
 
 
+def cmd_import_evals(root, repository, tag):
+    with (root / LOCK).open("rb") as handle:
+        lock = tomllib.load(handle)
+    if tag != lock["tag"]:
+        raise SyncError(f"the lock names tag {lock['tag']}, not {tag}")
+    known = {entry["path"] for entry in lock["file"]}
+    with tempfile.TemporaryDirectory() as tmp:
+        clone = Path(tmp) / "upstream"
+        commit = fetch_tag(repository, tag, clone)
+        if commit != lock["commit"]:
+            raise SyncError(f"tag {tag} is commit {commit}, and the lock names {lock['commit']}")
+        entries = list(lock["file"])
+        for source in EVAL_SOURCES:
+            for file in sorted(p for p in (clone / source).rglob("*") if p.is_file()):
+                path = file.relative_to(clone).as_posix()
+                if path in known:
+                    raise SyncError(f"the lock already has an entry for {path}")
+                target = root / path
+                target.parent.mkdir(parents=True, exist_ok=True)
+                shutil.copy(file, target)
+                entries.append({"path": path, "mode": "verbatim", "upstream_sha256": sha256(file),
+                                "notes": "Upstream eval file.", "upstream_path": path})
+    (root / LOCK).write_text(serialize_lock(lock["repository"], tag, commit, entries),
+                             encoding="utf-8")
+
+
+def upstream_location(entry):
+    """Return the path of the entry's source in the upstream repository."""
+    return entry.get("upstream_path") or f"{UPSTREAM_PREFIX}/{entry['path']}"
+
+
 def cmd_check(root):
     with (root / LOCK).open("rb") as handle:
         lock = tomllib.load(handle)
@@ -130,21 +167,30 @@ def git_output(args, cwd=None):
 
 
 def upstream_paths(repository, commit):
-    listing = git_output(["ls-tree", "-r", "--name-only", commit, UPSTREAM_PREFIX], cwd=repository)
-    return {path[len(UPSTREAM_PREFIX) + 1:] for path in listing.splitlines()
-            if path.startswith(UPSTREAM_PREFIX + "/")}
+    """Return every path of the upstream tree at `commit`."""
+    listing = git_output(["ls-tree", "-r", "--name-only", commit], cwd=repository)
+    return set(listing.splitlines())
 
 
 def source_text(repository, commit, path):
-    result = subprocess.run(["git", "show", f"{commit}:{UPSTREAM_PREFIX}/{path}"],
+    result = subprocess.run(["git", "show", f"{commit}:{path}"],
                             cwd=repository, capture_output=True)
     if result.returncode:
         raise SyncError(f"cannot read {path} at {commit}")
     return result.stdout.decode("utf-8", errors="replace").splitlines(keepends=True)
 
 
+def port_path(path):
+    """Return the path as it reads in the port: `issue-flow/` files lose their prefix."""
+    return path.removeprefix(UPSTREAM_PREFIX + "/")
+
+
+def is_ported_source(path):
+    return path.startswith(tuple(f"{prefix}/" for prefix in (UPSTREAM_PREFIX, *EVAL_SOURCES)))
+
+
 def sync_report(repository, old_commit, new_commit, old_paths, new_paths, entries):
-    modes = {entry["path"]: entry["mode"] for entry in entries}
+    modes = {upstream_location(entry): entry["mode"] for entry in entries}
     lines = [f"# Upstream sync: {new_commit}", "", "## Changes to ported files", ""]
     changed = []
     for path in sorted(old_paths & new_paths & modes.keys()):
@@ -155,13 +201,15 @@ def sync_report(repository, old_commit, new_commit, old_paths, new_paths, entrie
         if old == new:
             continue
         changed.append(path)
-        lines += [f"### `{path}` ({modes[path]})", "", "```diff"]
-        lines.extend(difflib.unified_diff(old, new, fromfile=f"a/{path}", tofile=f"b/{path}"))
+        shown = port_path(path)
+        lines += [f"### `{shown}` ({modes[path]})", "", "```diff"]
+        lines.extend(difflib.unified_diff(old, new, fromfile=f"a/{shown}", tofile=f"b/{shown}"))
         lines += ["```", ""]
     if not changed:
         lines.append("No changes.")
-    added = sorted((new_paths - old_paths) - modes.keys())
-    deleted = sorted(old_paths - new_paths)
+    added = sorted(port_path(path) for path in (new_paths - old_paths) - modes.keys()
+                   if is_ported_source(path))
+    deleted = sorted(port_path(path) for path in old_paths - new_paths if is_ported_source(path))
     lines += ["", "## New upstream files without lock entries", ""]
     lines.extend(f"- `{path}`" for path in added)
     if not added:
@@ -195,12 +243,13 @@ def cmd_sync(root, repository, tag, report_only):
         for entry in entries:
             updated = dict(entry)
             path = entry["path"]
-            if path in new_paths:
+            location = upstream_location(entry)
+            if location in new_paths:
                 result = subprocess.run(
-                    ["git", "show", f"{new_commit}:{UPSTREAM_PREFIX}/{path}"],
+                    ["git", "show", f"{new_commit}:{location}"],
                     cwd=clone, capture_output=True)
                 if result.returncode:
-                    raise SyncError(f"cannot read {path} at {new_commit}")
+                    raise SyncError(f"cannot read {location} at {new_commit}")
                 content = result.stdout
                 updated["upstream_sha256"] = hashlib.sha256(content).hexdigest()
                 if entry["mode"] == "verbatim":
@@ -220,6 +269,7 @@ def main(argv=None):
     action = parser.add_mutually_exclusive_group(required=True)
     action.add_argument("--import", dest="tag", metavar="TAG", help="import this upstream tag")
     action.add_argument("--to", dest="sync_tag", metavar="TAG", help="sync to this upstream tag")
+    action.add_argument("--import-evals", dest="evals_tag", metavar="TAG", help="import the upstream eval cases of the lock's tag")
     action.add_argument("--check", action="store_true", help="compare verbatim files with the lock")
     parser.add_argument("--report-only", action="store_true", help="write the report without changing port files or the lock")
     parser.add_argument("--root", type=Path, default=ROOT, help="repository root")
@@ -229,6 +279,8 @@ def main(argv=None):
     try:
         if args.tag:
             cmd_import(args.root, args.inventory or args.root / INVENTORY, args.repository, args.tag)
+        elif args.evals_tag:
+            cmd_import_evals(args.root, args.repository, args.evals_tag)
         elif args.sync_tag:
             cmd_sync(args.root, args.repository, args.sync_tag, args.report_only)
         else:

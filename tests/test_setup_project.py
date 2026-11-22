@@ -21,7 +21,7 @@ sys.path.insert(0, str(ROOT / "scripts"))
 import setup_project  # noqa: E402
 
 ROLE_NAMES = ["code-auditor", "deploy-verifier", "issue-worker",
-              "review-scribe", "ux-explorer", "ci-watcher"]
+              "review-scribe", "ux-explorer", "ci-watcher", "issue-worker-escalated"]
 
 
 class SetupProjectTest(unittest.TestCase):
@@ -159,6 +159,37 @@ class SetupProjectTest(unittest.TestCase):
         self.assertEqual(code, 0)
         self.assertIn("roles        ok", text)
 
+    def agent(self, name):
+        return tomllib.loads((self.project / ".codex" / "agents" / f"{name}.toml").read_text())
+
+    def test_applies_escalation_keys_to_the_escalation_role(self):
+        (self.project / ".issue-flow.codex.json").write_text(
+            json.dumps({"escalationModel": "gpt-6.2-sol", "escalationEffort": "xhigh"}), encoding="utf-8")
+        self.apply()
+        role = self.agent("issue-worker-escalated")
+        self.assertEqual((role["model"], role["model_reasoning_effort"]), ("gpt-6.2-sol", "xhigh"))
+        self.assertEqual(self.agent("issue-worker")["model"], "plugin-model")
+
+    def test_worker_and_helper_keys_never_reach_the_escalation_role(self):
+        (self.project / ".issue-flow.codex.json").write_text(
+            json.dumps({"workerModel": "gpt-6-luna", "workerEffort": "low", "helperModel": "gpt-6-luna"}),
+            encoding="utf-8")
+        self.apply()
+        role = self.agent("issue-worker-escalated")
+        self.assertEqual((role["model"], role["model_reasoning_effort"]), ("plugin-model", "medium"))
+
+    def test_check_reports_stale_when_the_escalation_role_differs_from_config(self):
+        (self.project / ".issue-flow.codex.json").write_text(
+            json.dumps({"escalationModel": "gpt-6.2-sol"}), encoding="utf-8")
+        self.apply("--with-default-permissions")
+        code, _ = self.run_check()
+        self.assertEqual(code, 0)
+        (self.project / ".issue-flow.codex.json").write_text(
+            json.dumps({"escalationModel": "gpt-6.3-sol"}), encoding="utf-8")
+        code, text = self.run_check()
+        self.assertEqual(code, 1)
+        self.assertIn("roles        stale", text)
+
     def test_applies_helper_model_only_to_helper_roles(self):
         (self.project / ".issue-flow.codex.json").write_text(
             json.dumps({"helperModel": "gpt-6.1-sol"}), encoding="utf-8")
@@ -222,6 +253,14 @@ class SetupProjectTest(unittest.TestCase):
         self.apply(accept=[".gitignore"])
         self.assertFalse((self.project / ".codex").exists())
         self.assertTrue((self.project / ".gitignore").exists())
+
+    def test_rejects_non_string_escalation_model(self):
+        for key in ("escalationModel", "escalationEffort"):
+            with self.subTest(key=key):
+                (self.project / ".issue-flow.codex.json").write_text(json.dumps({key: 5}), encoding="utf-8")
+                with self.assertRaises(setup_project.SetupError) as raised:
+                    self.apply()
+                self.assertIn(key, str(raised.exception))
 
     def test_rejects_a_file_that_the_plan_does_not_hold(self):
         with self.assertRaises(setup_project.SetupError):
@@ -288,7 +327,7 @@ class SetupProjectTest(unittest.TestCase):
         code, text = self.run_check()
         self.assertEqual(code, 0)
         self.assertEqual(text.splitlines(), [
-            "roles        ok       6 of 6 match plugin 0.1.0",
+            "roles        ok       7 of 7 match plugin 0.1.0",
             "config block ok",
             "threads      ok       max_concurrent_threads_per_session = 7",
             "profile      ok       default_permissions = issue_flow",
@@ -309,7 +348,7 @@ class SetupProjectTest(unittest.TestCase):
         role.write_bytes(role.read_bytes() + b" ")
         code, text = self.run_check()
         self.assertEqual(code, 1)
-        self.assertIn("roles        stale    5 of 6 match plugin 0.1.0", text)
+        self.assertIn("roles        stale    6 of 7 match plugin 0.1.0", text)
 
     def test_check_reports_stale_when_a_role_model_differs_from_config(self):
         (self.project / ".issue-flow.codex.json").write_text(
@@ -355,7 +394,7 @@ class SetupProjectTest(unittest.TestCase):
         code, text = self.run_check()
         self.assertEqual(code, 1)
         lines = text.splitlines()
-        self.assertEqual(lines[0], "roles        missing  0 of 6 match plugin 0.1.0")
+        self.assertEqual(lines[0], "roles        missing  0 of 7 match plugin 0.1.0")
         self.assertTrue(lines[1].startswith("config block missing"))
         self.assertTrue(lines[2].startswith("threads      missing"))
         self.assertTrue(lines[4].startswith("gitignore    missing"))

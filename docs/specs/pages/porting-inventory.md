@@ -26,7 +26,7 @@ change. The table below names the sections.
 | Upstream path | Lines | Mode | What changes | Feature |
 |---|---|---|---|---|
 | `README.md` | 539 | patched | Port credit and Codex install steps. | 00 |
-| `.claude-plugin/plugin.json` | 25 | rewritten | Becomes `.codex-plugin/plugin.json`. | 01 |
+| `.claude-plugin/plugin.json` | 25 | dropped | Replaced by `.codex-plugin/plugin.json`. | 01 |
 | `hooks/hooks.json` | 26 | rewritten | Codex events, `$PLUGIN_ROOT`, matcher `spawn_agent$`, role guard entry. | 01 |
 | `hooks/preflight.py` | 333 | patched | Output wrapper, `source` line, `ran` line. The digest logic stays. | 01, 03 |
 | `hooks/guard-spawn.py` | 262 | rewritten | V2 spawn rules on `fork_turns`, `task_name`, `agent_type`. The brief detection is dropped: `message` is encrypted. | 01 |
@@ -35,6 +35,8 @@ change. The table below names the sections.
 | `scripts/verify_ci_ran.py` | 155 | patched | Docstring paths. | 00 |
 | `scripts/verify_claim.py` | 110 | patched | Docstring paths. | 00 |
 | `scripts/gitea-ci-watch.sh` | 83 | patched | Comment about `run_in_background`; called by `ci_wait.py`. | 03 |
+| `scripts/pricing.json` | 59 | dropped | Codex plan quota has no price per token. | 09 |
+| `scripts/usage.py` | 402 | rewritten | Reads Codex rollouts instead of Claude Code transcripts. | 09 |
 
 ## Shared references
 
@@ -50,6 +52,7 @@ change. The table below names the sections.
 | Upstream path | Lines | Mode | What changes | Feature |
 |---|---|---|---|---|
 | `agents/issue-worker.md` | 690 | rewritten | Front-matter becomes `roles/issue-worker.toml`. Rewrite: the toolbox section, the four spawn rules (lines 162-236), the worktree boundary (lines 237-350), and the CI watch in the runbook. | 02 |
+| `agents/criteria-checker.md` | 117 | rewritten | Front-matter becomes `roles/criteria-checker.toml`. Read-only check of one branch against the criteria. | 08 |
 | `agents/review-scribe.md` | 174 | patched | Becomes a role file; worktree from the PM. | 05 |
 | `agents/ux-explorer.md` | 140 | patched | Becomes a role file; Playwright tool names. | 05 |
 | `agents/deploy-verifier.md` | 75 | patched | Becomes a role file; Playwright tool names. | 05 |
@@ -105,4 +108,6 @@ the markdown reaches the TOML.
 | `scripts/build_roles.py` | Role TOML from the upstream agent markdown. | 02, 05 |
 | `skills/setup/SKILL.md` | The setup skill. | 01 |
 | `hooks/guard-role.py`, `hooks/role-policy.json` | The role guard. | 01 |
+| `evals/worker/**`, `evals/checker/**`, `evals/fakegh/gh` | Upstream eval cases, the fake `gh`, and the fixtures. `verbatim`, with `upstream_path` in `upstream.lock`. | 10 |
+| `evals/README.md` | The source, the tag, and the MIT notice of the eval cases. | 10 |
 | `.agents/plugins/marketplace.json` | The Codex marketplace. | 01 |

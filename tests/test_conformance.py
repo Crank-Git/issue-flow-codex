@@ -51,6 +51,54 @@ class RunProbeTest(unittest.TestCase):
         )
 
 
+class RolloutQuotaTest(unittest.TestCase):
+    def test_reads_quota_of_a_rollout_under_the_home(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            day = Path(tmp) / "sessions" / "2026" / "11" / "20"
+            day.mkdir(parents=True)
+            event = {"type": "event_msg", "payload": {"type": "token_count", "info": None,
+                     "rate_limits": {"primary": {"used_percent": 4.5, "resets_at": 1795000000}}}}
+            (day / "rollout-a.jsonl").write_text(json.dumps(event) + "\n")
+            self.assertEqual(conformance.rollout_quota(tmp), (4.5, 1795000000))
+
+    def test_returns_none_without_a_rollout(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertIsNone(conformance.rollout_quota(tmp))
+
+
+class RolloutModelsTest(unittest.TestCase):
+    def test_reads_the_turn_context_models_of_each_rollout_under_the_home(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            day = Path(tmp) / "sessions" / "2026" / "11" / "20"
+            day.mkdir(parents=True)
+            lines = [{"type": "session_meta", "payload": {"id": "x"}},
+                     {"type": "turn_context", "payload": {"model": "gpt-6-luna"}}]
+            (day / "rollout-a.jsonl").write_text("\n".join(json.dumps(x) for x in lines) + "\nnot json\n")
+            (day / "rollout-b.jsonl").write_text(
+                json.dumps({"type": "turn_context", "payload": {"model": "gpt-6.1-sol"}}) + "\n")
+            self.assertEqual(conformance.rollout_models(tmp), ["gpt-6-luna", "gpt-6.1-sol"])
+
+    def test_returns_an_empty_list_without_a_rollout(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertEqual(conformance.rollout_models(tmp), [])
+
+
+class EscalationResultTest(unittest.TestCase):
+    def test_passes_when_a_turn_ran_on_the_role_file_model(self):
+        ok, text = conformance.escalation_result(["gpt-6-luna", "gpt-6.1-sol"], set())
+        self.assertTrue(ok)
+        self.assertIn("gpt-6.1-sol", text)
+
+    def test_fails_when_no_turn_ran_on_the_role_file_model(self):
+        ok, _ = conformance.escalation_result(["gpt-6-luna", "gpt-6-luna"], set())
+        self.assertFalse(ok)
+
+    def test_keeps_the_old_observation_and_the_spawn_fields_in_the_report_text(self):
+        _, text = conformance.escalation_result([], {"reasoning_effort", "model"})
+        self.assertIn("['model', 'reasoning_effort']", text)
+        self.assertIn("does not override the role file model", text)
+
+
 class MainTest(unittest.TestCase):
     def test_exits_2_when_codex_is_not_on_path(self):
         err = io.StringIO()
@@ -117,10 +165,14 @@ class FixtureTest(unittest.TestCase):
         )
 
     def test_each_role_file_names_its_role(self):
-        for role in ("echo_worker", "git_worker"):
+        for role in ("echo_worker", "git_worker", "escalated_probe"):
             data = tomllib.loads((FIXTURES / "roles" / f"{role}.toml").read_text())
             self.assertEqual(data["name"], role)
             self.assertTrue(data["developer_instructions"])
+
+    def test_escalated_probe_role_sets_the_escalation_model(self):
+        data = tomllib.loads((FIXTURES / "roles" / "escalated_probe.toml").read_text())
+        self.assertEqual(data["model"], conformance.ESCALATION_MODEL)
 
 
 if __name__ == "__main__":

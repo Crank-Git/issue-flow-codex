@@ -1,6 +1,6 @@
 repository = "https://github.com/Sniper7Kills-LLC/claude-plugins"
-tag = "issue-flow--v0.17.0"
-commit = "03faf580b53e8187758eb18cf9944c2bf0c273fe"
+tag = "issue-flow--v0.21.0"
+commit = "39f2261b11cc1a5c6cf75ee1310bc2419767644f"
 
 [[file]]
 path = ".agents/plugins/marketplace.json"
@@ -29,7 +29,7 @@ notes = "Port-only file."
 [[file]]
 path = ".claude-plugin/plugin.json"
 mode = "dropped"
-upstream_sha256 = "b1a7778a57bb6640532545de9959e4935ace24861f8f91a7d114b88a5970ea10"
+upstream_sha256 = "232befb0e4c3521ccc091867d8f8baf41281467020c5dd48f6ed5c00317976de"
 notes = "replaced by .codex-plugin/plugin.json"
 
 [[file]]
@@ -113,7 +113,7 @@ notes = "MIT text with the upstream and port copyright lines."
 [[file]]
 path = "README.md"
 mode = "patched"
-upstream_sha256 = "6f5cf3ddd736fba8e560324c4bf141d28ce77dfd655b7a1e361ad9b678bfd384"
+upstream_sha256 = "eb672e5a074eabfdd3c58238b4070705823e1d8a13064934b9f21bac006e55c4"
 notes = "Port header credits upstream and the license; adds the Codex install steps."
 
 [[file]]
@@ -131,8 +131,8 @@ notes = "Becomes a role file; Playwright tool names."
 [[file]]
 path = "agents/issue-worker.md"
 mode = "rewritten"
-upstream_sha256 = "bcd39c9d9b9fdc74eeb46b2ccd6c4e7570c66f79e17db3b3aae809f4e0b7e43f"
-notes = "Front-matter becomes `roles/issue-worker.toml`. Rewrite: the toolbox section, the four spawn rules (lines 162-236), the worktree boundary (lines 237-350), and the CI watch in the runbook."
+upstream_sha256 = "c46000354800304f1b6c1d50944345a6d440a294ee768f1d0f03c01a0746e5d0"
+notes = "Front-matter becomes `roles/issue-worker.toml`. Rewrite: the toolbox section, the four spawn rules (lines 162-236), the worktree boundary (lines 237-350), and the CI watch in the runbook. Turn budget: checkpoint only at the budget; verify step runs the conventions test command once."
 
 [[file]]
 path = "agents/review-scribe.md"
@@ -341,8 +341,8 @@ notes = "port-only: wait_agent timeout guard (#66)"
 [[file]]
 path = "hooks/guard-spawn.py"
 mode = "rewritten"
-upstream_sha256 = "4f505785d867897653f7ad3bbc261fe9489e9d9a7d331e9005910064a4b80b84"
-notes = "V2 spawn rules on `fork_turns`, `task_name`, `agent_type`. The brief detection is dropped: `message` is encrypted."
+upstream_sha256 = "24a9b73d993343d5d917947540ac87c848cf97f602f9e65cb7b7125095c60888"
+notes = "V2 spawn rules on `fork_turns`, `task_name`, `agent_type`. The brief detection is dropped: `message` is encrypted. Role allowlist, task_name patterns, reuse and worker chain rules for a PM spawn (#135). Run budget rule (#139)."
 
 [[file]]
 path = "hooks/hooks.json"
@@ -473,8 +473,8 @@ notes = "Docstring paths."
 [[file]]
 path = "skills/issue-flow/SKILL.md"
 mode = "rewritten"
-upstream_sha256 = "c9481ee53f4c2ce6717a3ecf41170c05785a03dc03cc5b2be379d22dc5a1a3d8"
-notes = "Two roles (31-56), core invariants (88-122), Phase 0 (123-321), Stage B launch (about 590-620), Stage C notification and messaging (621-786), Stage D deployment verification, Stage E status (870-897), hard rules (995-1023)."
+upstream_sha256 = "85a1e36eb0dad721a84156d839128f7b5783cbe378c31c0255efec5d4b5a25c5"
+notes = "Two roles (31-56), core invariants (88-122), Phase 0 (123-321), Stage B launch (about 590-620), Stage C notification and messaging (621-786), Stage D deployment verification, Stage E status (870-897), hard rules (995-1023). Spawn limits: Phase 0 and C2 no-CI suite as a `ci_watcher`, Stage B whole-issue brief, C1 checkpoint chain, recovery names. Upstream 0.21.0: C1 step 1c criteria check with `check_<n>` names, detached check worktree, `spawn_agent` and `followup_task`."
 
 [[file]]
 path = "skills/issue-flow/references/batching.md"
@@ -497,8 +497,8 @@ notes = "Watcher and verifier subagents; serialized Playwright MCP dispatch."
 [[file]]
 path = "skills/issue-flow/references/issue-worker.md"
 mode = "rewritten"
-upstream_sha256 = "529ec4148e032323c10d7a37944dfbf3cec35ae0544dcba66efd8dd7359953e1"
-notes = "The spawn call (1-30) and messaging (110-187)."
+upstream_sha256 = "1124a6ad26a4a93cc86762c822079cc3dcd2c68ac482a105816ec517b6e6f8d2"
+notes = "The spawn call (1-30) and messaging (110-187). Spawn limits: whole-issue brief, fixed checkpoint chain names. Upstream 0.21.0: the `ready-to-merge` row names the criteria check."
 
 [[file]]
 path = "skills/issue-flow/references/labels.md"
@@ -515,7 +515,7 @@ notes = "The one rule (8-26), what is safe (27-42), specialist reviewers and the
 [[file]]
 path = "skills/issue-flow/references/session-config.md"
 mode = "patched"
-upstream_sha256 = "ec0f2de6db60a0999cdf301f8fd8632debc4576b62d9dd530b632e81e21aa697"
+upstream_sha256 = "c5dbe73558242061fe43b44297592db47d82fe24af57b3e9bd23b7df683270b7"
 notes = "Plain-text questions; the `codex` block."
 
 [[file]]
@@ -527,7 +527,7 @@ notes = "`AGENTS.md`; `$issue-flow:` names."
 [[file]]
 path = "skills/issue-flow/references/worktrees.md"
 mode = "rewritten"
-upstream_sha256 = "da35fdad1ae30b73b0e9feb04cf24847680f06def63b7dda344c91f424004d17"
+upstream_sha256 = "95c95ad5f319c601e3f7c8603dd9b50066108390614f349ce993126adf2800d9"
 notes = "Everything except teardown and parked worktrees (276-359)."
 
 [[file]]
@@ -924,7 +924,7 @@ notes = "port-only: Epic 2 batch-gate live run report (#3)"
 path = "agents/ci-watcher.md"
 mode = "new"
 upstream_sha256 = ""
-notes = "Port-only file. Upstream waits in a background shell; Codex waits in this role. Built into `roles/ci-watcher.toml`."
+notes = "Port-only file. Upstream waits in a background shell; Codex waits in this role. Adds the suite brief. Built into `roles/ci-watcher.toml`."
 
 [[file]]
 path = "roles/ci-watcher.toml"
@@ -967,6 +967,12 @@ path = "hooks/record-wait-state.py"
 mode = "new"
 upstream_sha256 = ""
 notes = "port-only: record wait timeout and Stage A0 hook state (#75)"
+
+[[file]]
+path = "hooks/spawn_state.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: store per-session spawned task names for the spawn guard (#135)"
 
 [[file]]
 path = "hooks/wait_state.py"
@@ -1069,3 +1075,957 @@ path = "tests/fixtures/hooks/apply_patch_inside_worktree.json"
 mode = "new"
 upstream_sha256 = ""
 notes = "port-only: live worker apply_patch payload inside a worktree (#108, gate #111)"
+
+[[file]]
+path = "scripts/usage.py"
+mode = "rewritten"
+upstream_sha256 = "7b85a815c2902aaa8eb29511d1e950d0b52d854dab9679cd400ebf656806e21e"
+notes = "Ported from upstream scripts/usage.py (issue-flow--v0.21.0); reads Codex rollouts."
+
+[[file]]
+path = "tests/test_usage.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: rollout usage report (#138)"
+
+[[file]]
+path = "tests/fixtures/rollouts/2026/10/01/rollout-2026-10-01T09-00-00-00000000-0000-7000-8000-000000000003.jsonl"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: synthetic rollout fixture (#138)"
+
+[[file]]
+path = "tests/fixtures/rollouts/2026/11/20/rollout-2026-11-20T10-00-00-00000000-0000-7000-8000-000000000001.jsonl"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: synthetic rollout fixture (#138)"
+
+[[file]]
+path = "tests/fixtures/rollouts/2026/11/20/rollout-2026-11-20T10-05-00-00000000-0000-7000-8000-000000000002.jsonl"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: synthetic rollout fixture (#138)"
+
+[[file]]
+path = "docs/specs/features/07-spawn-limits.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/features/08-criteria-check.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/features/09-run-budget.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/features/10-worker-model-eval.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/html/feature-criteria-check.html"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/html/feature-run-budget.html"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/html/feature-spawn-limits.html"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/html/feature-worker-model-eval.html"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/html/page-spend-analysis.html"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/pages/spend-analysis.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "hooks/budget_state.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: store the quota samples of a PM session for the run budget (#139)"
+
+[[file]]
+path = "agents/criteria-checker.md"
+mode = "rewritten"
+upstream_sha256 = "bbe26aa9e93fb6ecb7e3be856d09095ca63aecd73406f8f914822c0c28b02de8"
+notes = "Front-matter becomes `roles/criteria-checker.toml`. The role file lands with the criteria-check feature (#142)."
+
+[[file]]
+path = "scripts/pricing.json"
+mode = "dropped"
+upstream_sha256 = "e29dc7ccda8f684db3a64928ca42f0a8a93f9343eb02697eb572f51e2e0b9eb4"
+notes = "Codex plan quota has no price per token"
+
+[[file]]
+path = "roles/criteria-checker.toml"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only role generated from agents/criteria-checker.md. Model gpt-6-luna, effort medium (FR-criteria-check-9); helperModel does not apply."
+
+[[file]]
+path = "tests/fixtures/conformance/roles/escalated_probe.toml"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: escalation role probe P14 (#145)"
+
+[[file]]
+path = "roles/issue-worker-escalated.toml"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file. Built from `agents/issue-worker.md` by `scripts/build_roles.py`, with the escalation model and effort (FR-criteria-check-29)."
+
+[[file]]
+path = "docs/adr/0006-escalation-role.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: ADR 0006, escalation role (#145)"
+
+[[file]]
+path = "evals/worker/_fixture/.gitignore"
+mode = "verbatim"
+upstream_sha256 = "f9f4a9102c881aca7407fb4e986a916247a68b9134733611a5efa6b806cb14a7"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture/.gitignore"
+
+[[file]]
+path = "evals/worker/_fixture/README.md"
+mode = "verbatim"
+upstream_sha256 = "85326049d1305004737dd888e602af9f988fd95c8a1d223e6332a21aeb842a84"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture/README.md"
+
+[[file]]
+path = "evals/worker/_fixture/inventory/__init__.py"
+mode = "verbatim"
+upstream_sha256 = "cbfa88fcc4107975dd40a0e7659abcf29cfb3aacd794f916ee5e2f11a97cfc12"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture/inventory/__init__.py"
+
+[[file]]
+path = "evals/worker/_fixture/inventory/__main__.py"
+mode = "verbatim"
+upstream_sha256 = "13a1a5b340cdcfc1902b62be90e508c7c71886000d5bf087e7854aadf09fb35e"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture/inventory/__main__.py"
+
+[[file]]
+path = "evals/worker/_fixture/inventory/cli.py"
+mode = "verbatim"
+upstream_sha256 = "824822be502d90470b8a59fae3642107e8aeb8d34cfb476b7be5436f203807f6"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture/inventory/cli.py"
+
+[[file]]
+path = "evals/worker/_fixture/inventory/items.py"
+mode = "verbatim"
+upstream_sha256 = "27f935ac86c3478edcbf4c9c2628b944cf7b7fcc837f413699a6d77c7d440efa"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture/inventory/items.py"
+
+[[file]]
+path = "evals/worker/_fixture/inventory/report.py"
+mode = "verbatim"
+upstream_sha256 = "973213d286f7a36e19afc0b07d2b5721c9f020e147ec6cb743556673a24bb23f"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture/inventory/report.py"
+
+[[file]]
+path = "evals/worker/_fixture/stock.txt"
+mode = "verbatim"
+upstream_sha256 = "9ffaacdf54ae8ff8c5ad3d71aec100dd964a1f664df619295e8cb9fb92c71ada"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture/stock.txt"
+
+[[file]]
+path = "evals/worker/_fixture/tests/__init__.py"
+mode = "verbatim"
+upstream_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture/tests/__init__.py"
+
+[[file]]
+path = "evals/worker/_fixture/tests/test_cli.py"
+mode = "verbatim"
+upstream_sha256 = "d5265239c5d392b6d66cfdb853cec1e2e465869ef32aca51cc73e2cb754076e7"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture/tests/test_cli.py"
+
+[[file]]
+path = "evals/worker/_fixture/tests/test_items.py"
+mode = "verbatim"
+upstream_sha256 = "7d212d80e3342791d3843e98a2ce648045a1c44752ff1a0f0e0ad9112d85f783"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture/tests/test_items.py"
+
+[[file]]
+path = "evals/worker/_fixture/tests/test_report.py"
+mode = "verbatim"
+upstream_sha256 = "503baf6be8a9a263e4294ba705f648f5ba6a300be5e6656ea8030c55cb17066a"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture/tests/test_report.py"
+
+[[file]]
+path = "evals/worker/_fixture_large/.gitignore"
+mode = "verbatim"
+upstream_sha256 = "862263fa1f46c20f0d1e4dac5ffcc75abd55c08211b2c3864c5f8764b9d87793"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture_large/.gitignore"
+
+[[file]]
+path = "evals/worker/_fixture_large/README.md"
+mode = "verbatim"
+upstream_sha256 = "7849fb93090a7b643bd653f8900a12898a7bec851763627508bee252007e89c0"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture_large/README.md"
+
+[[file]]
+path = "evals/worker/_fixture_large/data/discounts.json"
+mode = "verbatim"
+upstream_sha256 = "7da7a11cf04a035e83b46bb02a093993629c6230b6939a8db3c5d7c5b816d4b7"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture_large/data/discounts.json"
+
+[[file]]
+path = "evals/worker/_fixture_large/data/orders.json"
+mode = "verbatim"
+upstream_sha256 = "6c4a0c104d6490940988cd337e9e3d69ddc3b297e5e2a92525afa1735f05922a"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture_large/data/orders.json"
+
+[[file]]
+path = "evals/worker/_fixture_large/data/products.json"
+mode = "verbatim"
+upstream_sha256 = "59c1f61540c6fd2d0dd5d65bc7a10a59ca85296f355b504c3db56bb22ea13c0d"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture_large/data/products.json"
+
+[[file]]
+path = "evals/worker/_fixture_large/docs/api.md"
+mode = "verbatim"
+upstream_sha256 = "7b3207d8dc1beb13126096989fb40ed62848cbc64eca87c2e48d587f73dd097c"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture_large/docs/api.md"
+
+[[file]]
+path = "evals/worker/_fixture_large/shop/__init__.py"
+mode = "verbatim"
+upstream_sha256 = "0ca529522b6c65e2298e33ef3ab7e369048a3dfa1d57786d54c44e5755cae623"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture_large/shop/__init__.py"
+
+[[file]]
+path = "evals/worker/_fixture_large/shop/__main__.py"
+mode = "verbatim"
+upstream_sha256 = "5e127dd4bc4efe741e19172aebdb40ae94fb1834220b9c0923acdd7684bd56f2"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture_large/shop/__main__.py"
+
+[[file]]
+path = "evals/worker/_fixture_large/shop/api/__init__.py"
+mode = "verbatim"
+upstream_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture_large/shop/api/__init__.py"
+
+[[file]]
+path = "evals/worker/_fixture_large/shop/api/errors.py"
+mode = "verbatim"
+upstream_sha256 = "8516d72f59ef094a883f421a7cf7ee6651b6c4dc4f9940addf5c0fb6f65ff866"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture_large/shop/api/errors.py"
+
+[[file]]
+path = "evals/worker/_fixture_large/shop/api/handlers.py"
+mode = "verbatim"
+upstream_sha256 = "73f6448d7a847c484fb83dd6a395f2d330890fb8fa7299902120c0eb0c499d7c"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture_large/shop/api/handlers.py"
+
+[[file]]
+path = "evals/worker/_fixture_large/shop/api/router.py"
+mode = "verbatim"
+upstream_sha256 = "0dc4bfc3a68e9cde70e62c013e6887efef1cd6ded385c49adfc5288874131419"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture_large/shop/api/router.py"
+
+[[file]]
+path = "evals/worker/_fixture_large/shop/app.py"
+mode = "verbatim"
+upstream_sha256 = "db6e96efa759462d8746950f31fd7e9f23d2503ff8e1f4f8ee9d2add5f8de01b"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture_large/shop/app.py"
+
+[[file]]
+path = "evals/worker/_fixture_large/shop/cli.py"
+mode = "verbatim"
+upstream_sha256 = "32e12144c5e2fcd26a8f80449a659c21d09c58f8bdd232842d7c952017440645"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture_large/shop/cli.py"
+
+[[file]]
+path = "evals/worker/_fixture_large/shop/config.py"
+mode = "verbatim"
+upstream_sha256 = "58831e556e0ee4e08ace2cc44eb0f792a48ddb6352af691f5c09691a706b3211"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture_large/shop/config.py"
+
+[[file]]
+path = "evals/worker/_fixture_large/shop/models/__init__.py"
+mode = "verbatim"
+upstream_sha256 = "3e74cf8455ef8f54a428dcbf2e473223586770628fe7acfc06483df0a877b2d9"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture_large/shop/models/__init__.py"
+
+[[file]]
+path = "evals/worker/_fixture_large/shop/models/discount.py"
+mode = "verbatim"
+upstream_sha256 = "a3380af22c57eb9cf50211d82e19306602b3a14aa7bad38f58f3caf03c86c030"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture_large/shop/models/discount.py"
+
+[[file]]
+path = "evals/worker/_fixture_large/shop/models/order.py"
+mode = "verbatim"
+upstream_sha256 = "067a33c08b42e323bd139b668093c9c97a57b30673d457e375be3afae4d62e3b"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture_large/shop/models/order.py"
+
+[[file]]
+path = "evals/worker/_fixture_large/shop/models/product.py"
+mode = "verbatim"
+upstream_sha256 = "49adcdf04fcf3cb3a596c98332ea1f460dabcae3f67770a4d5433d3cc339e749"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture_large/shop/models/product.py"
+
+[[file]]
+path = "evals/worker/_fixture_large/shop/services/__init__.py"
+mode = "verbatim"
+upstream_sha256 = "7b680751fcc0f40598df5298cc24d82d01343ba17ca2bdefc8655a9270e85219"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture_large/shop/services/__init__.py"
+
+[[file]]
+path = "evals/worker/_fixture_large/shop/services/catalog.py"
+mode = "verbatim"
+upstream_sha256 = "1a4d0ad51d0d6ab4871086dac01b8835bd8b1d2cd58370b6eec6863625fc43ef"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture_large/shop/services/catalog.py"
+
+[[file]]
+path = "evals/worker/_fixture_large/shop/services/discounts.py"
+mode = "verbatim"
+upstream_sha256 = "eb7845cbbe4368e3bdb00e1e5ca581b337be1771a88e579a395e9bd4b3b50664"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture_large/shop/services/discounts.py"
+
+[[file]]
+path = "evals/worker/_fixture_large/shop/services/ordering.py"
+mode = "verbatim"
+upstream_sha256 = "ff1a7d4e65879079dc1e53b3965da0895f0cadc3c53b039c4a09826b42533770"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture_large/shop/services/ordering.py"
+
+[[file]]
+path = "evals/worker/_fixture_large/shop/services/pricing.py"
+mode = "verbatim"
+upstream_sha256 = "eb017186308eb29cd08cb0c32220b76b7952ff2bb42a723109fad0a754c2e238"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture_large/shop/services/pricing.py"
+
+[[file]]
+path = "evals/worker/_fixture_large/shop/services/reports.py"
+mode = "verbatim"
+upstream_sha256 = "7ab8954c3d2ef1757a1bde2559a4996147f96eec9e2cfeea60556d415ab56210"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture_large/shop/services/reports.py"
+
+[[file]]
+path = "evals/worker/_fixture_large/shop/storage/__init__.py"
+mode = "verbatim"
+upstream_sha256 = "eb6cdc40f2f37dd93496667025282c4e645cdf8b3eb8c96836280ff324f55ef1"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture_large/shop/storage/__init__.py"
+
+[[file]]
+path = "evals/worker/_fixture_large/shop/storage/jsonstore.py"
+mode = "verbatim"
+upstream_sha256 = "fc5deaae5966008ca87dbf05ea62f2fd61631c44a7d99b8938f9b003285bd999"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture_large/shop/storage/jsonstore.py"
+
+[[file]]
+path = "evals/worker/_fixture_large/shop/storage/repository.py"
+mode = "verbatim"
+upstream_sha256 = "6f0cc58f60a40ae746f07dd6ccf717acf833083f5fa7d2d8b06c77f6372023e3"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture_large/shop/storage/repository.py"
+
+[[file]]
+path = "evals/worker/_fixture_large/shop/util/__init__.py"
+mode = "verbatim"
+upstream_sha256 = "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture_large/shop/util/__init__.py"
+
+[[file]]
+path = "evals/worker/_fixture_large/shop/util/dates.py"
+mode = "verbatim"
+upstream_sha256 = "a58b34ad6e71ff1e5a1fd3760d8ec8214df2f33557023d5cf44788c77811fcd8"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture_large/shop/util/dates.py"
+
+[[file]]
+path = "evals/worker/_fixture_large/shop/util/money.py"
+mode = "verbatim"
+upstream_sha256 = "bd611b046e0fd6303f679e778a75a6c4e3332e5ca7da73bccb985f2af5d0af0f"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture_large/shop/util/money.py"
+
+[[file]]
+path = "evals/worker/_fixture_large/shop/util/text.py"
+mode = "verbatim"
+upstream_sha256 = "3c170c64e44ace220bc6fd88670a8d39bd965d61227190e7c468118b3b7cb730"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture_large/shop/util/text.py"
+
+[[file]]
+path = "evals/worker/_fixture_large/tests/__init__.py"
+mode = "verbatim"
+upstream_sha256 = "c7fa71b52b10952b39c1777c7941b835c18dd9e58dae4afa6be500fef08a11a5"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture_large/tests/__init__.py"
+
+[[file]]
+path = "evals/worker/_fixture_large/tests/test_api.py"
+mode = "verbatim"
+upstream_sha256 = "9b1f9371da14ac24465689080e130bae9cb7c865d89b50383a0c35f33c604790"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture_large/tests/test_api.py"
+
+[[file]]
+path = "evals/worker/_fixture_large/tests/test_catalog.py"
+mode = "verbatim"
+upstream_sha256 = "a8469a116ebb4d8ea25a6eeb9ece6d29118d6427ac90415a1b9eb46852472cbd"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture_large/tests/test_catalog.py"
+
+[[file]]
+path = "evals/worker/_fixture_large/tests/test_dates.py"
+mode = "verbatim"
+upstream_sha256 = "5e59af07c19442dd3900008b0251736e0fe248c6d42a6668e92e34b641b70699"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture_large/tests/test_dates.py"
+
+[[file]]
+path = "evals/worker/_fixture_large/tests/test_money.py"
+mode = "verbatim"
+upstream_sha256 = "84afeeb8bd0d7ae48483de266d2e9ffa86f414ca33d3e55bf516424ae2a49836"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture_large/tests/test_money.py"
+
+[[file]]
+path = "evals/worker/_fixture_large/tests/test_ordering.py"
+mode = "verbatim"
+upstream_sha256 = "e792f50efbab478d976492253d794d28cb184b4ff2b45e14b481be44fc3b922e"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture_large/tests/test_ordering.py"
+
+[[file]]
+path = "evals/worker/_fixture_large/tests/test_pricing.py"
+mode = "verbatim"
+upstream_sha256 = "be79ca0027103d2f4e8831c02c88967f9085ff4050592263fa3b40f8db3492be"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture_large/tests/test_pricing.py"
+
+[[file]]
+path = "evals/worker/_fixture_large/tests/test_reports.py"
+mode = "verbatim"
+upstream_sha256 = "6b4ae5d0bbf0f915a8fff141e7b5b2a7fd97119901156e7191c95fde73022b6f"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/_fixture_large/tests/test_reports.py"
+
+[[file]]
+path = "evals/worker/worker-easy-low-stock-boundary/case.json"
+mode = "verbatim"
+upstream_sha256 = "0708412ccf3bcab67c0ce499d95b4f9f5f11cc5b5e8a1781be34d6df940f3f0b"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/worker-easy-low-stock-boundary/case.json"
+
+[[file]]
+path = "evals/worker/worker-easy-low-stock-boundary/hidden/hidden_test_low_stock_boundary.py"
+mode = "verbatim"
+upstream_sha256 = "f3b73c5678788c5f87a5b83ed100d972e12c80cad4e9acc8fe62c4efd3916265"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/worker-easy-low-stock-boundary/hidden/hidden_test_low_stock_boundary.py"
+
+[[file]]
+path = "evals/worker/worker-easy-low-stock-boundary/reference.patch"
+mode = "verbatim"
+upstream_sha256 = "01cdcb2e798d332324ca0939ddcce4e98e2dc3c7c7e2ca5792caa9aa71518bbb"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/worker-easy-low-stock-boundary/reference.patch"
+
+[[file]]
+path = "evals/worker/worker-easy-low-stock-boundary/tracker.json"
+mode = "verbatim"
+upstream_sha256 = "83e8ca6c807a9dec56d1031fc21f65b89dfb0cc6536159470d861b0c4d5e106e"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/worker-easy-low-stock-boundary/tracker.json"
+
+[[file]]
+path = "evals/worker/worker-easy-negative-qty/case.json"
+mode = "verbatim"
+upstream_sha256 = "5428302c45ab7b5e59999283dacc1ce0ae300e2947ddb9526c0ff581666fc2b8"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/worker-easy-negative-qty/case.json"
+
+[[file]]
+path = "evals/worker/worker-easy-negative-qty/hidden/hidden_test_reject_negative_qty.py"
+mode = "verbatim"
+upstream_sha256 = "119b74839acbfd998a19fa3b3164f97f69889fe5b8fec7c863ac61e3278c9508"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/worker-easy-negative-qty/hidden/hidden_test_reject_negative_qty.py"
+
+[[file]]
+path = "evals/worker/worker-easy-negative-qty/reference.patch"
+mode = "verbatim"
+upstream_sha256 = "5bb1cd3a40b1acef04a4e0b4a4d0ef13db8c89b0a8b5d6eb5fcadba883a197ce"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/worker-easy-negative-qty/reference.patch"
+
+[[file]]
+path = "evals/worker/worker-easy-negative-qty/tracker.json"
+mode = "verbatim"
+upstream_sha256 = "f6e84ff28becdb624fc9f2ddba2ab0dd66e8529670050567dcff7704d0897549"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/worker-easy-negative-qty/tracker.json"
+
+[[file]]
+path = "evals/worker/worker-hard-ambiguous-tax/case.json"
+mode = "verbatim"
+upstream_sha256 = "06c3d9b49fee3fdae32b94e32a9c2e0664feec502970c3f9957d22a155806d90"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/worker-hard-ambiguous-tax/case.json"
+
+[[file]]
+path = "evals/worker/worker-hard-ambiguous-tax/tracker.json"
+mode = "verbatim"
+upstream_sha256 = "d723d6da1fcc9ddb29a1294c3c82d37ffbbae597866d3a09d1494cacd1fc7558"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/worker-hard-ambiguous-tax/tracker.json"
+
+[[file]]
+path = "evals/worker/worker-hard-error-lines/case.json"
+mode = "verbatim"
+upstream_sha256 = "077cee7d96d02e23ee0a8b6576d2239d4a22bb0bf4ccec4233d87f5fdd0dbfc5"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/worker-hard-error-lines/case.json"
+
+[[file]]
+path = "evals/worker/worker-hard-error-lines/hidden/hidden_test_stock_file_errors.py"
+mode = "verbatim"
+upstream_sha256 = "103f6138c74a41d177f4d60f9328df63ed819bb3c95eff36f3b660401de7a235"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/worker-hard-error-lines/hidden/hidden_test_stock_file_errors.py"
+
+[[file]]
+path = "evals/worker/worker-hard-error-lines/reference.patch"
+mode = "verbatim"
+upstream_sha256 = "9c8d6cb5b767620e2cd08398e0dc6a915f617da5f1f5987ff545a2a741d5ff14"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/worker-hard-error-lines/reference.patch"
+
+[[file]]
+path = "evals/worker/worker-hard-error-lines/tracker.json"
+mode = "verbatim"
+upstream_sha256 = "9794a906931bdc3ecdfe9c4439a616df81e07ce38ffaa81d432c42ee45f41703"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/worker-hard-error-lines/tracker.json"
+
+[[file]]
+path = "evals/worker/worker-hard-location/case.json"
+mode = "verbatim"
+upstream_sha256 = "ce2a6af2df8b2c32e42ac15254cffdf87df08ef8d0bff8879b1e0b431c47020e"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/worker-hard-location/case.json"
+
+[[file]]
+path = "evals/worker/worker-hard-location/hidden/hidden_test_stock_location.py"
+mode = "verbatim"
+upstream_sha256 = "fdf9c908f51996ab9c5d279e7f759107cad82e54c159d5d15d22a10ca8ec8714"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/worker-hard-location/hidden/hidden_test_stock_location.py"
+
+[[file]]
+path = "evals/worker/worker-hard-location/reference.patch"
+mode = "verbatim"
+upstream_sha256 = "3e53567c6825a9098f1973c306ff319c3680f4183a26db7501127a920c7a8f06"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/worker-hard-location/reference.patch"
+
+[[file]]
+path = "evals/worker/worker-hard-location/tracker.json"
+mode = "verbatim"
+upstream_sha256 = "96093962b26528bdc3966f60c6d3934bc8257d09617cb17ba2749322ececbd16"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/worker-hard-location/tracker.json"
+
+[[file]]
+path = "evals/worker/worker-large-hard-one-discount/case.json"
+mode = "verbatim"
+upstream_sha256 = "7b01478cb23c0aa8eae3f2176888383a3190e5fb0b88630facb65373e04498c0"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/worker-large-hard-one-discount/case.json"
+
+[[file]]
+path = "evals/worker/worker-large-hard-one-discount/hidden/hidden_test_one_discount.py"
+mode = "verbatim"
+upstream_sha256 = "b2b026521f3a2d3939fa02008781b9db463acbeba1b25407150a382c82f444e3"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/worker-large-hard-one-discount/hidden/hidden_test_one_discount.py"
+
+[[file]]
+path = "evals/worker/worker-large-hard-one-discount/reference.patch"
+mode = "verbatim"
+upstream_sha256 = "2fded01ee332fba5deb76c64c0c24d5b0d52f1bac9b0cdcf7b439721ec66e4f5"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/worker-large-hard-one-discount/reference.patch"
+
+[[file]]
+path = "evals/worker/worker-large-hard-one-discount/tracker.json"
+mode = "verbatim"
+upstream_sha256 = "78328eafadbe4baf8fe86c3077db91445714e6ddff06f54f5693a098b8af8d5f"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/worker-large-hard-one-discount/tracker.json"
+
+[[file]]
+path = "evals/worker/worker-large-locate-repeated-sku/case.json"
+mode = "verbatim"
+upstream_sha256 = "050f542948cea76c94b4e3dd19ae419d6b2ef270dd85b36e342e44044b3baeed"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/worker-large-locate-repeated-sku/case.json"
+
+[[file]]
+path = "evals/worker/worker-large-locate-repeated-sku/hidden/hidden_test_repeated_sku.py"
+mode = "verbatim"
+upstream_sha256 = "b79b3f69774a3ea22682af92e9eadc81b9951c93378e191f51a0fde12d33bd2a"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/worker-large-locate-repeated-sku/hidden/hidden_test_repeated_sku.py"
+
+[[file]]
+path = "evals/worker/worker-large-locate-repeated-sku/reference.patch"
+mode = "verbatim"
+upstream_sha256 = "cdef478ee257812eb00d6424c2e62a46fb28804d633f56a07d314f2957a4d06f"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/worker-large-locate-repeated-sku/reference.patch"
+
+[[file]]
+path = "evals/worker/worker-large-locate-repeated-sku/tracker.json"
+mode = "verbatim"
+upstream_sha256 = "ab2c3037052706b502127165c1f32154055b89c2ddd9876d59c12eacbb72d4f9"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/worker-large-locate-repeated-sku/tracker.json"
+
+[[file]]
+path = "evals/worker/worker-large-medium-report-midnight/case.json"
+mode = "verbatim"
+upstream_sha256 = "cb634150b30f502bceac318668be37865d8f26be54cc77baa73785d24c928f70"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/worker-large-medium-report-midnight/case.json"
+
+[[file]]
+path = "evals/worker/worker-large-medium-report-midnight/hidden/hidden_test_report_midnight.py"
+mode = "verbatim"
+upstream_sha256 = "53a42f30b6ce25cb61f5060fa77358b77564c5d1c3cf7c91307b004416b95c79"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/worker-large-medium-report-midnight/hidden/hidden_test_report_midnight.py"
+
+[[file]]
+path = "evals/worker/worker-large-medium-report-midnight/reference.patch"
+mode = "verbatim"
+upstream_sha256 = "025e97441f076f8d0e3df1b0a6320713fc7a4784be0d4bfa6249b8966966e03d"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/worker-large-medium-report-midnight/reference.patch"
+
+[[file]]
+path = "evals/worker/worker-large-medium-report-midnight/tracker.json"
+mode = "verbatim"
+upstream_sha256 = "1f36f32264cf51c3c907eed3fab36feb6ae9491c18cfa6ae41b141210f69a1f8"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/worker-large-medium-report-midnight/tracker.json"
+
+[[file]]
+path = "evals/worker/worker-medium-csv-format/case.json"
+mode = "verbatim"
+upstream_sha256 = "7acf445ab58628a491a01fa55307c9b1ac971a0f1f7079222616ba04aef67d0c"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/worker-medium-csv-format/case.json"
+
+[[file]]
+path = "evals/worker/worker-medium-csv-format/hidden/hidden_test_list_csv_format.py"
+mode = "verbatim"
+upstream_sha256 = "5d1d4a4c3973ca78d22696735a3942d2a1344daa6bb5b0d64a6bc65ffc43d0bc"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/worker-medium-csv-format/hidden/hidden_test_list_csv_format.py"
+
+[[file]]
+path = "evals/worker/worker-medium-csv-format/reference.patch"
+mode = "verbatim"
+upstream_sha256 = "e632d619b18e2aba4c04221bac73527d27147fbbaaff1f39235525bbfb659391"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/worker-medium-csv-format/reference.patch"
+
+[[file]]
+path = "evals/worker/worker-medium-csv-format/tracker.json"
+mode = "verbatim"
+upstream_sha256 = "06217def2e286fc2471d4d8c0097a6f87d789b20792f1341c9a2b107a6d9c734"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/worker-medium-csv-format/tracker.json"
+
+[[file]]
+path = "evals/worker/worker-medium-money-refactor/case.json"
+mode = "verbatim"
+upstream_sha256 = "1322d854f57ef827d07c477d328c557191b943ea8c757f96bf923d13cf7081c6"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/worker-medium-money-refactor/case.json"
+
+[[file]]
+path = "evals/worker/worker-medium-money-refactor/hidden/hidden_test_format_money.py"
+mode = "verbatim"
+upstream_sha256 = "263be69b3ce413e6d631c4d77a8948ce43ead16ee60f0bde090ccf2a48bf19f1"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/worker-medium-money-refactor/hidden/hidden_test_format_money.py"
+
+[[file]]
+path = "evals/worker/worker-medium-money-refactor/reference.patch"
+mode = "verbatim"
+upstream_sha256 = "fb9051ce86987905ab5dbb18902931c03bebcee2efdcaf1258f779b5a58817bb"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/worker-medium-money-refactor/reference.patch"
+
+[[file]]
+path = "evals/worker/worker-medium-money-refactor/tracker.json"
+mode = "verbatim"
+upstream_sha256 = "8f65317304802603c59e20a01ea5ea1ab04b8a620b62fa02bc1fda9b9b5249a7"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/worker-medium-money-refactor/tracker.json"
+
+[[file]]
+path = "evals/worker/worker-medium-price-parse/case.json"
+mode = "verbatim"
+upstream_sha256 = "dfbd1264239b7b1902a3b00cecb51f1b818531c81576db774a27b5e531b6100e"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/worker-medium-price-parse/case.json"
+
+[[file]]
+path = "evals/worker/worker-medium-price-parse/hidden/hidden_test_total_wrong_value.py"
+mode = "verbatim"
+upstream_sha256 = "6b9331439f6b43cac6286f23c3144e8996be6a1c92ba95e18843ace0e05055cd"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/worker-medium-price-parse/hidden/hidden_test_total_wrong_value.py"
+
+[[file]]
+path = "evals/worker/worker-medium-price-parse/reference.patch"
+mode = "verbatim"
+upstream_sha256 = "8b6366ee193cca9465b722834587f7b1a280f3be5b9ec73f8304c58b2fea1c31"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/worker-medium-price-parse/reference.patch"
+
+[[file]]
+path = "evals/worker/worker-medium-price-parse/tracker.json"
+mode = "verbatim"
+upstream_sha256 = "72fd213f9632caa6928b639b23e21c5e4d9cd1ace5cf364257b175f8bcb5d522"
+notes = "Upstream eval file."
+upstream_path = "evals/worker/worker-medium-price-parse/tracker.json"
+
+[[file]]
+path = "evals/checker/checker-full-easy-low-stock-boundary/case.json"
+mode = "verbatim"
+upstream_sha256 = "86e2be1a55396071e3266cdbc759b07a103280933d00e819153f066d3c3c594c"
+notes = "Upstream eval file."
+upstream_path = "evals/checker/checker-full-easy-low-stock-boundary/case.json"
+
+[[file]]
+path = "evals/checker/checker-full-easy-negative-qty/case.json"
+mode = "verbatim"
+upstream_sha256 = "8fad136b27705e2be1d74e62d6c90c8f24eb6ea650a5545bc882aae278a4a6f3"
+notes = "Upstream eval file."
+upstream_path = "evals/checker/checker-full-easy-negative-qty/case.json"
+
+[[file]]
+path = "evals/checker/checker-full-hard-error-lines/case.json"
+mode = "verbatim"
+upstream_sha256 = "e6a9d490f789a584f807ef24ca811133d498bd64fef7b2857ee895b3f212b860"
+notes = "Upstream eval file."
+upstream_path = "evals/checker/checker-full-hard-error-lines/case.json"
+
+[[file]]
+path = "evals/checker/checker-full-hard-location/case.json"
+mode = "verbatim"
+upstream_sha256 = "4c3e5a97721ac94bcb007fe52bf2538f5147184f22805d7818afb6eca5237e4e"
+notes = "Upstream eval file."
+upstream_path = "evals/checker/checker-full-hard-location/case.json"
+
+[[file]]
+path = "evals/checker/checker-full-large-hard-one-discount/case.json"
+mode = "verbatim"
+upstream_sha256 = "5a1b9541db2231712cac3bcc26ba4ca876e3efd3bb6c73fc72a388841d7584cc"
+notes = "Upstream eval file."
+upstream_path = "evals/checker/checker-full-large-hard-one-discount/case.json"
+
+[[file]]
+path = "evals/checker/checker-full-large-locate-repeated-sku/case.json"
+mode = "verbatim"
+upstream_sha256 = "c0fe7c9fa3096c2d14931c694a909d844b9921e4334b1f34805e157538bb2d95"
+notes = "Upstream eval file."
+upstream_path = "evals/checker/checker-full-large-locate-repeated-sku/case.json"
+
+[[file]]
+path = "evals/checker/checker-full-large-medium-report-midnight/case.json"
+mode = "verbatim"
+upstream_sha256 = "737613f233f350255e5f6edffcc2c9352eef1040e1493908c50c1f6cf68a0645"
+notes = "Upstream eval file."
+upstream_path = "evals/checker/checker-full-large-medium-report-midnight/case.json"
+
+[[file]]
+path = "evals/checker/checker-full-medium-csv-format/case.json"
+mode = "verbatim"
+upstream_sha256 = "63743a4bd5baba33dfb68a961f8c0636d88fb0873c8a9fd2c14a4f60f0ab91bb"
+notes = "Upstream eval file."
+upstream_path = "evals/checker/checker-full-medium-csv-format/case.json"
+
+[[file]]
+path = "evals/checker/checker-full-medium-money-refactor/case.json"
+mode = "verbatim"
+upstream_sha256 = "396a2c912358ef7dfbdaeb4909ed26c480f83f4de1ab05b5c08d9a40e45c9cb7"
+notes = "Upstream eval file."
+upstream_path = "evals/checker/checker-full-medium-money-refactor/case.json"
+
+[[file]]
+path = "evals/checker/checker-full-medium-price-parse/case.json"
+mode = "verbatim"
+upstream_sha256 = "0d2f5101bc9a0e5a86e86bb6666f041160b8f18b495487d0b67efbc339a6981b"
+notes = "Upstream eval file."
+upstream_path = "evals/checker/checker-full-medium-price-parse/case.json"
+
+[[file]]
+path = "evals/checker/checker-partial-hard-error-lines/case.json"
+mode = "verbatim"
+upstream_sha256 = "7cca7cfe6e07ee82cf82f4ca7046e59595259ac183361439813d6bfa1fadd874"
+notes = "Upstream eval file."
+upstream_path = "evals/checker/checker-partial-hard-error-lines/case.json"
+
+[[file]]
+path = "evals/checker/checker-partial-hard-error-lines/partial.patch"
+mode = "verbatim"
+upstream_sha256 = "8476e3920656bf3b872114c10d04acdb050b80edaeaa933a5931ea0262226aac"
+notes = "Upstream eval file."
+upstream_path = "evals/checker/checker-partial-hard-error-lines/partial.patch"
+
+[[file]]
+path = "evals/fakegh/gh"
+mode = "verbatim"
+upstream_sha256 = "1266e2883797aae7254edb1324d132487efa72b127c6a9426b2f9a06c4571b11"
+notes = "Upstream eval file."
+upstream_path = "evals/fakegh/gh"
+
+[[file]]
+path = "evals/README.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "tests/test_eval_cases.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "scripts/run_evals.py"
+mode = "rewritten"
+upstream_sha256 = "fcf06d08ff53311e7c136ae068208db026ed145b85e7ea79a107df8c70cd1404"
+notes = "Runs `codex exec` in an isolated `CODEX_HOME` with the role files of the tree, instead of `claude -p`. The graders `hidden_tests`, `verdict`, `diff_scope`, `gh_log`, `checker_verdict`, `refs_unchanged` are ported. The `llm` and `spawns` graders, the pm suite, and the cost budget are dropped; usage comes from `scripts/usage.py`."
+upstream_path = "scripts/run-evals.py"
+
+[[file]]
+path = "tests/test_run_evals.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "tests/fake_codex.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file. The fake `codex` of the runner tests."
+
+[[file]]
+path = "evals/BASELINE.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "evals/candidates/150-worker-model/checker-gpt-6-luna/results.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "evals/candidates/150-worker-model/checker-gpt-6-luna/summary.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "evals/candidates/150-worker-model/worker-gpt-6-luna/results.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "evals/candidates/150-worker-model/worker-gpt-6-luna/summary.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "evals/candidates/150-worker-model/worker-gpt-6.1-sol/results.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "evals/candidates/150-worker-model/worker-gpt-6.1-sol/summary.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."

@@ -158,6 +158,7 @@ body.rv-open .layout { padding-right:21rem; }
 <h2>Pages</h2><ul>
 <li><a href="html/page-codex-harness.html">Codex harness facts</a></li>
 <li><a href="html/page-porting-inventory.html">Porting inventory</a></li>
+<li><a href="html/page-spend-analysis.html">Quota use of an operator run, November 2026</a></li>
 </ul>
 <h2>Features</h2><ul>
 <li><a href="html/feature-foundation.html">Foundation</a></li>
@@ -167,9 +168,13 @@ body.rv-open .layout { padding-right:21rem; }
 <li><a href="html/feature-spec-skills.html">Spec skills</a></li>
 <li><a href="html/feature-project-review.html">Project review</a></li>
 <li><a href="html/feature-mirror-and-sync.html">Mirror and sync</a></li>
+<li><a href="html/feature-spawn-limits.html">Spawn limits</a></li>
+<li><a href="html/feature-criteria-check.html">Criteria check and escalation</a></li>
+<li><a href="html/feature-run-budget.html">Run budget and usage report</a></li>
+<li><a href="html/feature-worker-model-eval.html">Worker model eval</a></li>
 </ul></aside>
 <main>
-<p class="meta"><span class="badge">approved</span> &nbsp; created 2026-11-03 &nbsp; rendered 2026-11-04</p>
+<p class="meta"><span class="badge">approved</span> &nbsp; created 2026-11-03 &nbsp; rendered 2026-11-22</p>
 <h1>issue-flow for Codex</h1>
 <h1 id="issue-flow-for-codex">issue-flow for Codex</h1>
 <h2 id="overview">Overview</h2>
@@ -209,6 +214,11 @@ body.rv-open .layout { padding-right:21rem; }
 <tr><td>co-operator</td><td>noun</td><td>A second PM session, in either harness, that works the same tracker.</td><td>peer, teammate</td></tr>
 <tr><td>batch</td><td>noun</td><td>A group of issues that share one integration branch and one CI run.</td><td>bundle, wave</td></tr>
 <tr><td>digest</td><td>noun</td><td>The periodic status comment that the PM posts on its status issue.</td><td>report, summary</td></tr>
+<tr><td>criteria checker</td><td>noun</td><td>A subagent of role <code>criteria_checker</code> that tests one branch against the acceptance criteria of its issue, without the worker's verdict.</td><td>reviewer, verifier, QA agent</td></tr>
+<tr><td>escalation</td><td>noun</td><td>The one extra attempt at an issue by a worker on <code>escalationModel</code> and <code>escalationEffort</code>, after a failed re-check or a technical <code>blocked</code>.</td><td>retry, upgrade, promotion</td></tr>
+<tr><td>run budget</td><td>noun</td><td>The optional limit <code>runBudgetPercent</code>: the share of the weekly quota that one PM run can use before the spawn guard refuses new workers.</td><td>quota cap, spend limit</td></tr>
+<tr><td>usage report</td><td>noun</td><td>The output of <code>scripts/usage.py</code>: the tokens of each thread and the quota share of a run, read from rollout files.</td><td>cost report, telemetry</td></tr>
+<tr><td>rollout file</td><td>noun</td><td>The JSONL file in which Codex records one thread of a session, under <code>$CODEX_HOME/sessions/</code>.</td><td>transcript, session log</td></tr>
 </table></div>
 <h2 id="goals">Goals</h2>
 <ol>
@@ -258,6 +268,10 @@ body.rv-open .layout { padding-right:21rem; }
 <tr><td>Spec skills</td><td><a href="html/feature-spec-skills.html">04-spec-skills</a></td><td>Epic 4</td><td>none</td></tr>
 <tr><td>Project review</td><td><a href="html/feature-project-review.html">05-project-review</a></td><td>Epic 5</td><td>none</td></tr>
 <tr><td>Mirror and sync</td><td><a href="html/feature-mirror-and-sync.html">06-mirror-and-sync</a></td><td>Epic 6</td><td>none</td></tr>
+<tr><td>Spawn limits</td><td><a href="html/feature-spawn-limits.html">07-spawn-limits</a></td><td>Epic 7</td><td>none</td></tr>
+<tr><td>Criteria check and escalation</td><td><a href="html/feature-criteria-check.html">08-criteria-check</a></td><td>Epic 8</td><td>none</td></tr>
+<tr><td>Run budget and usage report</td><td><a href="html/feature-run-budget.html">09-run-budget</a></td><td>Epic 7</td><td>none</td></tr>
+<tr><td>Worker model eval</td><td><a href="html/feature-worker-model-eval.html">10-worker-model-eval</a></td><td>Epic 9</td><td>none</td></tr>
 </table></div>
 <p>The port is a command-line plugin. It has no screens, so the spec has no mockups.</p>
 <h2 id="architecture-stack">Architecture &amp; stack</h2>
@@ -267,10 +281,13 @@ body.rv-open .layout { padding-right:21rem; }
         PM --&gt;|"spawn_agent / followup_task"| W1["worker&lt;br/&gt;role issue_worker"]
         PM --&gt;|"spawn_agent"| W2["worker&lt;br/&gt;role issue_worker"]
         PM --&gt;|"spawn_agent"| CW["watcher&lt;br/&gt;role ci_watcher"]
+        PM --&gt;|"spawn_agent"| CC["criteria checker&lt;br/&gt;role criteria_checker"]
+        CC --&gt;|"FINAL_ANSWER verdict"| PM
         W1 --&gt;|"FINAL_ANSWER verdict"| PM
         W2 --&gt;|"FINAL_ANSWER verdict"| PM
         CW --&gt;|"FINAL_ANSWER verdict"| PM
         HK["Plugin hooks&lt;br/&gt;SessionStart · PreToolUse"] -.-&gt;|"context · deny"| PM
+        RO["rollout files&lt;br/&gt;tokens · used_percent"] -.-&gt;|"run budget"| HK
         HK -.-&gt;|"role guard"| W1
     end
     W1 --&gt;|"git worktree add"| WT1[".worktrees/issue-n"]
@@ -331,8 +348,10 @@ body.rv-open .layout { padding-right:21rem; }
 <div class="table-wrap"><table>
 <tr><th>Thread</th><th>Default model</th><th>Reason</th></tr>
 <tr><td>PM</td><td><code>gpt-6.1-sol</code></td><td>The docs call it the "Latest workhorse". The PM makes every decision.</td></tr>
-<tr><td>worker</td><td><code>gpt-6.1-sol</code>, effort <code>medium</code></td><td>A worker writes production code. The operator can lower it in the run configuration.</td></tr>
+<tr><td>worker</td><td><code>gpt-6-luna</code>, effort <code>medium</code></td><td>A worker writes production code. Feature 10 measured it against <code>gpt-6.1-sol</code>: hidden-test pass rate 100% against 95%, and no case failed on both runs. Results: <code>evals/candidates/150-worker-model/</code> and <code>evals/BASELINE.md</code>. The operator can change it in the run configuration.</td></tr>
 <tr><td>watcher, code_auditor, worker subagents</td><td><code>gpt-6-luna</code></td><td>The docs call it the "most efficient model for focused, high-volume tasks".</td></tr>
+<tr><td>criteria checker</td><td><code>gpt-6-luna</code>, effort <code>medium</code></td><td>The check reads a diff and runs tests. Feature 10 measured it: 10 of 11 cases passed, and the one fail was a dispatcher write error (<code>evals/BASELINE.md</code>).</td></tr>
+<tr><td>escalation worker</td><td><code>gpt-6.1-sol</code>, effort <code>medium</code></td><td>The workers run on <code>gpt-6-luna</code>, so the escalation raises the model (FR-worker-model-eval-27).</td></tr>
 </table></div>
 <p>Verified against: <code>codex debug models --bundled</code> (0.166.0), https://learn.chatgpt.com/docs/models (retrieved 2026-11-03). The operator changes any model in <code>.issue-flow.json</code> (Feature 03).</p>
 <h3 id="upstream-tracking">Upstream tracking</h3>
@@ -352,7 +371,9 @@ body.rv-open .layout { padding-right:21rem; }
     SUBAGENT ||--|| VERDICT : "returns"
     ISSUE ||--o| SUBAGENT : "is built by"
     BATCH ||--|{ ISSUE : "groups"
-    PM_SESSION ||--|| STATUS_ISSUE : "writes digests to"</pre></div>
+    PM_SESSION ||--|| STATUS_ISSUE : "writes digests to"
+    PM_SESSION ||--|{ ROLLOUT_FILE : "is recorded in"
+    PM_SESSION ||--o| SPAWN_STATE : "is limited by"</pre></div>
 <div class="table-wrap"><table>
 <tr><th>Entity</th><th>Fields</th><th>Constraints</th><th>Lifecycle</th></tr>
 <tr><td>UPSTREAM_RELEASE</td><td><code>tag</code> (string, for example <code>issue-flow--v0.17.0</code>), <code>commit</code> (SHA)</td><td>One current release per lock.</td><td>Changes on each sync.</td></tr>
@@ -362,10 +383,12 @@ body.rv-open .layout { padding-right:21rem; }
 <tr><td>SKILL</td><td><code>name</code>, <code>description</code>, path</td><td><code>description</code> is required by Codex.</td><td>Ported per Feature 01-06.</td></tr>
 <tr><td>HOOK</td><td>event, matcher, command</td><td>Matcher syntax per Codex.</td><td>Needs hook trust after each plugin update.</td></tr>
 <tr><td>ROLE_FILE</td><td><code>name</code>, <code>description</code>, <code>model</code>, <code>model_reasoning_effort</code>, <code>developer_instructions</code></td><td>Codex ignores <code>sandbox_mode</code>, <code>approval_policy</code> and <code>mcp_servers</code> in a role file.</td><td>Copied by the setup skill.</td></tr>
-<tr><td>RUN_CONFIG</td><td><code>.issue-flow.json</code>, upstream schema only. The Codex-only settings sit in <code>.issue-flow.codex.json</code> (Feature 03)</td><td>Upstream keys keep upstream meaning.</td><td>Written at the run configuration step.</td></tr>
+<tr><td>RUN_CONFIG</td><td><code>.issue-flow.json</code>, upstream schema only. The Codex-only settings sit in <code>.issue-flow.codex.json</code> (Feature 03), with the new keys <code>escalationModel</code>, <code>escalationEffort</code> (Feature 08), and <code>runBudgetPercent</code> (Feature 09)</td><td>Upstream keys keep upstream meaning.</td><td>Written at the run configuration step.</td></tr>
 <tr><td>CODEX_CONFIG</td><td>the block between <code># issue-flow:begin</code> and <code># issue-flow:end</code> in <code>.codex/config.toml</code></td><td>The setup skill changes only this block.</td><td>Written by the setup skill.</td></tr>
 <tr><td>PM_SESSION</td><td>thread id, operator login</td><td>One PM per operator login per tracker.</td><td>Ends when the loop stops.</td></tr>
-<tr><td>SUBAGENT</td><td><code>task_name</code>, role, <code>agent_status</code></td><td><code>task_name</code> uses lowercase letters, digits, and underscores.</td><td><code>pending_init</code> → <code>running</code> → <code>completed</code> or <code>errored</code>.</td></tr>
+<tr><td>SUBAGENT</td><td><code>task_name</code>, role, <code>agent_status</code></td><td><code>task_name</code> uses lowercase letters, digits, and underscores. A PM spawn uses a role and a <code>task_name</code> from the allowlist of Feature 07.</td><td><code>pending_init</code> → <code>running</code> → <code>completed</code> or <code>errored</code>.</td></tr>
+<tr><td>ROLLOUT_FILE</td><td><code>session_meta</code>, <code>turn_context</code>, <code>token_count</code> events</td><td>Written by Codex. The port only reads it (Feature 09, codex-harness fact 30).</td><td>One for each thread. Kept by Codex.</td></tr>
+<tr><td>SPAWN_STATE</td><td><code>$PLUGIN_DATA/spawns-&lt;session_id&gt;.json</code> (<code>names</code>), <code>$PLUGIN_DATA/budget-&lt;session_id&gt;.json</code> (start <code>used_percent</code>, <code>resets_at</code>)</td><td>One pair for each PM session. Written by the spawn guard only.</td><td>Created at the first PM spawn. Never read by another session.</td></tr>
 <tr><td>WORKTREE</td><td>path <code>.worktrees/&lt;task_name&gt;</code>, branch</td><td>Inside the project root, ignored by git.</td><td>Removed by the PM after the gate.</td></tr>
 <tr><td>VERDICT</td><td>upstream verdict JSON (<code>outcome</code>, <code>criteria</code>, <code>localChecks</code>, ...)</td><td>Same schema as upstream.</td><td>Read once by the PM.</td></tr>
 <tr><td>ISSUE, BATCH, STATUS_ISSUE</td><td>upstream tracker formats</td><td>Unchanged from upstream.</td><td>Upstream state machine.</td></tr>
@@ -384,7 +407,7 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li><strong>Performance.</strong> The PM context stays flat: the PM delegates token-heavy reads to subagents, as upstream does. Auto-compaction is expected. Phase 0 recovery rebuilds state from the tracker.
 </li>
-<li><strong>Cost.</strong> Multi-agent runs use quota fast (openai/codex issue #58898). The run configuration shows the models and the concurrency before the loop starts.
+<li><strong>Cost.</strong> Multi-agent runs use quota fast (openai/codex issue #58898). The run configuration shows the models and the concurrency before the loop starts. The spawn guard enforces the role set, the worker cap, and the run budget (Features 07 and 09). <a href="html/page-spend-analysis.html">Quota use of an operator run</a> records why.
 </li>
 </ul>
 <h2 id="environments-config">Environments &amp; config</h2>
@@ -414,6 +437,8 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li><strong>Conformance suite:</strong> <code>python3 scripts/conformance.py</code> runs live <code>codex exec</code> probes in an isolated <code>CODEX_HOME</code>. It proves each harness fact that the port uses. It uses the operator's Codex login and quota, so CI does not run it. The maintainer runs it on each new Codex release.
 </li>
+<li><strong>Worker eval:</strong> <code>python3 scripts/run_evals.py</code> runs the upstream worker and checker cases on <code>codex exec</code> with hidden tests and a quota limit (Feature 10). It uses the operator's quota, so CI does not run it.
+</li>
 <li><strong>End-to-end tests:</strong> the maintainer runs a scripted loop on each test bed. The test bed holds a small app and five seeded issues. The run passes when the loop merges one batch and closes its issues.
 </li>
 <li><strong>Done for a change:</strong> unit tests pass, the manifest check passes, the lock check passes, and the change states which upstream file and section it ports.
@@ -429,6 +454,9 @@ body.rv-open .layout { padding-right:21rem; }
 <tr><td>Epic 4: Spec skills</td><td>The four spec skills run in Codex and write a Codex scaffold.</td><td>04-spec-skills</td><td>Epic 1</td><td><code>$issue-flow:project-planner</code> produces an approved spec package on a test project.</td></tr>
 <tr><td>Epic 5: Project review</td><td>The review PM and the four review roles run in Codex.</td><td>05-project-review</td><td>Epic 3</td><td><code>$issue-flow:project-review</code> files findings and lands a manual PR on a test bed.</td></tr>
 <tr><td>Epic 6: Mirror and sync</td><td><code>repo-mirror</code> works, the upstream sync is automated, and v0.1.0 ships.</td><td>06-mirror-and-sync</td><td>Epic 4, Epic 5</td><td>A scheduled CI job opens an issue for a new upstream tag. The marketplace serves v0.1.0.</td></tr>
+<tr><td>Epic 7: Spawn limits and run budget</td><td>The spawn guard limits the roles, the workers of an issue, and the run quota. <code>usage.py</code> reports the tokens of a run.</td><td>07-spawn-limits, 09-run-budget</td><td>Epic 6</td><td>The unit tests of both guards pass. One end-to-end run on the GitHub test bed with <code>runBudgetPercent: 3</code> spawns no subagent outside the allowlist and stops at the budget.</td></tr>
+<tr><td>Epic 8: Upstream 0.21.0 sync</td><td>The port is on upstream 0.21.0, with the criteria check, one rework round, and one escalation.</td><td>08-criteria-check</td><td>Epic 7</td><td>The lock check passes on <code>issue-flow--v0.21.0</code>. One end-to-end run on the GitHub test bed merges a two-member batch with one check for each sub-issue.</td></tr>
+<tr><td>Epic 9: Worker model eval</td><td>The worker model is chosen from measured results.</td><td>10-worker-model-eval</td><td>Epic 7, Epic 8</td><td><code>evals/BASELINE.md</code> holds both worker models and the checker. The operator records the worker model decision.</td></tr>
 </table></div>
 <h2 id="milestones">Milestones</h2>
 <ol>
@@ -441,6 +469,8 @@ body.rv-open .layout { padding-right:21rem; }
 <li><strong>M3 — Full parity (Epics 4 and 5).</strong> Shippable means: all seven skills run in Codex.
 </li>
 <li><strong>M4 — Release (Epic 6).</strong> Shippable means: v0.1.0 is in the marketplace and the upstream sync runs on a schedule.
+</li>
+<li><strong>M5 — Spend control (Epics 7 to 9).</strong> Shippable means: v0.2.0 is in the marketplace with the spawn limits, the criteria check, and the run budget, and the worker model decision is recorded. The target date is 2026-12-08, the end of the operator's Codex plan. The live Codex runs of M5 use at most 10% of the weekly quota in total.
 </li>
 </ol>
 <h2 id="assumptions" class="callout-h">Assumptions</h2>
@@ -468,11 +498,15 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li><strong>Documentation and source disagree.</strong> The plugin docs say plugin hooks work "only for plugins installed manually in Codex desktop". The live test showed plugin hooks running in the CLI. The port relies on the observed behavior and the conformance suite checks it.
 </li>
-<li><strong>Quota.</strong> Concurrency 3 with <code>gpt-6.1-sol</code> workers can use a large share of a ChatGPT plan. The operator decides the worker model at each run.
+<li><strong>Quota.</strong> Concurrency 3 with <code>gpt-6.1-sol</code> workers can use a large share of a ChatGPT plan. One measured run used about 1.35 weekly quotas in 5.5 days (<a href="html/page-spend-analysis.html">Quota use of an operator run</a>). Mitigation: Features 07 to 10.
+</li>
+<li><strong>Rollout format.</strong> The run budget reads Codex rollout files, an internal format. Mitigation: the guard fails open, and a conformance probe reads one <code>token_count</code> event (Feature 09).
+</li>
+<li><strong>Spawn model precedence.</strong> The role file <code>model</code> wins over a spawn <code>model</code> (fact 31). The escalation uses its own role, <code>issue_worker_escalated</code>, whose role file sets the escalation model. Mitigation: the conformance probe P14 (Feature 08).
 </li>
 </ul>
 <h2 id="issue-map">Issue map</h2>
-<p>Created by spec-to-issues on 2026-11-03 in <code>Crank-Git/issue-flow-codex</code>.</p>
+<p>Created by spec-to-issues on 2026-11-03 in <code>Crank-Git/issue-flow-codex</code>. Epics 7 to 9 created on 2026-11-21.</p>
 <div class="table-wrap"><table>
 <tr><th>Epic</th><th>Epic issue</th><th>Sub-issues</th></tr>
 <tr><td>Epic 0: Foundation</td><td>#1</td><td>#8, #9, #10, #11, #12</td></tr>
@@ -482,6 +516,9 @@ body.rv-open .layout { padding-right:21rem; }
 <tr><td>Epic 4: Spec skills</td><td>#5</td><td>#30, #31, #32, #33, #34</td></tr>
 <tr><td>Epic 5: Project review</td><td>#6</td><td>#35, #36, #37, #38</td></tr>
 <tr><td>Epic 6: Mirror and sync</td><td>#7</td><td>#39, #40, #41, #42</td></tr>
+<tr><td>Epic 7: Spawn limits and run budget</td><td>#134</td><td>#135, #136, #137, #138, #139</td></tr>
+<tr><td>Epic 8: Upstream 0.21.0 sync</td><td>#140</td><td>#141, #142, #143, #144, #145</td></tr>
+<tr><td>Epic 9: Worker model eval</td><td>#146</td><td>#147, #148, #149, #150</td></tr>
 </table></div>
 <div class="table-wrap"><table>
 <tr><th>Requirements</th><th>Issue</th></tr>
@@ -521,6 +558,20 @@ body.rv-open .layout { padding-right:21rem; }
 <tr><td>FR-mirror-and-sync-6, FR-mirror-and-sync-7, FR-mirror-and-sync-8, FR-mirror-and-sync-9</td><td>#40</td></tr>
 <tr><td>FR-mirror-and-sync-10, FR-mirror-and-sync-11, FR-mirror-and-sync-12</td><td>#41</td></tr>
 <tr><td>FR-mirror-and-sync-13, FR-mirror-and-sync-14, FR-mirror-and-sync-15</td><td>#42</td></tr>
+<tr><td>FR-spawn-limits-1, FR-spawn-limits-2, FR-spawn-limits-3, FR-spawn-limits-4, FR-spawn-limits-5, FR-spawn-limits-6, FR-spawn-limits-7, FR-spawn-limits-8, FR-spawn-limits-11, FR-spawn-limits-12, FR-spawn-limits-13, FR-spawn-limits-17</td><td>#135</td></tr>
+<tr><td>FR-spawn-limits-9, FR-spawn-limits-14, FR-spawn-limits-15, FR-spawn-limits-16, FR-spawn-limits-18, FR-spawn-limits-19, FR-spawn-limits-23, FR-spawn-limits-24, FR-spawn-limits-27, FR-spawn-limits-28</td><td>#136</td></tr>
+<tr><td>FR-spawn-limits-10, FR-spawn-limits-20, FR-spawn-limits-21, FR-spawn-limits-22, FR-spawn-limits-25, FR-spawn-limits-26, FR-spawn-limits-29, FR-spawn-limits-30</td><td>#137</td></tr>
+<tr><td>FR-run-budget-1, FR-run-budget-2, FR-run-budget-3, FR-run-budget-4, FR-run-budget-5, FR-run-budget-6, FR-run-budget-7, FR-run-budget-8, FR-run-budget-9, FR-run-budget-10, FR-run-budget-11, FR-run-budget-12, FR-run-budget-13, FR-run-budget-14, FR-run-budget-15</td><td>#138</td></tr>
+<tr><td>FR-run-budget-16, FR-run-budget-17, FR-run-budget-18, FR-run-budget-19, FR-run-budget-20, FR-run-budget-21, FR-run-budget-22, FR-run-budget-23, FR-run-budget-24, FR-run-budget-25, FR-run-budget-26, FR-run-budget-27, FR-run-budget-28, FR-run-budget-29, FR-run-budget-30, FR-run-budget-31</td><td>#139</td></tr>
+<tr><td>FR-criteria-check-1, FR-criteria-check-2, FR-criteria-check-3, FR-criteria-check-4, FR-criteria-check-5, FR-criteria-check-6, FR-criteria-check-7</td><td>#141</td></tr>
+<tr><td>FR-criteria-check-8, FR-criteria-check-9, FR-criteria-check-10, FR-criteria-check-11, FR-criteria-check-14, FR-criteria-check-15</td><td>#142</td></tr>
+<tr><td>FR-criteria-check-12, FR-criteria-check-13, FR-criteria-check-16, FR-criteria-check-17, FR-criteria-check-18, FR-criteria-check-19, FR-criteria-check-20, FR-criteria-check-21, FR-criteria-check-22, FR-criteria-check-23, FR-criteria-check-24, FR-criteria-check-37</td><td>#143</td></tr>
+<tr><td>FR-criteria-check-25, FR-criteria-check-26, FR-criteria-check-27, FR-criteria-check-28, FR-criteria-check-30, FR-criteria-check-31, FR-criteria-check-35, FR-criteria-check-36</td><td>#144</td></tr>
+<tr><td>FR-criteria-check-29, FR-criteria-check-32, FR-criteria-check-33, FR-criteria-check-34</td><td>#145</td></tr>
+<tr><td>FR-worker-model-eval-1, FR-worker-model-eval-2, FR-worker-model-eval-3, FR-worker-model-eval-4, FR-worker-model-eval-6</td><td>#147</td></tr>
+<tr><td>FR-worker-model-eval-5, FR-worker-model-eval-7, FR-worker-model-eval-8, FR-worker-model-eval-9, FR-worker-model-eval-10, FR-worker-model-eval-11, FR-worker-model-eval-12, FR-worker-model-eval-13, FR-worker-model-eval-14, FR-worker-model-eval-15, FR-worker-model-eval-16, FR-worker-model-eval-17</td><td>#148</td></tr>
+<tr><td>FR-worker-model-eval-18, FR-worker-model-eval-19, FR-worker-model-eval-20, FR-worker-model-eval-21</td><td>#149</td></tr>
+<tr><td>FR-worker-model-eval-22, FR-worker-model-eval-23, FR-worker-model-eval-24, FR-worker-model-eval-25, FR-worker-model-eval-26, FR-worker-model-eval-27, FR-worker-model-eval-28</td><td>#150</td></tr>
 </table></div>
 <h2 id="changelog">Changelog</h2>
 <ul>
@@ -553,6 +604,22 @@ body.rv-open .layout { padding-right:21rem; }
 <li>2026-11-04 — Promotion PR #125 merged dev into main with operator approval. The release workflow tagged <code>issue-flow-codex--v0.1.0</code>, and the release install passed. Mirror and sync is built.
 </li>
 <li>2026-11-04 — Operator ruling on #126: setup is one time per machine. The setup skill defaults to <code>setup_project.py apply --user</code>, which writes <code>$CODEX_HOME/issue-flow.config.toml</code> and the role files; per-project setup stays an option (ADR 0005). The user-level file also sets the thread limit to 7. The PM's setup check passes on a complete user-level setup, and <code>worktree.py</code> keeps <code>.worktrees/</code> out of <code>git status</code> through the local exclude file. The approval policy stays a separate <code>-a never</code> flag. The plugin version is 0.1.1.
+</li>
+<li>2026-11-21 — Spend control, change round 1 (draft). The operator reported a run that used about 1.35 weekly quotas. The measurement is on the new page <a href="html/page-spend-analysis.html">Quota use of an operator run</a>. Operator answers: the spawn guard limits the roles and the workers of an issue (five at most: build, two checkpoints, escalation, one escalation checkpoint); the port syncs to upstream 0.21.0 with the criteria check, one rework round, and one escalation to <code>gpt-6.1-sol</code> at effort <code>high</code>; the run budget is optional, and drains the run before it stops; the spec skills tell the operator to start a new session for the loop; a worker model eval decides <code>gpt-6-luna</code> against <code>gpt-6.1-sol</code>. The live Codex runs of Epics 7 and 8 use at most 10% of the weekly quota. New features 07 to 10, Epics 7 and 8, milestone M5.
+</li>
+<li>2026-11-21 — Spend control, review round 1: approved. Operator ruling: the run budget is off by default; when the operator turns it on, the suggested value is 15%.
+</li>
+<li>2026-11-21 — spec-to-issues: the planned Epic 7 held three features and too many sub-issues for one batch. It is now Epic 7 (Features 07 and 09), Epic 8 (Feature 08), and Epic 9 (Feature 10, formerly Epic 8). Scope is unchanged.
+</li>
+<li>2026-11-22 — Epic 7 gate decision: the quota share starts a new window only when <code>resets_at</code> moves by more than 3600 s. Real rollouts move <code>resets_at</code> by 1 to 3 s inside one window. FR-run-budget-13 and 14 and harness fact 30 now say so (#138).
+</li>
+<li>2026-11-22 — Epic 7 gate decision: the batch review found PM spawns in the skill text with names that the spawn guard denies. The guard and Feature 07 now allow <code>survey_&lt;k&gt;</code> and <code>deploylog_&lt;sha7&gt;</code> (explorer), <code>review_scribe_&lt;slug&gt;</code>, and <code>fix_&lt;n&gt;</code>, <code>fix_&lt;n&gt;_&lt;k&gt;</code> (issue_worker, with a chain rule). Each skill text uses them.
+</li>
+<li>2026-11-22 — Epic 8 batch gate, probe P14 failed on codex-cli 0.167.1: a spawn <code>model</code> does not override the role file model (fact 31). Decision: the escalation spawns the role <code>issue_worker_escalated</code>, built from the issue-worker instructions, and its role file carries <code>escalationModel</code> and <code>escalationEffort</code>. The spawn guard denies <code>model</code> and <code>reasoning_effort</code> on every worker spawn. FR-criteria-check-29, 31 to 34 changed to match. ADR 0006.
+</li>
+<li>2026-11-22 — Epic #140 batch gate decision: the check of an escalated worker takes the next unused name of the check chain (<code>check_&lt;n&gt;</code> to <code>check_&lt;n&gt;_4</code>), not a fixed <code>check_&lt;n&gt;_3</code>. On the <code>blocked</code> path no check runs before the escalation, and the spawn guard denies <code>check_&lt;n&gt;_3</code> without <code>check_&lt;n&gt;_2</code>. FR-criteria-check-22 and the new FR-criteria-check-38 changed to match.
+</li>
+<li>2026-11-22 — Epic 9 gate decision (operator delegated it to the PM, rule fixed in #150 before the results): the default <code>workerModel</code> is <code>gpt-6-luna</code> at effort <code>medium</code>, and the default escalation is <code>gpt-6.1-sol</code> at effort <code>medium</code> (FR-worker-model-eval-26, 27). The hidden-test pass rate is 100% for <code>gpt-6-luna</code> and 95% for <code>gpt-6.1-sol</code>, and no case failed on both <code>gpt-6-luna</code> runs. <code>gpt-6-luna</code> used about 1.75 times the mean input tokens and about 1.5 times the mean output tokens of <code>gpt-6.1-sol</code>, and the eval cannot measure the quota cost of each model at a resolution of 1 point. Results: <code>evals/candidates/150-worker-model/</code> and <code>evals/BASELINE.md</code>. Open question for the operator (FR-worker-model-eval-28): the checker passed 10 of 11 cases on <code>gpt-6-luna</code>, and the one fail was a dispatcher write error, not a checker error. Keep the checker on <code>gpt-6-luna</code>?
 </li>
 </ul><nav class="pager">
 <span></span>

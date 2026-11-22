@@ -1,0 +1,689 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>issue-flow for Codex — Feature: Spawn limits</title>
+<style>
+:root { --bg:#ffffff; --fg:#1a1a24; --muted:#5a5a68; --line:#e3e3ea; --accent:#3452c8;
+        --card:#f6f6f9; --warn-bg:#fff7e8; --warn-line:#e8b34a; }
+@media (prefers-color-scheme: dark) {
+  :root { --bg:#14141b; --fg:#e8e8ee; --muted:#9a9aa8; --line:#2c2c38; --accent:#8ea6ff;
+          --card:#1c1c26; --warn-bg:#2a2318; --warn-line:#a87c2a; } }
+* { box-sizing:border-box; }
+body { margin:0; background:var(--bg); color:var(--fg);
+       font:16px/1.6 system-ui,-apple-system,sans-serif; }
+.layout { display:flex; min-height:100vh; }
+aside.site { width:17rem; flex:none; border-right:1px solid var(--line);
+             padding:1.2rem 1rem 3rem; position:sticky; top:0; height:100vh;
+             overflow-y:auto; background:var(--card); }
+aside.site h2 { font-size:.8rem; text-transform:uppercase; letter-spacing:.06em;
+                color:var(--muted); margin:1.2rem 0 .3rem; border:none; padding:0; }
+aside.site ul { list-style:none; margin:0; padding:0; }
+aside.site li { margin:.15rem 0; }
+aside.site a { text-decoration:none; color:var(--fg); font-size:.92rem;
+               display:block; padding:.15rem .5rem; border-radius:6px; }
+aside.site a:hover { background:var(--bg); }
+aside.site a.current { background:var(--accent); color:#fff; }
+aside.site a.sub { padding-left:1.3rem; font-size:.84rem; color:var(--muted); }
+aside.site .brand { font-weight:700; font-size:1.05rem; }
+main { max-width:60rem; margin:0 auto; padding:2rem 1.5rem 6rem; min-width:0; flex:1; }
+h1,h2,h3,h4 { line-height:1.25; }
+h1 { font-size:2rem; margin:.2rem 0; }
+h2 { border-bottom:1px solid var(--line); padding-bottom:.3rem; margin-top:2.5rem; }
+a { color:var(--accent); }
+code { background:var(--card); padding:.1em .35em; border-radius:4px; font-size:.9em; }
+pre.code { background:var(--card); border:1px solid var(--line); border-radius:8px;
+           padding:1rem; overflow-x:auto; }
+pre.code code { background:none; padding:0; }
+.table-wrap { overflow-x:auto; }
+table { border-collapse:collapse; margin:1rem 0; min-width:50%; }
+th,td { border:1px solid var(--line); padding:.4rem .7rem; text-align:left; }
+th { background:var(--card); }
+blockquote { border-left:3px solid var(--accent); margin:1rem 0; padding:.2rem 1rem;
+             color:var(--muted); }
+.meta { color:var(--muted); margin-bottom:2rem; }
+.badge { display:inline-block; padding:.1rem .6rem; border-radius:999px;
+         border:1px solid var(--accent); color:var(--accent); font-size:.85rem; }
+.diagram { background:var(--card); border:1px solid var(--line); border-radius:8px;
+           padding:1rem; margin:1rem 0; overflow-x:auto; }
+.diagram pre.mermaid { margin:0; }
+.diagram.raw::before { content:"diagram source (assets/mermaid.min.js not vendored)";
+                       display:block; color:var(--muted); font-size:.8rem;
+                       margin-bottom:.5rem; }
+.callout-h, .callout-h ~ p, .callout-h ~ ul { background:var(--warn-bg); }
+.callout-h { border-left:4px solid var(--warn-line); padding:.3rem .8rem; }
+.mockup { margin:1.5rem 0; }
+.mockup iframe { width:100%; height:32rem; border:1px solid var(--line);
+                 border-radius:8px; background:#fff; }
+nav.pager { display:flex; justify-content:space-between; margin-top:3rem;
+            border-top:1px solid var(--line); padding-top:1rem; }
+@media (max-width: 900px) {
+  .layout { display:block; }
+  aside.site { width:auto; height:auto; position:static; border-right:none;
+               border-bottom:1px solid var(--line); }
+}
+h1[id]:hover .rv-add, h2[id]:hover .rv-add, h3[id]:hover .rv-add,
+h4[id]:hover .rv-add { opacity:1; }
+.rv-add { opacity:0; margin-left:.5rem; font-size:.75rem; cursor:pointer;
+          border:1px solid var(--accent); color:var(--accent); background:none;
+          border-radius:6px; padding:0 .45rem; vertical-align:middle;
+          transition:opacity .15s; }
+.rv-comment { border:1px solid var(--warn-line); border-left-width:4px;
+              background:var(--warn-bg); border-radius:8px; padding:.6rem .9rem;
+              margin:.8rem 0; font-size:.92rem; }
+.rv-comment.rv-resolved { opacity:.6; border-left-color:var(--line); }
+.rv-comment .rv-head { display:flex; gap:.6rem; align-items:center;
+                       color:var(--muted); font-size:.8rem; margin-bottom:.3rem; }
+.rv-comment .rv-head button { font-size:.75rem; cursor:pointer; background:none;
+                              border:1px solid var(--line); border-radius:6px;
+                              color:var(--muted); padding:0 .4rem; }
+.rv-comment .rv-body { white-space:pre-wrap; }
+.rv-editor textarea { width:100%; min-height:5rem; background:var(--bg);
+                      color:var(--fg); border:1px solid var(--line);
+                      border-radius:6px; padding:.5rem; font:inherit; }
+.rv-editor .rv-actions { margin-top:.4rem; display:flex; gap:.5rem; }
+.rv-editor button { cursor:pointer; border-radius:6px; padding:.2rem .8rem;
+                    border:1px solid var(--accent); background:var(--accent);
+                    color:#fff; }
+.rv-editor button.rv-cancel { background:none; color:var(--accent); }
+#rv-toggle { position:fixed; right:1rem; bottom:1rem; z-index:60;
+             background:var(--accent); color:#fff; border:none; cursor:pointer;
+             border-radius:999px; padding:.5rem 1rem; font-size:.85rem;
+             box-shadow:0 2px 10px rgba(0,0,0,.2); }
+#rv-drawer { position:fixed; top:0; right:0; bottom:0; width:21rem; z-index:55;
+             background:var(--card); border-left:1px solid var(--line);
+             display:flex; flex-direction:column; transform:translateX(100%);
+             transition:transform .2s ease; box-shadow:-4px 0 16px rgba(0,0,0,.12); }
+body.rv-open #rv-drawer { transform:none; }
+body.rv-open .layout { padding-right:21rem; }
+#rv-drawer header { padding:.8rem 1rem .5rem; border-bottom:1px solid var(--line); }
+#rv-drawer header .rv-count { color:var(--muted); font-size:.8rem; }
+#rv-drawer .rv-compose { padding:.8rem 1rem; border-bottom:1px solid var(--line); }
+#rv-drawer .rv-compose label { display:block; font-size:.75rem;
+                               color:var(--muted); margin-bottom:.25rem; }
+#rv-drawer .rv-compose select { width:100%; margin-bottom:.4rem;
+             background:var(--bg); color:var(--fg); border:1px solid var(--line);
+             border-radius:6px; padding:.3rem; font:inherit; font-size:.85rem; }
+#rv-drawer .rv-compose textarea { width:100%; min-height:5.5rem;
+             background:var(--bg); color:var(--fg); border:1px solid var(--line);
+             border-radius:6px; padding:.5rem; font:inherit; font-size:.9rem; }
+#rv-drawer .rv-compose .rv-live { font-size:.72rem; color:var(--muted); }
+#rv-drawer .rv-list { flex:1; overflow-y:auto; padding:.6rem 1rem; }
+#rv-drawer .rv-item { border:1px solid var(--line); border-left:3px solid
+             var(--warn-line); border-radius:8px; padding:.45rem .6rem;
+             margin-bottom:.6rem; font-size:.82rem; cursor:pointer; }
+#rv-drawer .rv-item.rv-resolved { opacity:.55; border-left-color:var(--line); }
+#rv-drawer .rv-item .rv-where { color:var(--accent); font-size:.72rem; }
+#rv-drawer .rv-item .rv-meta { color:var(--muted); font-size:.72rem;
+                               display:flex; gap:.5rem; align-items:center; }
+#rv-drawer .rv-item .rv-meta button { font-size:.7rem; cursor:pointer;
+             background:none; border:1px solid var(--line); border-radius:5px;
+             color:var(--muted); padding:0 .35rem; }
+#rv-drawer .rv-item .rv-text { white-space:pre-wrap; margin:.15rem 0; }
+#rv-drawer footer { padding:.6rem 1rem; border-top:1px solid var(--line);
+                    display:flex; gap:.5rem; flex-wrap:wrap; }
+#rv-drawer footer button, #rv-drawer .rv-compose button {
+  cursor:pointer; border:1px solid var(--accent); background:none;
+  color:var(--accent); border-radius:6px; padding:.2rem .7rem; font-size:.8rem; }
+#rv-drawer .rv-compose button.rv-primary { background:var(--accent); color:#fff; }
+#rv-drawer .rv-otherpages { color:var(--muted); font-size:.75rem;
+                            margin:.4rem 0 0; }
+@media (max-width: 1200px) { body.rv-open .layout { padding-right:0; } }
+</style>
+</head>
+<body data-page="feature-spawn-limits" data-rvkey="issue-flow-codex">
+<div class="layout">
+<aside class="site"><a class="brand" href="../spec.html">issue-flow for Codex</a>
+<h2>Spec</h2><ul>
+<li><a href="../spec.html">Overview &amp; index</a></li>
+</ul>
+<h2>Pages</h2><ul>
+<li><a href="page-codex-harness.html">Codex harness facts</a></li>
+<li><a href="page-porting-inventory.html">Porting inventory</a></li>
+<li><a href="page-spend-analysis.html">Quota use of an operator run, November 2026</a></li>
+</ul>
+<h2>Features</h2><ul>
+<li><a href="feature-foundation.html">Foundation</a></li>
+<li><a href="feature-plugin-packaging.html">Plugin packaging and hooks</a></li>
+<li><a href="feature-worker-dispatch.html">Worker dispatch</a></li>
+<li><a href="feature-loop-operations.html">Loop operations</a></li>
+<li><a href="feature-spec-skills.html">Spec skills</a></li>
+<li><a href="feature-project-review.html">Project review</a></li>
+<li><a href="feature-mirror-and-sync.html">Mirror and sync</a></li>
+<li><a class="current" href="feature-spawn-limits.html">Spawn limits</a></li>
+<li><a href="feature-criteria-check.html">Criteria check and escalation</a></li>
+<li><a href="feature-run-budget.html">Run budget and usage report</a></li>
+<li><a href="feature-worker-model-eval.html">Worker model eval</a></li>
+</ul></aside>
+<main>
+<h1>Feature: Spawn limits</h1>
+<p class="meta">Epic 7: Spawn limits and run budget &nbsp; <span class="badge">built</span></p>
+<h3 id="spawn-limits-purpose">Purpose</h3>
+<p>This feature puts hard limits on what the PM can spawn. It changes the built features <a href="feature-worker-dispatch.html">Worker dispatch</a> and <a href="feature-plugin-packaging.html">Plugin packaging and hooks</a>.</p>
+<p>In the run that <a href="page-spend-analysis.html">Quota use of an operator run</a> records, the PM made up a phase plan, ended each phase with a worker checkpoint, and spawned about 400 subagents outside the plugin roles. The skill text forbade none of it in a form that a hook could check. This feature moves the limits from prose into the spawn guard:</p>
+<ul>
+<li>The PM spawns only plugin roles, each with its own <code>task_name</code> pattern.
+</li>
+<li>One issue uses at most five workers.
+</li>
+<li>A worker builds the whole issue. It checkpoints only at its turn budget.
+</li>
+<li>The PM runs no test suite for one sub-issue. CI, or the no-CI fallback, runs once for
+</li>
+</ul>
+<p>each batch.</p>
+<p>This feature is <code>port-only</code>. Upstream has no equivalent guard for the role set or the worker count.</p>
+<h3 id="spawn-limits-user-stories">User stories</h3>
+<ul>
+<li>As the operator, I want the spawn guard to refuse a subagent outside the plugin roles, so that the PM cannot add agents that no rule limits.
+</li>
+<li>As the operator, I want a hard cap on the workers of one issue, so that a stuck issue goes to me instead of using quota for days.
+</li>
+<li>As the operator, I want one worker to build one whole issue, so that each issue pays the context cost of a new worker once.
+</li>
+<li>As the operator, I want full test suites to run once for each batch, so that the loop does not keep my laptop busy for hours.
+</li>
+<li>As the maintainer, I want each limit to be a hook rule with a unit test, so that a change to the skill text cannot remove it.
+</li>
+</ul>
+<h3 id="spawn-limits-functional-requirements">Functional requirements</h3>
+<h4 id="spawn-limits-role-allowlist">Role allowlist</h4>
+<ul>
+<li>FR-spawn-limits-1 — The spawn guard applies the allowlist rules (FR-spawn-limits-2 to 6) only to a payload that has no <code>agent_id</code>. A payload with <code>agent_id</code> comes from a subagent (codex-harness fact 19).
+</li>
+<li>FR-spawn-limits-2 — The spawn guard denies a PM spawn that has no <code>agent_type</code>.
+</li>
+<li>FR-spawn-limits-3 — The spawn guard denies a PM spawn whose <code>agent_type</code> is not in this set: <code>issue_worker</code>, <code>criteria_checker</code>, <code>ci_watcher</code>, <code>deploy_verifier</code>, <code>explorer</code>, <code>code_auditor</code>, <code>ux_explorer</code>, <code>review_scribe</code>.
+</li>
+<li>FR-spawn-limits-4 — The spawn guard denies a PM spawn whose <code>task_name</code> does not match the pattern of its <code>agent_type</code> in the table "Task names" below.
+</li>
+<li>FR-spawn-limits-5 — The spawn guard denies a PM spawn whose <code>task_name</code> an earlier PM spawn in the same session used.
+</li>
+<li>FR-spawn-limits-6 — The deny reason names the rule, the <code>agent_type</code>, the <code>task_name</code>, and the allowed pattern.
+</li>
+<li>FR-spawn-limits-7 — The spawn guard records each allowed PM spawn in <code>$PLUGIN_DATA/spawns-&lt;session_id&gt;.json</code> before it exits.
+</li>
+<li>FR-spawn-limits-8 — The spawn guard creates <code>$PLUGIN_DATA</code> when the directory does not exist (codex-harness fact 17).
+</li>
+<li>FR-spawn-limits-9 — The no-CI fallback of the batch gate spawns <code>suite_&lt;n&gt;</code> with <code>agent_type: "ci_watcher"</code>.
+</li>
+<li>FR-spawn-limits-10 — The <code>ci_watcher</code> role instructions describe a suite brief: run the given test command once in the given worktree, and return the watcher verdict with <code>kind: "suite"</code>.
+</li>
+</ul>
+<h4 id="spawn-limits-worker-cap">Worker cap</h4>
+<ul>
+<li>FR-spawn-limits-11 — The worker <code>task_name</code> pattern allows exactly five names for one issue: <code>worker_&lt;n&gt;</code>, <code>worker_&lt;n&gt;_c1</code>, <code>worker_&lt;n&gt;_c2</code>, <code>worker_&lt;n&gt;_e1</code>, and <code>worker_&lt;n&gt;_e1_c1</code>. The two <code>_e1</code> names belong to the role <code>issue_worker_escalated</code>, and the cap of five counts both roles.
+</li>
+<li>FR-spawn-limits-12 — The spawn guard denies a worker name when the session has no spawn of its predecessor. <code>worker_&lt;n&gt;_c1</code> and <code>worker_&lt;n&gt;_e1</code> need <code>worker_&lt;n&gt;</code>. <code>worker_&lt;n&gt;_c2</code> needs <code>worker_&lt;n&gt;_c1</code>. <code>worker_&lt;n&gt;_e1_c1</code> needs <code>worker_&lt;n&gt;_e1</code>. <code>fix_&lt;n&gt;_2</code> needs <code>fix_&lt;n&gt;</code>, and <code>fix_&lt;n&gt;_&lt;k&gt;</code> needs <code>fix_&lt;n&gt;_&lt;k-1&gt;</code>.
+</li>
+<li>FR-spawn-limits-13 — The deny reason for a name past the cap tells the PM to label the issue <code>status:blocked</code> and to comment with the chain of <code>remaining</code> notes.
+</li>
+<li>FR-spawn-limits-14 — The PM counts checkpoints for each attempt without a reset. New commits on the PR do not reset the count.
+</li>
+<li>FR-spawn-limits-15 — When <code>worker_&lt;n&gt;_c2</code> returns <code>checkpoint</code>, the PM labels the issue <code>status:needs-feedback</code>. When the last <code>remaining</code> text names a hard blocker, the label is <code>status:blocked</code>.
+</li>
+<li>FR-spawn-limits-16 — When <code>worker_&lt;n&gt;_e1_c1</code> returns <code>checkpoint</code>, the PM labels the issue <code>status:blocked</code>.
+</li>
+<li>FR-spawn-limits-17 — <code>ISSUE_FLOW_SPAWN_GUARD=off</code> disables every rule of this feature, as it disables the built rules.
+</li>
+</ul>
+<h4 id="spawn-limits-whole-issue-workers">Whole-issue workers</h4>
+<ul>
+<li>FR-spawn-limits-18 — The PM gives each worker the whole issue in one brief.
+</li>
+<li>FR-spawn-limits-19 — The PM brief holds no phase limit, no "scratch-only" limit, and no instruction to wait for a later PM step.
+</li>
+<li>FR-spawn-limits-20 — The worker role returns <code>checkpoint</code> only when its turn budget is reached.
+</li>
+<li>FR-spawn-limits-21 — When a brief limits the worker to part of the issue, the worker builds the whole issue and states the conflict in <code>notesForPM</code>.
+</li>
+<li>FR-spawn-limits-22 — A <code>remaining</code> text names work that the next worker does. It never names a wait for the PM.
+</li>
+<li>FR-spawn-limits-23 — The PM never sends <code>send_message</code> to a worker. It sends rework and questions with <code>followup_task</code> only.
+</li>
+<li>FR-spawn-limits-24 — When an issue needs the browser, the PM launches its worker only when no other browser user is live. The PM decides this at launch, not during the build.
+</li>
+</ul>
+<h4 id="spawn-limits-test-runs">Test runs</h4>
+<ul>
+<li>FR-spawn-limits-25 — A worker runs the tests that its change touches while it builds.
+</li>
+<li>FR-spawn-limits-26 — A worker runs the project test command from <code>conventions</code> once, before it returns <code>ready-to-merge</code>.
+</li>
+<li>FR-spawn-limits-27 — The PM runs no test suite for one sub-issue. The criteria checker of <a href="feature-criteria-check.html">Criteria check</a> runs the test command once for each check.
+</li>
+<li>FR-spawn-limits-28 — The PM spawns <code>suite_&lt;n&gt;</code> once for each batch gate. It spawns <code>suite_&lt;n&gt;_r2</code> once more only after a fix for a suite failure is merged into the integration branch.
+</li>
+</ul>
+<h4 id="spawn-limits-separate-sessions">Separate sessions</h4>
+<ul>
+<li>FR-spawn-limits-29 — The last message of <code>project-planner</code>, <code>project-inherit</code>, <code>spec-to-issues</code>, and <code>spec-update</code> tells the operator to start a new Codex session for <code>$issue-flow:issue-flow</code>.
+</li>
+<li>FR-spawn-limits-30 — That message gives the start command <code>codex -p issue-flow -a never</code>.
+</li>
+</ul>
+<h3 id="spawn-limits-task-names">Task names</h3>
+<div class="table-wrap"><table>
+<tr><th><code>agent_type</code></th><th>Allowed <code>task_name</code> for a PM spawn</th></tr>
+<tr><td><code>issue_worker</code></td><td><code>worker_&lt;n&gt;</code>, <code>worker_&lt;n&gt;_c1</code>, <code>worker_&lt;n&gt;_c2</code>, <code>fix_&lt;n&gt;</code>, <code>fix_&lt;n&gt;_&lt;k&gt;</code></td></tr>
+<tr><td><code>issue_worker_escalated</code></td><td><code>worker_&lt;n&gt;_e1</code>, <code>worker_&lt;n&gt;_e1_c1</code></td></tr>
+<tr><td><code>criteria_checker</code></td><td><code>check_&lt;n&gt;</code>, <code>check_&lt;n&gt;_2</code>, <code>check_&lt;n&gt;_3</code>, <code>check_&lt;n&gt;_4</code></td></tr>
+<tr><td><code>ci_watcher</code></td><td><code>ci_&lt;pr&gt;</code>, <code>ci_&lt;pr&gt;_r2</code>, <code>deploy_&lt;sha7&gt;</code>, <code>deploy_&lt;sha7&gt;_r2</code>, <code>suite_&lt;n&gt;</code>, <code>suite_&lt;n&gt;_r2</code></td></tr>
+<tr><td><code>deploy_verifier</code></td><td><code>verify_deploy_&lt;sha7&gt;</code></td></tr>
+<tr><td><code>explorer</code></td><td><code>locate_&lt;n&gt;_&lt;k&gt;</code>, <code>docs_&lt;n&gt;</code>, <code>crosscheck_&lt;n&gt;</code>, <code>batchreview_&lt;n&gt;</code>, <code>survey_&lt;k&gt;</code>, <code>deploylog_&lt;sha7&gt;</code></td></tr>
+<tr><td><code>code_auditor</code></td><td><code>code_auditor</code></td></tr>
+<tr><td><code>ux_explorer</code></td><td><code>ux_&lt;slug&gt;</code></td></tr>
+<tr><td><code>review_scribe</code></td><td><code>review_scribe</code>, <code>review_scribe_&lt;k&gt;</code>, <code>review_scribe_&lt;slug&gt;</code></td></tr>
+</table></div>
+<p><code>&lt;n&gt;</code>, <code>&lt;pr&gt;</code>, and <code>&lt;k&gt;</code> are decimal numbers. <code>&lt;sha7&gt;</code> is seven lowercase hexadecimal characters. For <code>ux_&lt;slug&gt;</code>, <code>&lt;slug&gt;</code> is lowercase letters, digits, and underscores. For <code>review_scribe_&lt;slug&gt;</code>, <code>&lt;slug&gt;</code> is lowercase letters, digits, and hyphens. <code>fix_&lt;n&gt;</code> is the batch-gate fix worker, where <code>&lt;n&gt;</code> is the batch or epic tracking issue, and <code>&lt;k&gt;</code> of <code>fix_&lt;n&gt;_&lt;k&gt;</code> starts at 2.</p>
+<h3 id="spawn-limits-user-flows">User flows</h3>
+<h4 id="spawn-limits-flow-1-the-spawn-guard-checks-a-pm-spawn">Flow 1 — The spawn guard checks a PM spawn</h4>
+<div class="diagram"><pre class="mermaid">flowchart TD
+    A["PreToolUse: spawn_agent"] --&gt; B{"agent_id in payload?"}
+    B -- "yes (subagent)" --&gt; C["Built rules only (fork_turns, worker role)"]
+    B -- "no (PM)" --&gt; D{"fork_turns none?"}
+    D -- "no" --&gt; X1["Deny: fork_turns"]
+    D -- "yes" --&gt; E{"agent_type in allowlist?"}
+    E -- "no" --&gt; X2["Deny: role not allowed"]
+    E -- "yes" --&gt; F{"task_name matches the role pattern?"}
+    F -- "no" --&gt; X3["Deny: name pattern"]
+    F -- "yes" --&gt; G{"task_name used before in the session?"}
+    G -- "yes" --&gt; X4["Deny: name reused"]
+    G -- "no" --&gt; H{"previous name of the chain spawned?"}
+    H -- "no" --&gt; X5["Deny: chain gap"]
+    H -- "yes" --&gt; I["Record the spawn, allow"]</pre></div>
+<ol>
+<li>Codex sends the <code>spawn_agent</code> payload to the spawn guard.
+</li>
+<li>If the payload has <code>agent_id</code>, the guard applies only the built rules.
+</li>
+<li>If <code>fork_turns</code> is not <code>"none"</code>, the guard denies the spawn.
+</li>
+<li>If <code>agent_type</code> is absent or not in the allowlist, the guard denies the spawn.
+</li>
+<li>If <code>task_name</code> does not match the role pattern, the guard denies the spawn.
+</li>
+<li>If the session used <code>task_name</code> before, the guard denies the spawn.
+</li>
+<li>If the chain has a gap, the guard denies the spawn.
+</li>
+<li>Else the guard records the spawn and allows it.
+</li>
+</ol>
+<h4 id="spawn-limits-flow-2-one-issue-reaches-the-worker-cap">Flow 2 — One issue reaches the worker cap</h4>
+<div class="diagram"><pre class="mermaid">sequenceDiagram
+    participant PM
+    participant G as spawn guard
+    participant T as Tracker
+    PM-&gt;&gt;G: spawn worker_42 (allowed)
+    Note over PM: checkpoint 1
+    PM-&gt;&gt;G: spawn worker_42_c1 (allowed)
+    Note over PM: checkpoint 2 (new commits do not reset the count)
+    PM-&gt;&gt;G: spawn worker_42_c2 (allowed)
+    Note over PM: checkpoint 3
+    PM-&gt;&gt;T: status:needs-feedback, comment with the remaining notes
+    PM-&gt;&gt;G: spawn worker_42_c3 (only if the PM skips the rule)
+    G--&gt;&gt;PM: deny: cap reached, park the issue</pre></div>
+<ol>
+<li>The PM spawns <code>worker_42</code>. The worker returns <code>checkpoint</code>.
+</li>
+<li>The PM spawns <code>worker_42_c1</code>. The worker returns <code>checkpoint</code> again.
+</li>
+<li>The PM spawns <code>worker_42_c2</code>. The worker returns <code>checkpoint</code> a third time.
+</li>
+<li>The PM labels the issue <code>status:needs-feedback</code> and comments with the <code>remaining</code> notes.
+</li>
+<li>If the PM tries another spawn past the cap, the guard denies it.
+</li>
+</ol>
+<p>An escalation (Feature 08) adds <code>worker_42_e1</code> and, after one checkpoint of that worker, <code>worker_42_e1_c1</code>. One issue therefore uses at most five workers in a session.</p>
+<h3 id="spawn-limits-screens-states">Screens &amp; states</h3>
+<p>The feature has no screens.</p>
+<h3 id="spawn-limits-behaviour-rules">Behaviour rules</h3>
+<ul>
+<li>The allowlist and the name patterns are constants in <code>hooks/guard-spawn.py</code>. They are not a setting.
+</li>
+<li>The guard keeps one state file for each PM session. It never reads the state of another session.
+</li>
+<li>The guard fails open on a parse error, as the built rules do. A missing or broken state file counts as an empty session.
+</li>
+<li>The <code>concurrency</code> setting still counts workers only.
+</li>
+<li>The five-name cap holds for each session. A new session can spawn <code>worker_&lt;n&gt;</code> again for an issue that a previous session parked. Phase 0 recovery reads the <code>worker launched:</code> comments, so the PM sees the earlier attempts.
+</li>
+</ul>
+<h3 id="spawn-limits-data-touched">Data touched</h3>
+<ul>
+<li><code>$PLUGIN_DATA/spawns-&lt;session_id&gt;.json</code> (new): <code>{"names": ["worker_42", ...]}</code>.
+</li>
+<li><code>hooks/guard-spawn.py</code>, <code>roles/issue-worker.toml</code> (from <code>agents/issue-worker.md</code>), <code>roles/ci-watcher.toml</code>, <code>skills/issue-flow/SKILL.md</code>, <code>skills/issue-flow/references/issue-worker.md</code>, the last step of the four spec skills.
+</li>
+</ul>
+<h3 id="spawn-limits-interfaces">Interfaces</h3>
+<ul>
+<li><strong>PreToolUse payload for <code>spawn_agent</code>:</strong> <code>tool_input</code> has <code>task_name</code>, <code>fork_turns</code>, <code>message</code>, and <code>agent_type</code> only when the model set a role. <code>message</code> is encrypted. Verified against: codex-harness facts 6 and 13; <code>tests/fixtures/hooks/pre_tool_use_spawn.json</code>.
+</li>
+<li><strong>Subagent payloads:</strong> a subagent payload has <code>agent_id</code> and <code>agent_type</code>, and shares the PM's <code>session_id</code>. Verified against: codex-harness fact 19.
+</li>
+<li><strong><code>$PLUGIN_DATA</code>:</strong> set for plugin hooks, not created by Codex. Verified against: codex-harness fact 17.
+</li>
+</ul>
+<h3 id="spawn-limits-edge-cases-failures">Edge cases &amp; failures</h3>
+<ul>
+<li>If Codex rejects a spawn after the guard allows it, the name stays recorded. The PM uses the next name of the chain, or parks the issue. A rejected spawn is rare and costs one name.
+</li>
+<li>If two PM sessions run on one machine, each has its own state file, keyed by <code>session_id</code>.
+</li>
+<li>If the PM uses an old name format from an earlier session, for example <code>worker_42_c3</code>, the guard denies it and names the allowed pattern.
+</li>
+<li>If the state file cannot be written, the guard allows the spawn and writes one line to stderr. The guard fails open by design.
+</li>
+</ul>
+<h3 id="spawn-limits-acceptance-criteria">Acceptance criteria</h3>
+<ul>
+<li>[ ] A recorded PM spawn payload with <code>agent_type: "default"</code> gets a deny decision whose reason names the allowlist. (FR-spawn-limits-3, 6)
+</li>
+<li>[ ] A PM spawn with no <code>agent_type</code> and <code>task_name: "suite_12"</code> gets a deny decision. (FR-spawn-limits-2)
+</li>
+<li>[ ] A PM spawn <code>explorer</code> with <code>task_name: "review_12_sources"</code> gets a deny decision. (FR-spawn-limits-4)
+</li>
+<li>[ ] A subagent payload with <code>agent_id</code> and <code>agent_type: "default"</code> gets no allowlist deny. (FR-spawn-limits-1)
+</li>
+<li>[ ] A second PM spawn of <code>worker_42</code> in one session gets a deny decision. (FR-spawn-limits-5)
+</li>
+<li>[ ] <code>worker_42_c2</code> without an earlier <code>worker_42_c1</code> gets a deny decision. (FR-spawn-limits-12)
+</li>
+<li>[ ] <code>worker_42_c3</code> gets a deny decision whose reason tells the PM to label the issue <code>status:blocked</code>. (FR-spawn-limits-11, 13)
+</li>
+<li>[ ] After an allowed spawn, <code>$PLUGIN_DATA/spawns-&lt;session_id&gt;.json</code> lists its <code>task_name</code>, and the directory exists. (FR-spawn-limits-7, 8)
+</li>
+<li>[ ] With <code>ISSUE_FLOW_SPAWN_GUARD=off</code>, the payloads above get no output. (FR-spawn-limits-17)
+</li>
+<li>[ ] The issue-flow skill text spawns <code>suite_&lt;n&gt;</code> with <code>agent_type: "ci_watcher"</code>, and <code>test_skill_text.py</code> asserts it. (FR-spawn-limits-9)
+</li>
+<li>[ ] The worker role text states that <code>checkpoint</code> is valid only at the turn budget, and that a phase limit in a brief does not stop the build. (FR-spawn-limits-20, 21)
+</li>
+<li>[ ] The issue-flow skill text has no <code>send_message</code> instruction to a worker. (FR-spawn-limits-23)
+</li>
+<li>[ ] On the test bed, a two-member batch with no CI runs <code>suite_&lt;n&gt;</code> once, and no worker runs <code>ci_wait.py</code> or a suite for another member. (FR-spawn-limits-26 to 28)
+</li>
+<li>[ ] The last message of each of the four spec skills names <code>codex -p issue-flow -a never</code> and a new session. (FR-spawn-limits-29, 30)
+</li>
+</ul>
+<h3 id="spawn-limits-out-of-scope">Out of scope</h3>
+<ul>
+<li>The quota limit of a run is <a href="feature-run-budget.html">Run budget and usage report</a>.
+</li>
+<li>The criteria check and the escalation are <a href="feature-criteria-check.html">Criteria check</a>.
+</li>
+<li>A limit on <code>followup_task</code> calls. The hook payload shape of <code>followup_task</code> is not yet recorded.
+</li>
+</ul>
+<h3 id="spawn-limits-open-questions" class="callout-h">Open questions</h3>
+<ul>
+<li>Does Codex reject a second <code>spawn_agent</code> with a <code>task_name</code> that a finished thread used? FR-spawn-limits-5 makes the answer unimportant for the cap. The conformance suite records it.
+</li>
+</ul><nav class="pager">
+<a href="feature-mirror-and-sync.html">&larr; Feature: Mirror and sync</a>
+<a href="feature-criteria-check.html">Feature: Criteria check and escalation &rarr;</a>
+</nav>
+</main>
+</div>
+<script src="../assets/mermaid.min.js"></script>
+<script>mermaid.initialize({startOnLoad:true,theme:matchMedia('(prefers-color-scheme: dark)').matches?'dark':'default'});</script>
+<script type="application/json" id="rv-embedded">[]</script>
+<script>
+(function(){
+  'use strict';
+  var PAGE = document.body.getAttribute('data-page');
+  // storage key carries the spec's slug: file:// pages can share one
+  // localStorage pool, and two specs must never share a comment store
+  var RVKEY = 'spec-review:' + (document.body.getAttribute('data-rvkey') || 'spec');
+  var EMBED = [];
+  var embedEl = document.getElementById('rv-embedded');
+  if (embedEl) { try { EMBED = JSON.parse(embedEl.textContent); } catch(e){} }
+  function loadLocal(){ try { return JSON.parse(localStorage.getItem(RVKEY)) || {comments:[], deleted:[]}; } catch(e){ return {comments:[], deleted:[]}; } }
+  function saveLocal(s){ try { localStorage.setItem(RVKEY, JSON.stringify(s)); } catch(e){} }
+  function cid(c){ return c.page + '|' + c.section + '|' + (c.date||'') + '|' + c.body.slice(0,24); }
+  function allComments(){
+    var s = loadLocal(), map = {};
+    EMBED.forEach(function(c){ map[cid(c)] = c; });
+    s.comments.forEach(function(c){ map[cid(c)] = c; });
+    s.deleted.forEach(function(id){ delete map[id]; });
+    return Object.keys(map).map(function(k){ return map[k]; });
+  }
+  function upsert(c){
+    var s = loadLocal(), id = cid(c);
+    s.comments = s.comments.filter(function(x){ return cid(x) !== id; });
+    s.comments.push(c);
+    s.deleted = s.deleted.filter(function(x){ return x !== id; });
+    saveLocal(s); refresh();
+  }
+  function remove(c){
+    var s = loadLocal(), id = cid(c);
+    s.comments = s.comments.filter(function(x){ return cid(x) !== id; });
+    if (EMBED.some(function(x){ return cid(x) === id; })) s.deleted.push(id);
+    saveLocal(s); refresh();
+  }
+  function today(){ return new Date().toISOString().slice(0,10); }
+  function exportMd(){
+    var lines = ['# Review comments', '',
+      '<!-- Exported from the spec review layer. Save this file as',
+      '     docs/specs/review-comments.md and re-run render-spec.py to embed',
+      '     every comment under its section for the next review round. -->', ''];
+    allComments().sort(function(a,b){
+      return (a.page+a.section).localeCompare(b.page+b.section);
+    }).forEach(function(c){
+      lines.push('## [' + c.page + '] ' + (c.section||''));
+      lines.push('status: ' + (c.status||'open'));
+      lines.push('date: ' + (c.date||today()));
+      lines.push(c.body); lines.push('');
+    });
+    var blob = new Blob([lines.join('\n')], {type:'text/markdown'});
+    var a = document.createElement('a');
+    a.href = URL.createObjectURL(blob);
+    a.download = 'review-comments.md';
+    a.click(); URL.revokeObjectURL(a.href);
+  }
+  function importMd(file){
+    var reader = new FileReader();
+    reader.onload = function(){
+      var text = String(reader.result);
+      var blocks = text.split(/^## /m).slice(1);
+      blocks.forEach(function(b){
+        var head = b.match(/^\[([^\]]+)\]\s*(\S*)/);
+        if (!head) return;
+        var status = (b.match(/^status:\s*(\S+)/m)||[])[1] || 'open';
+        var date = (b.match(/^date:\s*(\S+)/m)||[])[1] || today();
+        var body = b.replace(/^\[[^\]]*\]\s*\S*\s*\n/, '')
+                    .replace(/^status:.*\n?/m,'').replace(/^date:.*\n?/m,'').trim();
+        if (body) upsert({page:head[1], section:head[2]||'', status:status, date:date, body:body});
+      });
+      refresh();
+    };
+    reader.readAsText(file);
+  }
+  function commentBox(c){
+    var div = document.createElement('div');
+    div.className = 'rv-comment' + (c.status === 'resolved' ? ' rv-resolved' : '');
+    var head = document.createElement('div'); head.className = 'rv-head';
+    head.textContent = '💬 ' + (c.date||'') + ' · ' + (c.status||'open');
+    var tog = document.createElement('button');
+    tog.textContent = c.status === 'resolved' ? 'reopen' : 'resolve';
+    tog.onclick = function(){ remove(c); c = Object.assign({}, c, {status: c.status === 'resolved' ? 'open' : 'resolved'}); upsert(c); };
+    var del = document.createElement('button'); del.textContent = 'delete';
+    del.onclick = function(){ if (confirm('Delete this comment?')) remove(c); };
+    head.appendChild(tog); head.appendChild(del);
+    var body = document.createElement('div'); body.className = 'rv-body';
+    body.textContent = c.body;
+    div.appendChild(head); div.appendChild(body);
+    return div;
+  }
+  function editor(section, after){
+    var wrap = document.createElement('div');
+    wrap.className = 'rv-comment rv-editor';
+    var ta = document.createElement('textarea');
+    ta.placeholder = 'Comment on this section…';
+    var actions = document.createElement('div'); actions.className = 'rv-actions';
+    var save = document.createElement('button'); save.textContent = 'Save';
+    save.onclick = function(){
+      if (ta.value.trim()) upsert({page:PAGE, section:section, status:'open', date:today(), body:ta.value.trim()});
+      wrap.remove();
+    };
+    var cancel = document.createElement('button'); cancel.textContent = 'Cancel';
+    cancel.className = 'rv-cancel'; cancel.onclick = function(){ wrap.remove(); };
+    actions.appendChild(save); actions.appendChild(cancel);
+    wrap.appendChild(ta); wrap.appendChild(actions);
+    after.insertAdjacentElement('afterend', wrap);
+    ta.focus();
+  }
+  // --- headings, inline buttons ---
+  var mainH1 = document.querySelector('main h1');
+  if (mainH1 && !mainH1.id) { mainH1.id = 'page-title'; }
+  var headings = Array.prototype.slice.call(
+    document.querySelectorAll('main h1[id], main h2[id], main h3[id], main h4[id]'));
+  headings.forEach(function(h){
+    var b = document.createElement('button');
+    b.className = 'rv-add'; b.textContent = '💬 comment'; b.title = 'Comment on this section';
+    b.onclick = function(){ editor(h.id, h); };
+    h.appendChild(b);
+  });
+  function headingTitle(h){
+    var t = h.childNodes[0] ? h.childNodes[0].textContent : h.textContent;
+    return t.trim();
+  }
+  function titleFor(section){
+    var el = section && document.getElementById(section);
+    return el ? headingTitle(el) : (section || '(page)');
+  }
+
+  // --- drawer ---
+  var drawer = document.createElement('div');
+  drawer.id = 'rv-drawer';
+  drawer.innerHTML =
+    '<header><strong>Review</strong> <span class="rv-count"></span></header>' +
+    '<div class="rv-compose">' +
+    '<div class="rv-live">Commenting on the section in view:</div>' +
+    '<label for="rv-sec"></label><select id="rv-sec"></select>' +
+    '<textarea id="rv-text" placeholder="Type as you read… (Ctrl+Enter saves)"></textarea>' +
+    '<div style="margin-top:.4rem; display:flex; gap:.5rem;">' +
+    '<button class="rv-primary" id="rv-save">Save comment</button>' +
+    '<button id="rv-clear">Clear</button></div></div>' +
+    '<div class="rv-list"></div>' +
+    '<footer><button id="rv-export">Export .md</button>' +
+    '<button id="rv-import">Import</button>' +
+    '<span class="rv-otherpages"></span></footer>';
+  document.body.appendChild(drawer);
+  var toggle = document.createElement('button');
+  toggle.id = 'rv-toggle';
+  toggle.onclick = function(){
+    document.body.classList.toggle('rv-open');
+    try { localStorage.setItem(RVKEY + ':open', document.body.classList.contains('rv-open') ? '1' : ''); } catch(e){}
+  };
+  document.body.appendChild(toggle);
+  try { if (localStorage.getItem(RVKEY + ':open')) document.body.classList.add('rv-open'); } catch(e){}
+
+  var sel = drawer.querySelector('#rv-sec');
+  headings.forEach(function(h){
+    var opt = document.createElement('option');
+    opt.value = h.id; opt.textContent = headingTitle(h);
+    sel.appendChild(opt);
+  });
+  var followScroll = true;
+  sel.onchange = function(){ followScroll = false; };
+
+  // scroll spy: pick the last heading above the upper third of the viewport
+  function currentSection(){
+    var line = window.innerHeight * 0.33, best = headings[0];
+    for (var i = 0; i < headings.length; i++) {
+      if (headings[i].getBoundingClientRect().top <= line) best = headings[i];
+    }
+    return best ? best.id : '';
+  }
+  window.addEventListener('scroll', function(){
+    if (!followScroll) return;
+    var s = currentSection();
+    if (s && sel.value !== s) sel.value = s;
+  }, {passive:true});
+  // typing pins the target section so a stray scroll can't retarget the comment
+  drawer.querySelector('#rv-text').addEventListener('input', function(){
+    if (this.value.trim()) followScroll = false;
+    else followScroll = true;
+  });
+
+  function saveFromDrawer(){
+    var ta = drawer.querySelector('#rv-text');
+    if (!ta.value.trim()) return;
+    upsert({page:PAGE, section:sel.value, status:'open', date:today(), body:ta.value.trim()});
+    ta.value = ''; followScroll = true;
+  }
+  drawer.querySelector('#rv-save').onclick = saveFromDrawer;
+  drawer.querySelector('#rv-text').addEventListener('keydown', function(e){
+    if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') saveFromDrawer();
+  });
+  drawer.querySelector('#rv-clear').onclick = function(){
+    drawer.querySelector('#rv-text').value = ''; followScroll = true;
+  };
+  drawer.querySelector('#rv-export').onclick = exportMd;
+  var fileIn = document.createElement('input');
+  fileIn.type = 'file'; fileIn.accept = '.md,text/markdown'; fileIn.style.display = 'none';
+  fileIn.onchange = function(){ if (fileIn.files[0]) importMd(fileIn.files[0]); };
+  drawer.appendChild(fileIn);
+  drawer.querySelector('#rv-import').onclick = function(){ fileIn.click(); };
+
+  function drawerItem(c){
+    var div = document.createElement('div');
+    div.className = 'rv-item' + (c.status === 'resolved' ? ' rv-resolved' : '');
+    var where = document.createElement('div'); where.className = 'rv-where';
+    where.textContent = titleFor(c.section);
+    var text = document.createElement('div'); text.className = 'rv-text';
+    text.textContent = c.body;
+    var meta = document.createElement('div'); meta.className = 'rv-meta';
+    meta.textContent = (c.date||'') + ' · ' + (c.status||'open');
+    var tog = document.createElement('button');
+    tog.textContent = c.status === 'resolved' ? 'reopen' : 'resolve';
+    tog.onclick = function(e){ e.stopPropagation(); remove(c);
+      upsert(Object.assign({}, c, {status: c.status === 'resolved' ? 'open' : 'resolved'})); };
+    var del = document.createElement('button'); del.textContent = 'delete';
+    del.onclick = function(e){ e.stopPropagation();
+      if (confirm('Delete this comment?')) remove(c); };
+    meta.appendChild(tog); meta.appendChild(del);
+    div.appendChild(where); div.appendChild(text); div.appendChild(meta);
+    div.onclick = function(){
+      var el = c.section && document.getElementById(c.section);
+      if (el) el.scrollIntoView({behavior:'smooth', block:'start'});
+    };
+    return div;
+  }
+
+  function refresh(){
+    document.querySelectorAll('.rv-comment:not(.rv-editor)').forEach(function(el){ el.remove(); });
+    var all = allComments();
+    var mine = all.filter(function(c){ return c.page === PAGE; });
+    mine.forEach(function(c){
+      var target = c.section && document.getElementById(c.section);
+      var anchor = target || mainH1 || document.body.querySelector('main') || document.body;
+      anchor.insertAdjacentElement('afterend', commentBox(c));
+    });
+    var open = all.filter(function(c){ return c.status !== 'resolved'; }).length;
+    toggle.textContent = '💬 Review (' + open + ')';
+    drawer.querySelector('.rv-count').textContent =
+      open + ' open / ' + all.length + ' total';
+    var list = drawer.querySelector('.rv-list');
+    list.innerHTML = '';
+    mine.slice().reverse().forEach(function(c){ list.appendChild(drawerItem(c)); });
+    var others = {};
+    all.forEach(function(c){ if (c.page !== PAGE) others[c.page] = (others[c.page]||0) + 1; });
+    var otherKeys = Object.keys(others);
+    drawer.querySelector('.rv-otherpages').textContent = otherKeys.length
+      ? 'Other pages: ' + otherKeys.map(function(k){ return k + ' (' + others[k] + ')'; }).join(', ')
+      : '';
+  }
+  refresh();
+  var s0 = currentSection();
+  if (s0) sel.value = s0;
+})();
+</script>
+</body>
+</html>

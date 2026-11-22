@@ -24,7 +24,7 @@ plugin unless the Codex-specific sections below say otherwise. Where behavior di
 Add the marketplace at the release tag and install the plugin:
 
 ```bash
-codex plugin marketplace add Crank-Git/issue-flow-codex --ref issue-flow-codex--v0.1.2
+codex plugin marketplace add Crank-Git/issue-flow-codex --ref issue-flow-codex--v0.2.0
 codex plugin add issue-flow@issue-flow-codex
 ```
 
@@ -243,6 +243,8 @@ The autonomous loop. It has two roles.
   resolves conflicts, merges, monitors deployments, and posts status digests.
 - **The sub-agents — background agents with self-contained prompts.**
   `issue-flow:issue-worker` builds one issue and returns a verdict.
+  `issue-flow:criteria-checker` checks the worker's branch against the acceptance
+  criteria before the PM merges it. It never sees the worker's verdict.
   `issue-flow:deploy-verifier` checks the live site in a real browser. The deploy
   *watch* is not an agent — it is one background shell command per merge.
 
@@ -252,6 +254,7 @@ One worker's life, end to end:
 sequenceDiagram
     participant PM
     participant W as worker (own worktree)
+    participant C as criteria checker (own worktree)
     participant F as forge
     PM->>F: plan comment + assign (the claim)
     PM->>F: batch cross-check comment
@@ -260,6 +263,8 @@ sequenceDiagram
     W->>W: implement · self-review · full local suite
     W-->>PM: verdict — ready-to-merge, criteria, localChecks
     PM->>F: gate — criteria evidenced, threads resolved, practices met
+    PM->>C: spawn — the criteria and the PR head, not the verdict
+    C-->>PM: met, unmet or unclear for each criterion, with evidence
     PM->>F: squash sub-merge, explicit "[skip ci]" message
     PM->>F: status batched + tick the tracking checklist
 ```
@@ -437,8 +442,8 @@ promotion from `dev` to the live branch.
    Check the repository, the remote and the labels. Check the foundation —
    an empty repository gets Epic 0 first, never a feature issue. Read the branch model
    from the spec (`dev-and-live` or `trunk`) and create `dev` when it is needed. Detect
-   the deploy target. Check CI; when the repository has none, the PM runs the suite
-   itself at the batch gate and says so. Offer the documentation MCP servers. Find or
+   the deploy target. Check CI; when the repository has none, a `ci_watcher`
+   (`suite_<n>`) runs the suite at the batch gate and the PM says so. Offer the documentation MCP servers. Find or
    create your `flow:status` status issue, check for co-operators, confirm the run
    configuration with you, and recover the state of any unfinished work.
 2. **Sweep, then triage.** The PM reads new comments and external changes first, and
@@ -477,6 +482,14 @@ promotion from `dev` to the live branch.
 **Upstream model tiers.** Claude Code reads each agent's `model:` frontmatter. Codex
 roles use the model settings in the project's `.codex/agents/` files. The setup skill
 copies those role files into each project.
+
+One exception exists. When a worker fails an issue (a failed criteria re-check after one
+rework round, or a technical `blocked`), the PM gives the issue one attempt by an
+escalation worker on the same branch. That worker runs as the role `issue_worker_escalated`.
+Its role file sets the model and the effort from `escalationModel` and `escalationEffort`
+in `.issue-flow.codex.json`. The spawn sets no `model`, because Codex ignores a spawn model
+when the role file sets one, and the spawn guard denies it. A `needs-feedback` verdict is
+never escalated.
 
 ## Install
 
@@ -625,6 +638,30 @@ keeps that flat:
 If the harness compacts the context, preflight rebuilds the state from the tracker and the loop
 continues. One session can therefore clear far more issues than a single context window
 holds.
+
+## Measure what a session used
+
+[`scripts/usage.py`](scripts/usage.py) reports the tokens and the quota share of each
+thread in a Codex session. It reads the local rollout files only. It makes no network
+call. It needs Python 3 and nothing else. It reports no price.
+
+```bash
+python3 scripts/usage.py --session <session-id>                     # one run, every thread
+python3 scripts/usage.py --cwd <dir> --since 2026-11-01T00:00:00Z   # a project since a time
+python3 scripts/usage.py --session <session-id> --json              # the same report as JSON
+```
+
+- Codex keeps one rollout file for each thread under `$CODEX_HOME/sessions/<yyyy>/<mm>/<dd>/`,
+  or under `~/.codex/sessions/` when `CODEX_HOME` is not set.
+- `--session` matches the `session_id` or the `id` of a rollout. `--cwd` selects the rollouts
+  of one working directory. `--since` drops the rollouts with no event at or after that time.
+- The table has one row for each thread: its role, its agent path, its model, its model
+  calls, and its input, cached input, output, and reasoning tokens. Rows for each role and
+  the quota share of the weekly quota follow. The root thread is the session itself; in an
+  `/issue-flow` session it is the PM.
+
+The rollout format is internal to Codex and can change. The script skips any line or shape
+that it does not know.
 
 ## License
 

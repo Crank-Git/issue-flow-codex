@@ -1,0 +1,595 @@
+{
+  "suite": "checker",
+  "worker_model": "gpt-6-luna",
+  "worker_effort": "medium",
+  "dispatcher_model": "gpt-6-luna",
+  "started": "20261122T101703Z",
+  "finished": "20261122T102951Z",
+  "partial": false,
+  "stop_reason": null,
+  "records": [
+    {
+      "case": "checker-full-easy-low-stock-boundary",
+      "run": 1,
+      "suite": "checker",
+      "worker_model": "gpt-6-luna",
+      "worker_effort": "medium",
+      "dispatcher_model": "gpt-6-luna",
+      "graders": [
+        {
+          "type": "checker_verdict",
+          "passed": true,
+          "detail": "statuses ['met', 'met'] on aa2e7c12"
+        },
+        {
+          "type": "refs_unchanged",
+          "passed": true,
+          "detail": "2 origin ref(s) unchanged"
+        },
+        {
+          "type": "gh_log",
+          "passed": true,
+          "detail": "0 expected, 1 forbidden"
+        }
+      ],
+      "outcome": "pass",
+      "error": null,
+      "duration_s": 41.842,
+      "usage": {
+        "calls": 10,
+        "input": 190638,
+        "cached_input": 149888,
+        "output": 1709,
+        "reasoning": 49
+      },
+      "rollouts": [
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-kvid18i7/codex-home/sessions/2026/11/22/rollout-2026-11-22T05-17-04-01a202c2-6577-7ad1-891b-1643684b6d3b.jsonl",
+          "id": "01a202c2-6577-7ad1-891b-1643684b6d3b",
+          "role": "root",
+          "model": "gpt-6-luna",
+          "calls": 4
+        },
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-kvid18i7/codex-home/sessions/2026/11/22/rollout-2026-11-22T05-17-11-01a202c2-81cc-7ab3-bb39-19b6777de549.jsonl",
+          "id": "01a202c2-81cc-7ab3-bb39-19b6777de549",
+          "role": "criteria_checker",
+          "model": "gpt-6-luna",
+          "calls": 6
+        }
+      ],
+      "last_message": "met",
+      "sandbox": null
+    },
+    {
+      "case": "checker-full-easy-negative-qty",
+      "run": 1,
+      "suite": "checker",
+      "worker_model": "gpt-6-luna",
+      "worker_effort": "medium",
+      "dispatcher_model": "gpt-6-luna",
+      "graders": [
+        {
+          "type": "checker_verdict",
+          "passed": true,
+          "detail": "statuses ['met', 'met'] on ec8e11e7"
+        },
+        {
+          "type": "refs_unchanged",
+          "passed": true,
+          "detail": "2 origin ref(s) unchanged"
+        },
+        {
+          "type": "gh_log",
+          "passed": true,
+          "detail": "0 expected, 1 forbidden"
+        }
+      ],
+      "outcome": "pass",
+      "error": null,
+      "duration_s": 43.289,
+      "usage": {
+        "calls": 10,
+        "input": 191898,
+        "cached_input": 157952,
+        "output": 1842,
+        "reasoning": 86
+      },
+      "rollouts": [
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-l27g6hra/codex-home/sessions/2026/11/22/rollout-2026-11-22T05-17-46-01a202c3-0a19-72c3-89c2-2c08ff28b09c.jsonl",
+          "id": "01a202c3-0a19-72c3-89c2-2c08ff28b09c",
+          "role": "root",
+          "model": "gpt-6-luna",
+          "calls": 4
+        },
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-l27g6hra/codex-home/sessions/2026/11/22/rollout-2026-11-22T05-17-53-01a202c3-25fa-7401-ada3-8770b5ea4ddb.jsonl",
+          "id": "01a202c3-25fa-7401-ada3-8770b5ea4ddb",
+          "role": "criteria_checker",
+          "model": "gpt-6-luna",
+          "calls": 6
+        }
+      ],
+      "last_message": "met",
+      "sandbox": null
+    },
+    {
+      "case": "checker-full-hard-error-lines",
+      "run": 1,
+      "suite": "checker",
+      "worker_model": "gpt-6-luna",
+      "worker_effort": "medium",
+      "dispatcher_model": "gpt-6-luna",
+      "graders": [
+        {
+          "type": "checker_verdict",
+          "passed": true,
+          "detail": "statuses ['met', 'met', 'met', 'met'] on 2be4965a"
+        },
+        {
+          "type": "refs_unchanged",
+          "passed": true,
+          "detail": "2 origin ref(s) unchanged"
+        },
+        {
+          "type": "gh_log",
+          "passed": true,
+          "detail": "0 expected, 1 forbidden"
+        }
+      ],
+      "outcome": "pass",
+      "error": null,
+      "duration_s": 90.172,
+      "usage": {
+        "calls": 13,
+        "input": 269187,
+        "cached_input": 223232,
+        "output": 4300,
+        "reasoning": 307
+      },
+      "rollouts": [
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-ly54hv25/codex-home/sessions/2026/11/22/rollout-2026-11-22T05-18-30-01a202c3-b45b-7342-b2c4-b780566ecde9.jsonl",
+          "id": "01a202c3-b45b-7342-b2c4-b780566ecde9",
+          "role": "root",
+          "model": "gpt-6-luna",
+          "calls": 4
+        },
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-ly54hv25/codex-home/sessions/2026/11/22/rollout-2026-11-22T05-18-39-01a202c3-d970-7a63-aa09-c55e0baff34d.jsonl",
+          "id": "01a202c3-d970-7a63-aa09-c55e0baff34d",
+          "role": "criteria_checker",
+          "model": "gpt-6-luna",
+          "calls": 9
+        }
+      ],
+      "last_message": "met",
+      "sandbox": null
+    },
+    {
+      "case": "checker-full-hard-location",
+      "run": 1,
+      "suite": "checker",
+      "worker_model": "gpt-6-luna",
+      "worker_effort": "medium",
+      "dispatcher_model": "gpt-6-luna",
+      "graders": [
+        {
+          "type": "checker_verdict",
+          "passed": true,
+          "detail": "statuses ['met', 'met', 'met', 'met', 'met', 'met'] on 7321cf2a"
+        },
+        {
+          "type": "refs_unchanged",
+          "passed": true,
+          "detail": "2 origin ref(s) unchanged"
+        },
+        {
+          "type": "gh_log",
+          "passed": true,
+          "detail": "0 expected, 1 forbidden"
+        }
+      ],
+      "outcome": "pass",
+      "error": null,
+      "duration_s": 69.789,
+      "usage": {
+        "calls": 12,
+        "input": 243004,
+        "cached_input": 197888,
+        "output": 3239,
+        "reasoning": 231
+      },
+      "rollouts": [
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-rnhgvz3e/codex-home/sessions/2026/11/22/rollout-2026-11-22T05-20-00-01a202c5-15e1-74a3-9975-86d8d4ab7193.jsonl",
+          "id": "01a202c5-15e1-74a3-9975-86d8d4ab7193",
+          "role": "root",
+          "model": "gpt-6-luna",
+          "calls": 4
+        },
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-rnhgvz3e/codex-home/sessions/2026/11/22/rollout-2026-11-22T05-20-10-01a202c5-3c57-7e83-a8ba-d24477c3e664.jsonl",
+          "id": "01a202c5-3c57-7e83-a8ba-d24477c3e664",
+          "role": "criteria_checker",
+          "model": "gpt-6-luna",
+          "calls": 8
+        }
+      ],
+      "last_message": "All six criteria are met; `python3 -m unittest` passed. Verdict saved to `.eval/checker-verdict.json`.",
+      "sandbox": null
+    },
+    {
+      "case": "checker-full-medium-csv-format",
+      "run": 1,
+      "suite": "checker",
+      "worker_model": "gpt-6-luna",
+      "worker_effort": "medium",
+      "dispatcher_model": "gpt-6-luna",
+      "graders": [
+        {
+          "type": "checker_verdict",
+          "passed": true,
+          "detail": "statuses ['met', 'met', 'met', 'met'] on dd3aaab7"
+        },
+        {
+          "type": "refs_unchanged",
+          "passed": true,
+          "detail": "2 origin ref(s) unchanged"
+        },
+        {
+          "type": "gh_log",
+          "passed": true,
+          "detail": "0 expected, 1 forbidden"
+        }
+      ],
+      "outcome": "pass",
+      "error": null,
+      "duration_s": 57.084,
+      "usage": {
+        "calls": 11,
+        "input": 216428,
+        "cached_input": 180224,
+        "output": 2527,
+        "reasoning": 54
+      },
+      "rollouts": [
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-a1y12gmh/codex-home/sessions/2026/11/22/rollout-2026-11-22T05-21-10-01a202c6-27c3-7793-8607-42e7fdcdac71.jsonl",
+          "id": "01a202c6-27c3-7793-8607-42e7fdcdac71",
+          "role": "root",
+          "model": "gpt-6-luna",
+          "calls": 4
+        },
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-a1y12gmh/codex-home/sessions/2026/11/22/rollout-2026-11-22T05-21-19-01a202c6-4966-7132-9680-42ad9d80a774.jsonl",
+          "id": "01a202c6-4966-7132-9680-42ad9d80a774",
+          "role": "criteria_checker",
+          "model": "gpt-6-luna",
+          "calls": 7
+        }
+      ],
+      "last_message": "All four criteria met; `python3 -m unittest` passed (12 tests). Verdict saved to `.eval/checker-verdict.json`.",
+      "sandbox": null
+    },
+    {
+      "case": "checker-full-medium-money-refactor",
+      "run": 1,
+      "suite": "checker",
+      "worker_model": "gpt-6-luna",
+      "worker_effort": "medium",
+      "dispatcher_model": "gpt-6-luna",
+      "graders": [
+        {
+          "type": "checker_verdict",
+          "passed": true,
+          "detail": "statuses ['met', 'met', 'met'] on dd9d9d41"
+        },
+        {
+          "type": "refs_unchanged",
+          "passed": true,
+          "detail": "2 origin ref(s) unchanged"
+        },
+        {
+          "type": "gh_log",
+          "passed": true,
+          "detail": "0 expected, 1 forbidden"
+        }
+      ],
+      "outcome": "pass",
+      "error": null,
+      "duration_s": 54.261,
+      "usage": {
+        "calls": 10,
+        "input": 195921,
+        "cached_input": 160128,
+        "output": 2452,
+        "reasoning": 374
+      },
+      "rollouts": [
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-yom1ncek/codex-home/sessions/2026/11/22/rollout-2026-11-22T05-22-08-01a202c7-082c-7651-86a4-c0544ec03739.jsonl",
+          "id": "01a202c7-082c-7651-86a4-c0544ec03739",
+          "role": "root",
+          "model": "gpt-6-luna",
+          "calls": 4
+        },
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-yom1ncek/codex-home/sessions/2026/11/22/rollout-2026-11-22T05-22-15-01a202c7-2747-7d21-b8e9-4b0682879f11.jsonl",
+          "id": "01a202c7-2747-7d21-b8e9-4b0682879f11",
+          "role": "criteria_checker",
+          "model": "gpt-6-luna",
+          "calls": 6
+        }
+      ],
+      "last_message": "met",
+      "sandbox": null
+    },
+    {
+      "case": "checker-full-medium-price-parse",
+      "run": 1,
+      "suite": "checker",
+      "worker_model": "gpt-6-luna",
+      "worker_effort": "medium",
+      "dispatcher_model": "gpt-6-luna",
+      "graders": [
+        {
+          "type": "checker_verdict",
+          "passed": false,
+          "detail": "the verdict file holds no JSON object: '{\\n  \"issue\": 5,\\n  \"head\": \"origin/issue/5-total-wrong-value\",\\n  \"headSha\": \"2538b0546b59ccdd1d506cb8108da781116818fa\",\\n '"
+        },
+        {
+          "type": "refs_unchanged",
+          "passed": true,
+          "detail": "2 origin ref(s) unchanged"
+        },
+        {
+          "type": "gh_log",
+          "passed": true,
+          "detail": "0 expected, 1 forbidden"
+        }
+      ],
+      "outcome": "fail",
+      "error": null,
+      "duration_s": 53.5,
+      "usage": {
+        "calls": 11,
+        "input": 213998,
+        "cached_input": 171264,
+        "output": 2277,
+        "reasoning": 75
+      },
+      "rollouts": [
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-eg2y6yf6/codex-home/sessions/2026/11/22/rollout-2026-11-22T05-23-02-01a202c7-dd39-7dc3-a0b1-c018778db8be.jsonl",
+          "id": "01a202c7-dd39-7dc3-a0b1-c018778db8be",
+          "role": "root",
+          "model": "gpt-6-luna",
+          "calls": 4
+        },
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-eg2y6yf6/codex-home/sessions/2026/11/22/rollout-2026-11-22T05-23-11-01a202c7-fec0-7873-8355-64008abf156e.jsonl",
+          "id": "01a202c7-fec0-7873-8355-64008abf156e",
+          "role": "criteria_checker",
+          "model": "gpt-6-luna",
+          "calls": 7
+        }
+      ],
+      "last_message": "met",
+      "sandbox": null
+    },
+    {
+      "case": "checker-partial-hard-error-lines",
+      "run": 1,
+      "suite": "checker",
+      "worker_model": "gpt-6-luna",
+      "worker_effort": "medium",
+      "dispatcher_model": "gpt-6-luna",
+      "graders": [
+        {
+          "type": "checker_verdict",
+          "passed": true,
+          "detail": "statuses ['met', 'unmet', 'met', 'met'] on ef40919d"
+        },
+        {
+          "type": "refs_unchanged",
+          "passed": true,
+          "detail": "2 origin ref(s) unchanged"
+        },
+        {
+          "type": "gh_log",
+          "passed": true,
+          "detail": "0 expected, 1 forbidden"
+        }
+      ],
+      "outcome": "pass",
+      "error": null,
+      "duration_s": 100.744,
+      "usage": {
+        "calls": 13,
+        "input": 272624,
+        "cached_input": 200576,
+        "output": 4882,
+        "reasoning": 566
+      },
+      "rollouts": [
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-68wdtkwj/codex-home/sessions/2026/11/22/rollout-2026-11-22T05-23-56-01a202c8-af67-7c81-9f5b-26d4a00cb918.jsonl",
+          "id": "01a202c8-af67-7c81-9f5b-26d4a00cb918",
+          "role": "root",
+          "model": "gpt-6-luna",
+          "calls": 4
+        },
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-68wdtkwj/codex-home/sessions/2026/11/22/rollout-2026-11-22T05-24-05-01a202c8-d4fa-7661-bc03-8ec57cd2c01c.jsonl",
+          "id": "01a202c8-d4fa-7661-bc03-8ec57cd2c01c",
+          "role": "criteria_checker",
+          "model": "gpt-6-luna",
+          "calls": 9
+        }
+      ],
+      "last_message": "unmet: the CLI commands exit 1 with a traceback instead of reporting the malformed line and exiting 2.",
+      "sandbox": null
+    },
+    {
+      "case": "checker-full-large-hard-one-discount",
+      "run": 1,
+      "suite": "checker",
+      "worker_model": "gpt-6-luna",
+      "worker_effort": "medium",
+      "dispatcher_model": "gpt-6-luna",
+      "graders": [
+        {
+          "type": "checker_verdict",
+          "passed": true,
+          "detail": "statuses ['met', 'met', 'met', 'met', 'met'] on 36dbd13e"
+        },
+        {
+          "type": "refs_unchanged",
+          "passed": true,
+          "detail": "2 origin ref(s) unchanged"
+        },
+        {
+          "type": "gh_log",
+          "passed": true,
+          "detail": "0 expected, 1 forbidden"
+        }
+      ],
+      "outcome": "pass",
+      "error": null,
+      "duration_s": 89.319,
+      "usage": {
+        "calls": 13,
+        "input": 288271,
+        "cached_input": 243328,
+        "output": 4198,
+        "reasoning": 299
+      },
+      "rollouts": [
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-g3meov5z/codex-home/sessions/2026/11/22/rollout-2026-11-22T05-25-37-01a202ca-3a57-7ab2-9b6d-d7d860b1cd59.jsonl",
+          "id": "01a202ca-3a57-7ab2-9b6d-d7d860b1cd59",
+          "role": "root",
+          "model": "gpt-6-luna",
+          "calls": 4
+        },
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-g3meov5z/codex-home/sessions/2026/11/22/rollout-2026-11-22T05-25-47-01a202ca-6190-7ff2-8b29-33d4425f6015.jsonl",
+          "id": "01a202ca-6190-7ff2-8b29-33d4425f6015",
+          "role": "criteria_checker",
+          "model": "gpt-6-luna",
+          "calls": 9
+        }
+      ],
+      "last_message": "met",
+      "sandbox": null
+    },
+    {
+      "case": "checker-full-large-locate-repeated-sku",
+      "run": 1,
+      "suite": "checker",
+      "worker_model": "gpt-6-luna",
+      "worker_effort": "medium",
+      "dispatcher_model": "gpt-6-luna",
+      "graders": [
+        {
+          "type": "checker_verdict",
+          "passed": true,
+          "detail": "statuses ['met', 'met', 'met', 'met'] on a92e8630"
+        },
+        {
+          "type": "refs_unchanged",
+          "passed": true,
+          "detail": "2 origin ref(s) unchanged"
+        },
+        {
+          "type": "gh_log",
+          "passed": true,
+          "detail": "0 expected, 1 forbidden"
+        }
+      ],
+      "outcome": "pass",
+      "error": null,
+      "duration_s": 83.801,
+      "usage": {
+        "calls": 15,
+        "input": 327463,
+        "cached_input": 303104,
+        "output": 3917,
+        "reasoning": 406
+      },
+      "rollouts": [
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-55_vy2n0/codex-home/sessions/2026/11/22/rollout-2026-11-22T05-27-07-01a202cb-98bc-7b21-83d8-bc01dc602544.jsonl",
+          "id": "01a202cb-98bc-7b21-83d8-bc01dc602544",
+          "role": "root",
+          "model": "gpt-6-luna",
+          "calls": 4
+        },
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-55_vy2n0/codex-home/sessions/2026/11/22/rollout-2026-11-22T05-27-16-01a202cb-bdd5-7743-ae9f-24109b71fc6c.jsonl",
+          "id": "01a202cb-bdd5-7743-ae9f-24109b71fc6c",
+          "role": "criteria_checker",
+          "model": "gpt-6-luna",
+          "calls": 11
+        }
+      ],
+      "last_message": "All four criteria are met; `python3 -m unittest` passed (28 tests). Saved the verdict to `.eval/checker-verdict.json`.",
+      "sandbox": null
+    },
+    {
+      "case": "checker-full-large-medium-report-midnight",
+      "run": 1,
+      "suite": "checker",
+      "worker_model": "gpt-6-luna",
+      "worker_effort": "medium",
+      "dispatcher_model": "gpt-6-luna",
+      "graders": [
+        {
+          "type": "checker_verdict",
+          "passed": true,
+          "detail": "statuses ['met', 'met', 'met'] on 68b2e3f4"
+        },
+        {
+          "type": "refs_unchanged",
+          "passed": true,
+          "detail": "2 origin ref(s) unchanged"
+        },
+        {
+          "type": "gh_log",
+          "passed": true,
+          "detail": "0 expected, 1 forbidden"
+        }
+      ],
+      "outcome": "pass",
+      "error": null,
+      "duration_s": 80.27,
+      "usage": {
+        "calls": 12,
+        "input": 244767,
+        "cached_input": 203136,
+        "output": 3833,
+        "reasoning": 544
+      },
+      "rollouts": [
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-noyx2rmc/codex-home/sessions/2026/11/22/rollout-2026-11-22T05-28-31-01a202cc-e195-7850-9a28-dca741ac0f10.jsonl",
+          "id": "01a202cc-e195-7850-9a28-dca741ac0f10",
+          "role": "root",
+          "model": "gpt-6-luna",
+          "calls": 5
+        },
+        {
+          "path": "/private/var/folders/pj/8q0k6gh973ng3vsz__flc6n80000gn/T/ife-noyx2rmc/codex-home/sessions/2026/11/22/rollout-2026-11-22T05-28-39-01a202cd-02a4-7850-acab-44aff5b40811.jsonl",
+          "id": "01a202cd-02a4-7850-acab-44aff5b40811",
+          "role": "criteria_checker",
+          "model": "gpt-6-luna",
+          "calls": 7
+        }
+      ],
+      "last_message": "met",
+      "sandbox": null
+    }
+  ]
+}

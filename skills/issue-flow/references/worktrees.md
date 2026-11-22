@@ -9,8 +9,8 @@ it, and what the PM does when a removal is refused.
   worker (SKILL.md, Stage B step 5). The script prints the `path`. The PM copies it into
   the brief field `worktree`.
 - The worktree lives under `.worktrees/<task_name>` in the project directory. The
-  `task_name` is `worker_<n>`, or `worker_<n>_c<k>` for the replacement after checkpoint
-  `k`.
+  `task_name` is `worker_<n>`, or a chain name for a replacement: `worker_<n>_c1`, `worker_<n>_c2`,
+  `worker_<n>_e1`, or `worker_<n>_e1_c1`. A batch-gate fix worker uses `fix_<n>`.
 - No agent in the run moves its session into a worktree. Codex has no tool for it. The PM
   drives a worktree with `git -C <path>`, and a worker works in the `worktree` path of its
   brief.
@@ -23,6 +23,11 @@ it, and what the PM does when a removal is refused.
 The spawn guard (`hooks/guard-spawn.py`) denies a `spawn_agent` call that breaks the
 launch rules of Stage B. The guard does not create or move a worktree.
 
+The guard also denies a PM spawn of `issue_worker` or `issue_worker_escalated` that sets
+`model` or `reasoning_effort`, because Codex ignores a spawn model when the role file sets
+one. The names `worker_<n>_e1` and `worker_<n>_e1_c1` need `agent_type` `issue_worker_escalated`.
+The guard tests the fields and the name, because it cannot read the brief.
+
 ## What the script does
 
 `scripts/worktree.py` takes two commands.
@@ -32,11 +37,17 @@ launch rules of Stage B. The guard does not create or move a worktree.
   It copies the files that `.worktreeinclude` names and git ignores (`.env` and local
   secrets), because a worktree is a fresh checkout of *tracked* files only. Keep
   `.worktreeinclude` accurate instead of copying those files by hand.
+- `create --project <dir> --task check_<n> --detach <sha>` makes a **check worktree**:
+  `HEAD` is at `<sha>` and git creates no branch. It prints `{"path","branch","base_sha"}`
+  with `branch` null. `--detach` excludes `--branch` and `--base`. It exits 1 when the
+  worktree exists. The PM creates the check worktree before it spawns `criteria_checker`,
+  and passes the path as `worktree`.
 - `remove --project <dir> --task <task_name> [--merged]` removes the worktree and deletes
   its branch. Pass `--merged` only after the PM has verified the sub-merge. A squash merge
   leaves the branch commits on no remote ref, so without the flag the script refuses. The
-  flag skips the unpushed-commit check only. The script still refuses uncommitted changes
-  and a worktree that is not on a branch.
+  flag skips the unpushed-commit check only. The script still refuses uncommitted changes.
+  A detached check worktree has no branch: `remove` deletes none, and it still refuses a
+  commit that no remote holds.
 
 `create` reuses a **local** branch when one exists, and else makes the branch from
 `--base`. A branch that exists only on the remote is not reused. For a rework spawn or a
@@ -73,10 +84,10 @@ nothing wrong is replaced, not resumed. The verdict exists to drop a context tha
 grown expensive, and a `followup_task` keeps exactly that context. The PM does three
 things in order (SKILL.md, Stage C1):
 
-1. `worktree.py remove --project <dir> --task worker_<n>[_c<k>]`.
-2. `worktree.py create --project <dir> --task worker_<n>_c<k> --branch issue/<n>-<slug>
+1. `worktree.py remove --project <dir> --task <task_name>`.
+2. `worktree.py create --project <dir> --task <next_name> --branch issue/<n>-<slug>
    --base <remote>/issue/<n>-<slug>`.
-3. `spawn_agent` for `worker_<n>_c<k>`, with the new `path` in its brief.
+3. `spawn_agent` for `<next_name>`, with the new `path` in its brief.
 
 A leftover worktree from a previous session cannot be resumed in place. Its worker is
 gone. Adopt that work from the branch and the PR, then remove the directory.

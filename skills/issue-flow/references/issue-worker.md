@@ -24,7 +24,7 @@ Sequenced batch members (dependency chains) launch only after their predecessor
 sub-merges. When the PM has no other step, it calls `wait_agent` (`SKILL.md`, the
 verdict section, owns the rules).
 
-The worker is an **independent engineer** on `gpt-6.1-sol`: it may research (web), use the
+The worker is an **independent engineer** on `gpt-6-luna`: it may research (web), use the
 MCP servers that the session configures, and spawn its own subagents when a thread slot is free — all
 **confined to that issue's worktree** and its own scratch directory,
 and all finished before it returns its verdict. The PM sets none of this;
@@ -39,6 +39,8 @@ full re-triage. `notesForPM` is the exception: read it on every verdict, because
 the PM never routes is a finding lost.
 
 ## Handoff brief (the only thing the PM passes in)
+
+The PM gives the worker the whole issue in one brief. The brief has no phase limit, no scratch-only limit, and no instruction to wait for a later PM step. The worker returns `checkpoint` only at its turn budget. If the issue needs the browser, the PM launches the worker only when no other browser user is live, at launch, not during the build.
 
 ```
 issue:        #<number> — <title>
@@ -78,6 +80,10 @@ qualityRule:  <absolute path to the quality rules: <project>/docs/rules/quality.
 pluginRoot:   <absolute path of the plugin directory: two levels above this skill's
                `SKILL.md`, e.g. …/issue-flow when the skill is at
                …/issue-flow/skills/issue-flow>
+escalation:   <only on an escalation spawn (`worker_<n>_e1` and `worker_<n>_e1_c1`): the
+               trigger and its reason, then the `unmet` and `unclear` criteria of the
+               re-check with their `status` and `evidence`, or the quoted `blocker`.
+               Absent on every other spawn. See SKILL.md, Stage C1, "Escalation".>
 ```
 
 `pluginRoot` is not optional either. A worker is not told where its own definition lives,
@@ -118,7 +124,7 @@ practice, a review comment, a conflict to resolve. Two mechanisms, and they are 
 equivalent:
 
 - **Preferred — `followup_task` to the worker that returned the verdict**, by its
-  `task_name` (`worker_<n>`, or `worker_<n>_c<k>`). It keeps its context, its worktree,
+  `task_name` (`worker_<n>`, `worker_<n>_c1`, `worker_<n>_c2`, `worker_<n>_e1`, or `worker_<n>_e1_c1`). It keeps its context, its worktree,
   and its branch already checked out, so nothing is re-pointed and nothing can be lost.
   Then the PM calls `wait_agent` for the next answer. **Never use `send_message` for
   rework**: it queues text and starts no turn, so the worker never acts on it.
@@ -170,10 +176,10 @@ The worker returns exactly this object as its final message:
 
 | outcome | PM action (the gate) |
 |---|---|
-| `ready-to-merge` | Verify threads resolved + `localChecks` green (or CI green when `ci: run`) + the **pre-patch check** when the PR adds or changes tests (`localChecks` states the new tests failed against the pre-patch code — absent goes back to the worker) + **every acceptance criterion in `criteria` met and evidenced** (missing/unmet/unevidenced → back to the worker via `followup_task`, see Rework; disputed → `needs-feedback`); resolve any conflict vs the integration branch; `forge.pr.ready` then `forge.pr.merge.squash` **with the message written out — `--subject "<title> (#<pr>)" --body "[skip ci]"`, never the forge's default** (SKILL.md C1 step 4: GitHub's default carries the token only by luck, Gitea's carries none and starts a full CI run per sub-merge); then **check what landed** — fetch the integration branch and grep its head, re-triggering only per C1 step 4b (SKILL.md C1 step 4b); **`forge.issue.status.set <member> status:batched` as its own step, before any bookkeeping** (SKILL.md C1 step 5 — never a bare label add); then tick the tracking checklist, remove the worktree (`worktree.py remove --task <task_name>`), launch any sequenced successor. When the batch completes → batch gate (Stage C2). Standalone/hotfix: gate the PR like a batch PR into dev (the batch-PR column of `prAuthority` — [session-config.md](session-config.md)), merge `--squash`, **close the issue** (`Closes #` auto-closes only when dev is the default branch; otherwise close it manually with a comment linking the PR) and clear its status label, then Stage D directly. |
-| `checkpoint` | The worker hit its turn budget with work pushed; nothing is wrong. Spawn a **fresh** worker (not a `followup_task` — that reuses the context the checkpoint exists to discard) with the same brief and `remaining` appended to the plan. First run `worktree.py remove --task worker_<n>[_c<k>]`. Then run `worktree.py create --task worker_<n>_c<k> --base <remote>/issue/<n>-<slug>` — the new worktree starts from the published branch — and spawn `worker_<n>_c<k>`. **Leave the status label untouched** — `status:in-review` if the worker had opened its PR, `status:in-progress` if it checkpointed before that; both are correct and the replacement adopts the open PR. Post one terse comment recording the checkpoint (the chain cap counts these). **Does not free the slot** — the issue is still in flight. No gate, no digest line. |
+| `ready-to-merge` | Verify threads resolved + `localChecks` green (or CI green when `ci: run`) + the **pre-patch check** when the PR adds or changes tests (`localChecks` states the new tests failed against the pre-patch code — absent goes back to the worker) + **every acceptance criterion in `criteria` met and evidenced** (missing/unmet/unevidenced → back to the worker via `followup_task`, see Rework; disputed → `needs-feedback`); then the independent **criteria check** (SKILL.md C1 step 1c: `check_<n>` with the `criteria_checker` role, which never sees the worker's verdict; an `unmet` or `unclear` finding gets one rework round by `followup_task`); resolve any conflict vs the integration branch; `forge.pr.ready` then `forge.pr.merge.squash` **with the message written out — `--subject "<title> (#<pr>)" --body "[skip ci]"`, never the forge's default** (SKILL.md C1 step 4: GitHub's default carries the token only by luck, Gitea's carries none and starts a full CI run per sub-merge); then **check what landed** — fetch the integration branch and grep its head, re-triggering only per C1 step 4b (SKILL.md C1 step 4b); **`forge.issue.status.set <member> status:batched` as its own step, before any bookkeeping** (SKILL.md C1 step 5 — never a bare label add); then tick the tracking checklist, remove the worktree (`worktree.py remove --task <task_name>`), launch any sequenced successor. When the batch completes → batch gate (Stage C2). Standalone/hotfix: gate the PR like a batch PR into dev (the batch-PR column of `prAuthority` — [session-config.md](session-config.md)), merge `--squash`, **close the issue** (`Closes #` auto-closes only when dev is the default branch; otherwise close it manually with a comment linking the PR) and clear its status label, then Stage D directly. |
+| `checkpoint` | The worker hit its turn budget with work pushed; nothing is wrong. Spawn a **fresh** worker (not a `followup_task` — that reuses the context the checkpoint exists to discard) with the same brief and `remaining` appended to the plan. First run `worktree.py remove --task <task_name>`. Then run `worktree.py create --task <next_name> --base <remote>/issue/<n>-<slug>` — the new worktree starts from the published branch — and spawn `<next_name>`. The names are `worker_<n>_c1`, then `worker_<n>_c2`; an escalation uses `worker_<n>_e1` and `worker_<n>_e1_c1`, with `agent_type: "issue_worker_escalated"` and the same `escalation:` field. New commits do not reset the count; after `worker_<n>_c2` the issue is parked (SKILL.md, Stage C1). **Leave the status label untouched** — `status:in-review` if the worker had opened its PR, `status:in-progress` if it checkpointed before that; both are correct and the replacement adopts the open PR. Post one terse comment recording the checkpoint (the chain cap counts these). **Does not free the slot** — the issue is still in flight. No gate, no digest line. |
 | `needs-feedback` | Label `status:needs-feedback`, post `question` as an issue comment, park per the feedback policy (notify; ask interactively only when it gates work). Free the slot. |
-| `blocked` | Label `status:blocked`, comment naming `blocker`. Free the slot. |
+| `blocked` | A technical `blocker` escalates the issue once (SKILL.md, Stage C1, "Escalation"). Any other `blocker`: label `status:blocked`, comment naming `blocker`, free the slot. |
 | *(no verdict)* | Marked interim ("stopped with background work of its own still running") → not an outcome; keep the slot, the verdict follows. Final with no JSON → `followup_task` once for the verdict, then `blocked`. For an issue already gated → ignore. (SKILL.md, *Reading a worker verdict*.) |
 
 **On every verdict, read `notesForPM`** — it carries findings the worker neither filed nor

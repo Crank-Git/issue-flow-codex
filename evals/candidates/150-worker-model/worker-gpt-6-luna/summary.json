@@ -1,0 +1,126 @@
+{
+  "suite": {
+    "runs": 22,
+    "passed": 19,
+    "failed": 3,
+    "errors": 0,
+    "pass_rate": 0.864,
+    "hidden_tests_pass_rate": 1.0,
+    "mean_input_tokens": 927721.364,
+    "mean_output_tokens": 7101.318
+  },
+  "cases": {
+    "worker-easy-low-stock-boundary": {
+      "runs": 2,
+      "passed": 2,
+      "failed": 0,
+      "errors": 0,
+      "pass_rate": 1.0,
+      "hidden_tests_pass_rate": 1.0,
+      "mean_input_tokens": 933120.0,
+      "mean_output_tokens": 6440.0
+    },
+    "worker-easy-negative-qty": {
+      "runs": 2,
+      "passed": 2,
+      "failed": 0,
+      "errors": 0,
+      "pass_rate": 1.0,
+      "hidden_tests_pass_rate": 1.0,
+      "mean_input_tokens": 639119.5,
+      "mean_output_tokens": 4102.5
+    },
+    "worker-hard-ambiguous-tax": {
+      "runs": 2,
+      "passed": 2,
+      "failed": 0,
+      "errors": 0,
+      "pass_rate": 1.0,
+      "hidden_tests_pass_rate": null,
+      "mean_input_tokens": 304807.0,
+      "mean_output_tokens": 2612.5
+    },
+    "worker-hard-error-lines": {
+      "runs": 2,
+      "passed": 1,
+      "failed": 1,
+      "errors": 0,
+      "pass_rate": 0.5,
+      "hidden_tests_pass_rate": 1.0,
+      "mean_input_tokens": 1112698.0,
+      "mean_output_tokens": 8791.5
+    },
+    "worker-hard-location": {
+      "runs": 2,
+      "passed": 2,
+      "failed": 0,
+      "errors": 0,
+      "pass_rate": 1.0,
+      "hidden_tests_pass_rate": 1.0,
+      "mean_input_tokens": 1162312.0,
+      "mean_output_tokens": 9865.5
+    },
+    "worker-large-hard-one-discount": {
+      "runs": 2,
+      "passed": 2,
+      "failed": 0,
+      "errors": 0,
+      "pass_rate": 1.0,
+      "hidden_tests_pass_rate": 1.0,
+      "mean_input_tokens": 1206159.0,
+      "mean_output_tokens": 9078.0
+    },
+    "worker-large-locate-repeated-sku": {
+      "runs": 2,
+      "passed": 2,
+      "failed": 0,
+      "errors": 0,
+      "pass_rate": 1.0,
+      "hidden_tests_pass_rate": 1.0,
+      "mean_input_tokens": 944807.5,
+      "mean_output_tokens": 8087.0
+    },
+    "worker-large-medium-report-midnight": {
+      "runs": 2,
+      "passed": 1,
+      "failed": 1,
+      "errors": 0,
+      "pass_rate": 0.5,
+      "hidden_tests_pass_rate": 1.0,
+      "mean_input_tokens": 1214762.5,
+      "mean_output_tokens": 8739.5
+    },
+    "worker-medium-csv-format": {
+      "runs": 2,
+      "passed": 2,
+      "failed": 0,
+      "errors": 0,
+      "pass_rate": 1.0,
+      "hidden_tests_pass_rate": 1.0,
+      "mean_input_tokens": 986756.0,
+      "mean_output_tokens": 7253.5
+    },
+    "worker-medium-money-refactor": {
+      "runs": 2,
+      "passed": 1,
+      "failed": 1,
+      "errors": 0,
+      "pass_rate": 0.5,
+      "hidden_tests_pass_rate": 1.0,
+      "mean_input_tokens": 716437.0,
+      "mean_output_tokens": 6244.5
+    },
+    "worker-medium-price-parse": {
+      "runs": 2,
+      "passed": 2,
+      "failed": 0,
+      "errors": 0,
+      "pass_rate": 1.0,
+      "hidden_tests_pass_rate": 1.0,
+      "mean_input_tokens": 983956.5,
+      "mean_output_tokens": 6900.0
+    }
+  },
+  "partial": false,
+  "stop_reason": null
+}

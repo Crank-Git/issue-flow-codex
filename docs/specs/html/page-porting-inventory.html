@@ -141,6 +141,7 @@ body.rv-open .layout { padding-right:21rem; }
 <h2>Pages</h2><ul>
 <li><a href="page-codex-harness.html">Codex harness facts</a></li>
 <li><a class="current" href="page-porting-inventory.html">Porting inventory</a></li>
+<li><a href="page-spend-analysis.html">Quota use of an operator run, November 2026</a></li>
 </ul>
 <h2>Features</h2><ul>
 <li><a href="feature-foundation.html">Foundation</a></li>
@@ -150,6 +151,10 @@ body.rv-open .layout { padding-right:21rem; }
 <li><a href="feature-spec-skills.html">Spec skills</a></li>
 <li><a href="feature-project-review.html">Project review</a></li>
 <li><a href="feature-mirror-and-sync.html">Mirror and sync</a></li>
+<li><a href="feature-spawn-limits.html">Spawn limits</a></li>
+<li><a href="feature-criteria-check.html">Criteria check and escalation</a></li>
+<li><a href="feature-run-budget.html">Run budget and usage report</a></li>
+<li><a href="feature-worker-model-eval.html">Worker model eval</a></li>
 </ul></aside>
 <main>
 <h1>Porting inventory</h1>
@@ -168,7 +173,7 @@ body.rv-open .layout { padding-right:21rem; }
 <div class="table-wrap"><table>
 <tr><th>Upstream path</th><th>Lines</th><th>Mode</th><th>What changes</th><th>Feature</th></tr>
 <tr><td><code>README.md</code></td><td>539</td><td>patched</td><td>Port credit and Codex install steps.</td><td>00</td></tr>
-<tr><td><code>.claude-plugin/plugin.json</code></td><td>25</td><td>rewritten</td><td>Becomes <code>.codex-plugin/plugin.json</code>.</td><td>01</td></tr>
+<tr><td><code>.claude-plugin/plugin.json</code></td><td>25</td><td>dropped</td><td>Replaced by <code>.codex-plugin/plugin.json</code>.</td><td>01</td></tr>
 <tr><td><code>hooks/hooks.json</code></td><td>26</td><td>rewritten</td><td>Codex events, <code>$PLUGIN_ROOT</code>, matcher <code>spawn_agent$</code>, role guard entry.</td><td>01</td></tr>
 <tr><td><code>hooks/preflight.py</code></td><td>333</td><td>patched</td><td>Output wrapper, <code>source</code> line, <code>ran</code> line. The digest logic stays.</td><td>01, 03</td></tr>
 <tr><td><code>hooks/guard-spawn.py</code></td><td>262</td><td>rewritten</td><td>V2 spawn rules on <code>fork_turns</code>, <code>task_name</code>, <code>agent_type</code>. The brief detection is dropped: <code>message</code> is encrypted.</td><td>01</td></tr>
@@ -177,6 +182,8 @@ body.rv-open .layout { padding-right:21rem; }
 <tr><td><code>scripts/verify_ci_ran.py</code></td><td>155</td><td>patched</td><td>Docstring paths.</td><td>00</td></tr>
 <tr><td><code>scripts/verify_claim.py</code></td><td>110</td><td>patched</td><td>Docstring paths.</td><td>00</td></tr>
 <tr><td><code>scripts/gitea-ci-watch.sh</code></td><td>83</td><td>patched</td><td>Comment about <code>run_in_background</code>; called by <code>ci_wait.py</code>.</td><td>03</td></tr>
+<tr><td><code>scripts/pricing.json</code></td><td>59</td><td>dropped</td><td>Codex plan quota has no price per token.</td><td>09</td></tr>
+<tr><td><code>scripts/usage.py</code></td><td>402</td><td>rewritten</td><td>Reads Codex rollouts instead of Claude Code transcripts.</td><td>09</td></tr>
 </table></div>
 <h2 id="porting-inventory-shared-references">Shared references</h2>
 <div class="table-wrap"><table>
@@ -190,6 +197,7 @@ body.rv-open .layout { padding-right:21rem; }
 <div class="table-wrap"><table>
 <tr><th>Upstream path</th><th>Lines</th><th>Mode</th><th>What changes</th><th>Feature</th></tr>
 <tr><td><code>agents/issue-worker.md</code></td><td>690</td><td>rewritten</td><td>Front-matter becomes <code>roles/issue-worker.toml</code>. Rewrite: the toolbox section, the four spawn rules (lines 162-236), the worktree boundary (lines 237-350), and the CI watch in the runbook.</td><td>02</td></tr>
+<tr><td><code>agents/criteria-checker.md</code></td><td>117</td><td>rewritten</td><td>Front-matter becomes <code>roles/criteria-checker.toml</code>. Read-only check of one branch against the criteria.</td><td>08</td></tr>
 <tr><td><code>agents/review-scribe.md</code></td><td>174</td><td>patched</td><td>Becomes a role file; worktree from the PM.</td><td>05</td></tr>
 <tr><td><code>agents/ux-explorer.md</code></td><td>140</td><td>patched</td><td>Becomes a role file; Playwright tool names.</td><td>05</td></tr>
 <tr><td><code>agents/deploy-verifier.md</code></td><td>75</td><td>patched</td><td>Becomes a role file; Playwright tool names.</td><td>05</td></tr>
@@ -239,10 +247,12 @@ body.rv-open .layout { padding-right:21rem; }
 <tr><td><code>scripts/build_roles.py</code></td><td>Role TOML from the upstream agent markdown.</td><td>02, 05</td></tr>
 <tr><td><code>skills/setup/SKILL.md</code></td><td>The setup skill.</td><td>01</td></tr>
 <tr><td><code>hooks/guard-role.py</code>, <code>hooks/role-policy.json</code></td><td>The role guard.</td><td>01</td></tr>
+<tr><td><code>evals/worker/<strong></code>, <code>evals/checker/</strong></code>, <code>evals/fakegh/gh</code></td><td>Upstream eval cases, the fake <code>gh</code>, and the fixtures. <code>verbatim</code>, with <code>upstream_path</code> in <code>upstream.lock</code>.</td><td>10</td></tr>
+<tr><td><code>evals/README.md</code></td><td>The source, the tag, and the MIT notice of the eval cases.</td><td>10</td></tr>
 <tr><td><code>.agents/plugins/marketplace.json</code></td><td>The Codex marketplace.</td><td>01</td></tr>
 </table></div><nav class="pager">
 <a href="page-codex-harness.html">&larr; Codex harness facts</a>
-<a href="feature-foundation.html">Feature: Foundation &rarr;</a>
+<a href="page-spend-analysis.html">Quota use of an operator run, November 2026 &rarr;</a>
 </nav>
 </main>
 </div>

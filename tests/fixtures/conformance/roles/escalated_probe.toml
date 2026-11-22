@@ -1,0 +1,8 @@
+name = "escalated_probe"
+description = "Probe role for the escalation check. Its file sets the escalation model; the spawn sets none."
+model = "gpt-6.1-sol"
+model_reasoning_effort = "high"
+developer_instructions = """
+Do exactly what the task says. Reply with only the JSON object the task names.
+Run no shell command unless the task asks for one.
+"""

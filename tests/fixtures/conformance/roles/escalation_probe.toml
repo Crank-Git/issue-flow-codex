@@ -1,7 +1,0 @@
-name = "escalation_probe"
-description = "Probe role for the model precedence check. Its file sets one model; the spawn sets another."
-model = "gpt-6-luna"
-developer_instructions = """
-Do exactly what the task says. Reply with only the JSON object the task names.
-Run no shell command unless the task asks for one.
-"""

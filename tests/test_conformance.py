@@ -83,6 +83,22 @@ class RolloutModelsTest(unittest.TestCase):
             self.assertEqual(conformance.rollout_models(tmp), [])
 
 
+class EscalationResultTest(unittest.TestCase):
+    def test_passes_when_a_turn_ran_on_the_role_file_model(self):
+        ok, text = conformance.escalation_result(["gpt-6-luna", "gpt-6.1-sol"], set())
+        self.assertTrue(ok)
+        self.assertIn("gpt-6.1-sol", text)
+
+    def test_fails_when_no_turn_ran_on_the_role_file_model(self):
+        ok, _ = conformance.escalation_result(["gpt-6-luna", "gpt-6-luna"], set())
+        self.assertFalse(ok)
+
+    def test_keeps_the_old_observation_and_the_spawn_fields_in_the_report_text(self):
+        _, text = conformance.escalation_result([], {"reasoning_effort", "model"})
+        self.assertIn("['model', 'reasoning_effort']", text)
+        self.assertIn("does not override the role file model", text)
+
+
 class MainTest(unittest.TestCase):
     def test_exits_2_when_codex_is_not_on_path(self):
         err = io.StringIO()
@@ -149,10 +165,14 @@ class FixtureTest(unittest.TestCase):
         )
 
     def test_each_role_file_names_its_role(self):
-        for role in ("echo_worker", "git_worker"):
+        for role in ("echo_worker", "git_worker", "escalated_probe"):
             data = tomllib.loads((FIXTURES / "roles" / f"{role}.toml").read_text())
             self.assertEqual(data["name"], role)
             self.assertTrue(data["developer_instructions"])
+
+    def test_escalated_probe_role_sets_the_escalation_model(self):
+        data = tomllib.loads((FIXTURES / "roles" / "escalated_probe.toml").read_text())
+        self.assertEqual(data["model"], conformance.ESCALATION_MODEL)
 
 
 if __name__ == "__main__":

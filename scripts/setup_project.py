@@ -163,6 +163,21 @@ def merge_config(existing, block):
     return prefix + block + "\n" + suffix
 
 
+def apply_models(stem, role, codex):
+    """Set the model keys of a parsed role from the `.issue-flow.codex.json` keys that name it.
+
+    `workerModel` never reaches the escalation role: it has its own keys.
+    """
+    if stem == "issue-worker":
+        role["model"] = codex.get("workerModel", role["model"])
+        role["model_reasoning_effort"] = codex.get("workerEffort", role["model_reasoning_effort"])
+    elif stem == "issue-worker-escalated":
+        role["model"] = codex.get("escalationModel", role["model"])
+        role["model_reasoning_effort"] = codex.get("escalationEffort", role["model_reasoning_effort"])
+    elif stem in ("code-auditor", "deploy-verifier", "review-scribe", "ux-explorer", "ci-watcher"):
+        role["model"] = codex.get("helperModel", role["model"])
+
+
 def plan_files(project, plugin_root, with_default_permissions):
     """Return {relative path: new text} for each file that setup changes."""
     wanted = {}
@@ -182,11 +197,7 @@ def plan_files(project, plugin_root, with_default_permissions):
             parsed = tomllib.loads(text)
         except tomllib.TOMLDecodeError as exc:
             raise SetupError(f"role source is not valid TOML: {role}: {exc}") from exc
-        if role.stem == "issue-worker":
-            parsed["model"] = codex.get("workerModel", parsed["model"])
-            parsed["model_reasoning_effort"] = codex.get("workerEffort", parsed["model_reasoning_effort"])
-        elif role.stem in ("code-auditor", "deploy-verifier", "review-scribe", "ux-explorer", "ci-watcher"):
-            parsed["model"] = codex.get("helperModel", parsed["model"])
+        apply_models(role.stem, parsed, codex)
         text = render_role(parsed)
         wanted[f".codex/agents/{role.name}"] = text
 
@@ -259,12 +270,7 @@ def check_report(project, plugin_root):
         except tomllib.TOMLDecodeError:
             print(f"setup_project: malformed role copy: {copy}", file=sys.stderr)
             continue
-        if source.stem == "issue-worker":
-            source_role["model"] = codex.get("workerModel", source_role["model"])
-            source_role["model_reasoning_effort"] = codex.get(
-                "workerEffort", source_role["model_reasoning_effort"])
-        elif source.stem in ("code-auditor", "deploy-verifier", "review-scribe", "ux-explorer", "ci-watcher"):
-            source_role["model"] = codex.get("helperModel", source_role["model"])
+        apply_models(source.stem, source_role, codex)
         matching += render_role(source_role) == copy.read_text(encoding="utf-8")
     # A present copy that differs is stale even when other copies are absent: Codex loads it.
     present = sum(c.is_file() for c in copies)

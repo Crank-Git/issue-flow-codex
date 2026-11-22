@@ -86,12 +86,12 @@ Stage C1 steps 1c and "Escalation to Opus", `skills/issue-flow/references/issue-
 - FR-criteria-check-26 — The PM never escalates a `needs-feedback` verdict or a `checkpoint` verdict.
 - FR-criteria-check-27 — The PM escalates one issue at most once. When the issue already has an `escalated:` comment, the PM labels it `status:blocked`, comments with the findings, and frees the slot.
 - FR-criteria-check-28 — Before the escalation spawn, the PM comments `escalated: <reason>` on the issue.
-- FR-criteria-check-29 — The escalation spawn uses `task_name: "worker_<n>_e1"`, `agent_type: "issue_worker"`, `model` set to `escalationModel`, and `reasoning_effort` set to `escalationEffort`.
+- FR-criteria-check-29 — The escalation spawn uses `task_name: "worker_<n>_e1"`, `agent_type: "issue_worker_escalated"`, and no `model` and no `reasoning_effort`. The role file `issue_worker_escalated` sets the model and the effort (`escalationModel` and `escalationEffort`).
 - FR-criteria-check-30 — The escalation brief holds the original brief, `base: <remote>/issue/<n>-<slug>`, the PR number, and the field `escalation:` with the trigger and the checker findings or the `blocker`.
-- FR-criteria-check-31 — The replacement of a checkpointed escalation worker is `worker_<n>_e1_c1`, with the same `model`, `reasoning_effort`, and `escalation:` field.
-- FR-criteria-check-32 — `.issue-flow.codex.json` holds `escalationModel`, default `gpt-6.1-sol`, and `escalationEffort`, default `high`.
-- FR-criteria-check-33 — The spawn guard denies a PM spawn of `issue_worker` that sets `model` or `reasoning_effort` and whose `task_name` does not contain `_e1`.
-- FR-criteria-check-34 — The spawn guard denies a PM spawn of `worker_<n>_e1` or `worker_<n>_e1_c1` that sets no `model` or no `reasoning_effort`.
+- FR-criteria-check-31 — The replacement of a checkpointed escalation worker is `worker_<n>_e1_c1`, with `agent_type: "issue_worker_escalated"` and the same `escalation:` field.
+- FR-criteria-check-32 — `.issue-flow.codex.json` holds `escalationModel`, default `gpt-6.1-sol`, and `escalationEffort`, default `high`. The setup script writes both into the role file `issue-worker-escalated.toml`, and `workerModel` never reaches that file.
+- FR-criteria-check-33 — The spawn guard denies a PM spawn of `issue_worker` or `issue_worker_escalated` that sets `model` or `reasoning_effort`. The reason says that Codex ignores a spawn model when the role file sets one, and names the escalation role.
+- FR-criteria-check-34 — The spawn guard allows the names `worker_<n>_e1` and `worker_<n>_e1_c1` only with `agent_type: "issue_worker_escalated"`, and denies them with `issue_worker`. The role `issue_worker_escalated` has the same role policy as `issue_worker`.
 - FR-criteria-check-35 — The worker role holds the upstream "Escalation" section: continue the published branch, read the findings before the code, and reproduce each finding first.
 
 ### Text
@@ -142,7 +142,7 @@ sequenceDiagram
         PM->>T: status:blocked, comment with the findings
     else first escalation
         PM->>T: comment "escalated: re-check failed (criterion 2 unmet)"
-        PM->>G: spawn worker_42_e1, model, reasoning_effort, escalation brief
+        PM->>G: spawn worker_42_e1 (issue_worker_escalated), escalation brief
         G-->>PM: allow
         W->>W: check out the published branch, reproduce each finding, fix
         W-->>PM: verdict
@@ -153,7 +153,7 @@ sequenceDiagram
 1. The PM reads the issue comments for an `escalated:` comment.
 2. If the comment exists, the PM labels the issue `status:blocked` and comments with the findings.
 3. Else the PM comments `escalated: <reason>`.
-4. The PM spawns `worker_<n>_e1` with the escalation model, effort, and brief.
+4. The PM spawns `worker_<n>_e1` with `agent_type: "issue_worker_escalated"` and the escalation brief.
 5. The worker continues the published branch and returns a verdict.
 6. The PM runs the whole gate again, with a new check.
 
@@ -173,18 +173,18 @@ The feature has no screens.
 - `upstream.lock`, `docs/specs/pages/porting-inventory.md`.
 - `agents/criteria-checker.md` (new upstream file), `roles/criteria-checker.toml` (new), `hooks/role-policy.json`, `hooks/guard-spawn.py`, `scripts/worktree.py`.
 - `skills/issue-flow/SKILL.md`, `skills/issue-flow/references/issue-worker.md`, `skills/issue-flow/references/worktrees.md`, `skills/issue-flow/references/session-config.md`, `agents/issue-worker.md`, `roles/issue-worker.toml`, `README.md`.
-- `.issue-flow.codex.json`: new keys `escalationModel` and `escalationEffort`.
+- `.issue-flow.codex.json`: new keys `escalationModel` and `escalationEffort`. They set the role file `roles/issue-worker-escalated.toml`, built from `agents/issue-worker.md`.
 - Tracker: the comment `escalated: <reason>`.
 
 ## Interfaces
 
-- **`spawn_agent` `model` and `reasoning_effort`:** the V2 spawn accepts both. A full fork does not accept a model override. Verified against: source `codex-rs/core/src/tools/handlers/multi_agents_spec.rs:108-164` (commit `dbaead01`), Feature 02 Interfaces.
+- **`spawn_agent` `model` and `reasoning_effort`:** the V2 spawn accepts both, but Codex ignores them when the role file sets a model (codex-harness.md, fact 31). A full fork does not accept a model override. Verified against: source `codex-rs/core/src/tools/handlers/multi_agents_spec.rs:108-164` (commit `dbaead01`), Feature 02 Interfaces.
 - **Upstream criteria checker:** `agents/criteria-checker.md` at `issue-flow--v0.21.0` (commit `f5eee9c`), brief and return contract.
 - **Upstream escalation:** `skills/issue-flow/SKILL.md` at `issue-flow--v0.21.0`, Stage C1 "Escalation to Opus".
 
 ## Edge cases & failures
 
-- If the role file sets `model` and the spawn also sets `model`, the precedence is not recorded. The conformance suite adds a probe: an escalation spawn must report the spawn's model in the subagent rollout `turn_context.model`. Until the probe passes, the issue that builds FR-criteria-check-29 is not done.
+- The role file `model` wins over the spawn `model` (codex-harness.md, fact 31, probe P14 on 2026-11-22). The escalation therefore uses its own role, `issue_worker_escalated`. The conformance probe P14 now spawns a probe role whose file sets the escalation model, and it must report that model in the subagent rollout `turn_context.model`.
 - If the checker cannot fetch `headSha`, it returns every criterion `unclear`. The PM treats that as a failed check.
 - If the worktree for the check exists from an earlier session, `worktree.py create --detach` exits 1. The PM removes it with `worktree.py remove` first.
 
@@ -196,9 +196,9 @@ The feature has no screens.
 - [ ] A recorded `apply_patch` payload of `criteria_checker` gets a deny decision from the role guard. (FR-criteria-check-10)
 - [ ] `worktree.py create --detach <sha>` makes a worktree whose `git rev-parse HEAD` is `<sha>` and whose `git branch --show-current` is empty. (FR-criteria-check-15)
 - [ ] The PM skill text spawns `check_<n>` with `agent_type: "criteria_checker"`, and its brief template has no `localChecks` field. (FR-criteria-check-12, 13, 17)
-- [ ] A recorded PM spawn of `worker_42` with `model` set gets a deny decision. (FR-criteria-check-33)
-- [ ] A recorded PM spawn of `worker_42_e1` without `reasoning_effort` gets a deny decision. (FR-criteria-check-34)
-- [ ] A conformance probe shows `turn_context.model` equal to the spawn's `model` in the rollout of an escalation spawn. (FR-criteria-check-29)
+- [ ] A recorded PM spawn of `worker_42` with `model` set gets a deny decision, and so does `worker_42_e1` with `model` set. (FR-criteria-check-33)
+- [ ] A recorded PM spawn of `worker_42_e1` with `agent_type: "issue_worker"` gets a deny decision. (FR-criteria-check-34)
+- [ ] A conformance probe shows `turn_context.model` equal to the role file model in the rollout of a spawn of a role whose file sets the escalation model. (FR-criteria-check-29)
 - [ ] On the test bed, a seeded sub-issue whose worker fixes only part of a criterion gets an `unmet` check, one rework message, and no merge before a re-check passes. (FR-criteria-check-18 to 21)
 - [ ] On the test bed, a second failed re-check produces one `escalated:` comment and a `worker_<n>_e1` spawn. (FR-criteria-check-21, 28, 29)
 
@@ -209,4 +209,4 @@ The feature has no screens.
 
 ## Open questions
 
-- Which takes precedence, the role file `model` or the spawn `model`? The conformance probe of the edge cases answers it.
+- Resolved: the role file `model` takes precedence over the spawn `model` (fact 31).

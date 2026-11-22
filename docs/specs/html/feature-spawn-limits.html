@@ -213,7 +213,7 @@ body.rv-open .layout { padding-right:21rem; }
 </ul>
 <h4 id="spawn-limits-worker-cap">Worker cap</h4>
 <ul>
-<li>FR-spawn-limits-11 — The worker <code>task_name</code> pattern allows exactly five names for one issue: <code>worker_&lt;n&gt;</code>, <code>worker_&lt;n&gt;_c1</code>, <code>worker_&lt;n&gt;_c2</code>, <code>worker_&lt;n&gt;_e1</code>, and <code>worker_&lt;n&gt;_e1_c1</code>.
+<li>FR-spawn-limits-11 — The worker <code>task_name</code> pattern allows exactly five names for one issue: <code>worker_&lt;n&gt;</code>, <code>worker_&lt;n&gt;_c1</code>, <code>worker_&lt;n&gt;_c2</code>, <code>worker_&lt;n&gt;_e1</code>, and <code>worker_&lt;n&gt;_e1_c1</code>. The two <code>_e1</code> names belong to the role <code>issue_worker_escalated</code>, and the cap of five counts both roles.
 </li>
 <li>FR-spawn-limits-12 — The spawn guard denies a worker name when the session has no spawn of its predecessor. <code>worker_&lt;n&gt;_c1</code> and <code>worker_&lt;n&gt;_e1</code> need <code>worker_&lt;n&gt;</code>. <code>worker_&lt;n&gt;_c2</code> needs <code>worker_&lt;n&gt;_c1</code>. <code>worker_&lt;n&gt;_e1_c1</code> needs <code>worker_&lt;n&gt;_e1</code>. <code>fix_&lt;n&gt;_2</code> needs <code>fix_&lt;n&gt;</code>, and <code>fix_&lt;n&gt;_&lt;k&gt;</code> needs <code>fix_&lt;n&gt;_&lt;k-1&gt;</code>.
 </li>
@@ -266,7 +266,8 @@ body.rv-open .layout { padding-right:21rem; }
 <h3 id="spawn-limits-task-names">Task names</h3>
 <div class="table-wrap"><table>
 <tr><th><code>agent_type</code></th><th>Allowed <code>task_name</code> for a PM spawn</th></tr>
-<tr><td><code>issue_worker</code></td><td><code>worker_&lt;n&gt;</code>, <code>worker_&lt;n&gt;_c1</code>, <code>worker_&lt;n&gt;_c2</code>, <code>worker_&lt;n&gt;_e1</code>, <code>worker_&lt;n&gt;_e1_c1</code>, <code>fix_&lt;n&gt;</code>, <code>fix_&lt;n&gt;_&lt;k&gt;</code></td></tr>
+<tr><td><code>issue_worker</code></td><td><code>worker_&lt;n&gt;</code>, <code>worker_&lt;n&gt;_c1</code>, <code>worker_&lt;n&gt;_c2</code>, <code>fix_&lt;n&gt;</code>, <code>fix_&lt;n&gt;_&lt;k&gt;</code></td></tr>
+<tr><td><code>issue_worker_escalated</code></td><td><code>worker_&lt;n&gt;_e1</code>, <code>worker_&lt;n&gt;_e1_c1</code></td></tr>
 <tr><td><code>criteria_checker</code></td><td><code>check_&lt;n&gt;</code>, <code>check_&lt;n&gt;_2</code>, <code>check_&lt;n&gt;_3</code>, <code>check_&lt;n&gt;_4</code></td></tr>
 <tr><td><code>ci_watcher</code></td><td><code>ci_&lt;pr&gt;</code>, <code>ci_&lt;pr&gt;_r2</code>, <code>deploy_&lt;sha7&gt;</code>, <code>deploy_&lt;sha7&gt;_r2</code>, <code>suite_&lt;n&gt;</code>, <code>suite_&lt;n&gt;_r2</code></td></tr>
 <tr><td><code>deploy_verifier</code></td><td><code>verify_deploy_&lt;sha7&gt;</code></td></tr>

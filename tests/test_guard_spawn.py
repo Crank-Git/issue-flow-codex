@@ -207,15 +207,16 @@ class GuardSpawnTest(HookCase):
         self.assertIn("worker_42_c1", reason)
 
     def test_denies_chain_names_without_their_predecessor(self):
-        for name in ("worker_42_c1", "worker_42_e1", "worker_42_e1_c1"):
+        for name, role in (("worker_42_c1", "issue_worker"), ("worker_42_e1", "issue_worker_escalated"),
+                           ("worker_42_e1_c1", "issue_worker_escalated")):
             with self.subTest(task_name=name):
-                self.assertDenied(spawn(task_name=name, agent_type="issue_worker"))
+                self.assertDenied(spawn(task_name=name, agent_type=role))
 
     def test_allows_the_full_five_name_chain(self):
         for name in ("worker_42", "worker_42_c1", "worker_42_c2", "worker_42_e1", "worker_42_e1_c1"):
             with self.subTest(task_name=name):
-                extra = {"model": "gpt-6.1-sol", "reasoning_effort": "high"} if "_e1" in name else {}
-                self.assertAllowed(spawn(task_name=name, agent_type="issue_worker", **extra))
+                role = "issue_worker_escalated" if "_e1" in name else "issue_worker"
+                self.assertAllowed(spawn(task_name=name, agent_type=role))
 
     def test_denies_c3_names_status_blocked(self):
         reason = self.assertDenied(spawn(task_name="worker_42_c3", agent_type="issue_worker"))
@@ -283,14 +284,14 @@ def token_count_line(used, resets=R1):
 
 
 class ModelGuardTest(HookCase):
-    """FR-criteria-check-33 and -34: only an escalation spawn sets `model` and `reasoning_effort`."""
-
-    ESCALATION = {"model": "gpt-6.1-sol", "reasoning_effort": "high"}
+    """FR-criteria-check-33 and -34: no PM worker spawn sets `model` or `reasoning_effort`."""
 
     def test_denies_worker_spawn_with_model(self):
         reason = self.assertDenied(spawn(task_name="worker_42", agent_type="issue_worker", model="gpt-6.1-sol"))
         self.assertIn("worker_42", reason)
         self.assertIn("model", reason)
+        self.assertIn("issue_worker_escalated", reason)
+        self.assertIn("ignores", reason)
 
     def test_denies_worker_spawn_with_reasoning_effort(self):
         reason = self.assertDenied(spawn(task_name="worker_42", agent_type="issue_worker", reasoning_effort="high"))
@@ -299,26 +300,37 @@ class ModelGuardTest(HookCase):
     def test_denies_a_fix_spawn_with_model(self):
         self.assertDenied(spawn(task_name="fix_42", agent_type="issue_worker", model="gpt-6.1-sol"))
 
-    def test_denies_escalation_spawn_without_reasoning_effort(self):
+    def test_denies_model_on_escalation_role(self):
         self.assertAllowed(spawn(task_name="worker_42", agent_type="issue_worker"))
-        reason = self.assertDenied(spawn(task_name="worker_42_e1", agent_type="issue_worker", model="gpt-6.1-sol"))
-        self.assertIn("reasoning_effort", reason)
+        for extra in ({"model": "gpt-6.1-sol"}, {"reasoning_effort": "high"}):
+            with self.subTest(extra=extra):
+                reason = self.assertDenied(spawn(task_name="worker_42_e1", agent_type="issue_worker_escalated", **extra))
+                self.assertIn("issue_worker_escalated", reason)
 
-    def test_denies_escalation_spawn_without_model(self):
+    def test_e1_needs_the_escalation_role(self):
         self.assertAllowed(spawn(task_name="worker_42", agent_type="issue_worker"))
-        reason = self.assertDenied(spawn(task_name="worker_42_e1", agent_type="issue_worker",
-                                         reasoning_effort="high"))
-        self.assertIn("model", reason)
+        for name in ("worker_42_e1", "worker_42_e1_c1"):
+            with self.subTest(task_name=name):
+                reason = self.assertDenied(spawn(task_name=name, agent_type="issue_worker"))
+                self.assertIn("issue_worker_escalated", reason)
 
-    def test_denies_e1_c1_without_model(self):
-        self.assertAllowed(spawn(task_name="worker_42", agent_type="issue_worker"))
-        self.assertAllowed(spawn(task_name="worker_42_e1", agent_type="issue_worker", **self.ESCALATION))
-        self.assertDenied(spawn(task_name="worker_42_e1_c1", agent_type="issue_worker", reasoning_effort="high"))
+    def test_issue_worker_may_not_use_an_escalation_name_pattern(self):
+        reason = self.assertDenied(subagent(task_name="worker_42_e1", agent_type="issue_worker"))
+        self.assertIn("issue_worker_escalated", reason)
 
-    def test_allows_escalation_spawn_with_model_and_effort(self):
+    def test_allows_e1_on_escalation_role_after_worker(self):
         self.assertAllowed(spawn(task_name="worker_42", agent_type="issue_worker"))
-        self.assertAllowed(spawn(task_name="worker_42_e1", agent_type="issue_worker", **self.ESCALATION))
-        self.assertAllowed(spawn(task_name="worker_42_e1_c1", agent_type="issue_worker", **self.ESCALATION))
+        self.assertAllowed(spawn(task_name="worker_42_e1", agent_type="issue_worker_escalated"))
+        self.assertAllowed(spawn(task_name="worker_42_e1_c1", agent_type="issue_worker_escalated"))
+
+    def test_denies_e1_c1_without_e1(self):
+        self.assertAllowed(spawn(task_name="worker_42", agent_type="issue_worker"))
+        reason = self.assertDenied(spawn(task_name="worker_42_e1_c1", agent_type="issue_worker_escalated"))
+        self.assertIn("worker_42_e1", reason)
+
+    def test_denies_a_c1_name_on_the_escalation_role(self):
+        self.assertAllowed(spawn(task_name="worker_42", agent_type="issue_worker"))
+        self.assertDenied(spawn(task_name="worker_42_c1", agent_type="issue_worker_escalated"))
 
     def test_allows_subagent_spawn_with_model(self):
         self.assertAllowed(subagent(task_name="worker_42", agent_type="issue_worker", model="gpt-6.1-sol"))

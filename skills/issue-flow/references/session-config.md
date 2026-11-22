@@ -185,8 +185,8 @@ keeps only upstream keys, in the upstream format.
 | `workerModel` | `gpt-6.1-sol` | The model each issue-worker runs on. |
 | `workerEffort` | `medium` | The reasoning effort of each issue-worker. |
 | `helperModel` | `gpt-6-luna` | The model of helpers, including the CI watcher. |
-| `escalationModel` | `gpt-6.1-sol` | The model of an escalation spawn (`worker_<n>_e1` and `worker_<n>_e1_c1`). Only these spawns set `model`. |
-| `escalationEffort` | `high` | The reasoning effort of an escalation spawn. Only these spawns set `reasoning_effort`. |
+| `escalationModel` | `gpt-6.1-sol` | The model in the role file of the escalation role `issue_worker_escalated` (`worker_<n>_e1` and `worker_<n>_e1_c1`). Setup writes it into that role file. No spawn sets `model`. |
+| `escalationEffort` | `high` | The reasoning effort in the role file of `issue_worker_escalated`. Setup writes it into that role file. No spawn sets `reasoning_effort`. |
 | `waitMs` | `600000` | The longest time in milliseconds that one `wait_agent` call blocks. |
 | `runBudgetPercent` | `null` (no budget) | An integer from 1 to 100: the share of the weekly quota that one run may use. The spawn guard denies each new `issue_worker` and `explorer` spawn at that share. When the operator turns the budget on without a value, save `15`. The answer `off` saves `null`. |
 

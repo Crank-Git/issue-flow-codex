@@ -87,6 +87,21 @@ class TestBuildRoles(Fixture):
         self.assertEqual((role["model"], role["model_reasoning_effort"]),
                          ("gpt-6-luna", "medium"))
 
+    def test_builds_the_escalation_role_from_the_issue_worker_agent(self):
+        build_roles.write(self.repo)
+        role = tomllib.loads(
+            (self.repo / "roles" / "issue-worker-escalated.toml").read_text(encoding="utf-8"))
+        self.assertEqual(role["name"], "issue_worker_escalated")
+        self.assertEqual((role["model"], role["model_reasoning_effort"]), ("gpt-6.1-sol", "high"))
+        self.assertTrue(role["description"].startswith("Escalation worker."))
+        self.assertEqual(role["developer_instructions"], self.role()["developer_instructions"])
+
+    def test_check_fails_when_the_escalation_role_file_is_stale(self):
+        build_roles.write(self.repo)
+        path = self.repo / "roles" / "issue-worker-escalated.toml"
+        path.write_text(path.read_text(encoding="utf-8").replace("high", "low"), encoding="utf-8")
+        self.assertEqual(build_roles.stale(self.repo), ["roles/issue-worker-escalated.toml"])
+
     def test_joins_the_folded_description_into_one_line(self):
         self.assertEqual(self.role()["description"], "Builds one issue inside a worktree.")
 
@@ -94,7 +109,8 @@ class TestBuildRoles(Fixture):
         build_roles.write(self.repo)
         self.assertEqual(sorted(p.name for p in (self.repo / "roles").iterdir()),
                          ["ci-watcher.toml", "code-auditor.toml", "criteria-checker.toml",
-                          "deploy-verifier.toml", "issue-worker.toml", "review-scribe.toml", "ux-explorer.toml"])
+                          "deploy-verifier.toml", "issue-worker-escalated.toml", "issue-worker.toml",
+                          "review-scribe.toml", "ux-explorer.toml"])
 
     def test_check_passes_on_a_fresh_role_file(self):
         build_roles.write(self.repo)
@@ -104,14 +120,15 @@ class TestBuildRoles(Fixture):
         build_roles.write(self.repo)
         agent = self.repo / "agents" / "issue-worker.md"
         agent.write_text(AGENT + "A new line.\n", encoding="utf-8")
-        self.assertEqual(build_roles.stale(self.repo), ["roles/issue-worker.toml"])
+        self.assertEqual(sorted(build_roles.stale(self.repo)),
+                         ["roles/issue-worker-escalated.toml", "roles/issue-worker.toml"])
         self.assertEqual(build_roles.main(["--check", "--root", str(self.repo)]), 1)
 
     def test_check_fails_when_the_role_file_is_missing(self):
         self.assertEqual(sorted(build_roles.stale(self.repo)),
                          ["roles/ci-watcher.toml", "roles/code-auditor.toml",
                           "roles/criteria-checker.toml", "roles/deploy-verifier.toml",
-                          "roles/issue-worker.toml",
+                          "roles/issue-worker-escalated.toml", "roles/issue-worker.toml",
                           "roles/review-scribe.toml", "roles/ux-explorer.toml"])
 
     def test_builds_only_supported_roles(self):

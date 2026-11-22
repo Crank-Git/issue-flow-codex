@@ -1191,7 +1191,19 @@ upstream_sha256 = ""
 notes = "Port-only role generated from agents/criteria-checker.md. Model gpt-6-luna, effort medium (FR-criteria-check-9); helperModel does not apply."
 
 [[file]]
-path = "tests/fixtures/conformance/roles/escalation_probe.toml"
+path = "tests/fixtures/conformance/roles/escalated_probe.toml"
 mode = "new"
 upstream_sha256 = ""
-notes = "port-only: model precedence probe P14 (#145)"
+notes = "port-only: escalation role probe P14 (#145)"
+
+[[file]]
+path = "roles/issue-worker-escalated.toml"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file. Built from `agents/issue-worker.md` by `scripts/build_roles.py`, with the escalation model and effort (FR-criteria-check-29)."
+
+[[file]]
+path = "docs/adr/0006-escalation-role.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: ADR 0006, escalation role (#145)"

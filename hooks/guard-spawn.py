@@ -13,11 +13,13 @@ Two rules apply to every spawn, both on readable fields:
    merged to `dev` with no PM gate. The inherited history also inflates every request
    (openai/codex #58291).
 2. Deny a spawn whose `task_name` is a worker name (`worker_<n>`, `worker_<n>_c1`, `worker_<n>_c2`,
-   `worker_<n>_e1`, or `worker_<n>_e1_c1`; FR-worker-dispatch-10 and -11) unless `agent_type` is `issue_worker`. Without the role,
-   the role guard and the role's model do not apply.
+   `worker_<n>_e1`, or `worker_<n>_e1_c1`; FR-worker-dispatch-10 and -11) unless `agent_type` is `issue_worker`
+   (`issue_worker_escalated` for the two `_e1` names). Without the role, the role guard and the role's model do
+   not apply.
 
-A PM spawn of `issue_worker` also meets the model guard (FR-criteria-check-33 and -34): only
-`worker_<n>_e1` and `worker_<n>_e1_c1` set `model` and `reasoning_effort`, and each of them sets both.
+A PM spawn of `issue_worker` or `issue_worker_escalated` also meets the model guard (FR-criteria-check-33 and
+-34): it sets no `model` and no `reasoning_effort`. Codex ignores a spawn `model` when the role file sets one
+(codex-harness.md, fact 31), so the escalation model lives in the role file of `issue_worker_escalated`.
 
 A payload with no `agent_id` is a PM spawn (codex-harness fact 19). A PM spawn also meets
 the limits of docs/specs/features/07-spawn-limits.md: a role allowlist, a `task_name` pattern
@@ -59,9 +61,9 @@ WORKER_NAME = re.compile(r"worker_\d+(_c\d+|_e1(_c1)?)?")
 
 # Each pattern is a full match. `<n>`, `<pr>` and `<k>` are decimal, `<sha7>` is 7 hex digits.
 ROLE_PATTERNS = {
-    "issue_worker": (r"worker_\d+(_c1|_c2|_e1|_e1_c1)?|fix_\d+(_[2-9]|_[1-9]\d+)?",
-                     "worker_<n>, worker_<n>_c1, worker_<n>_c2, worker_<n>_e1, worker_<n>_e1_c1, "
-                     "fix_<n>, fix_<n>_<k>"),
+    "issue_worker": (r"worker_\d+(_c1|_c2)?|fix_\d+(_[2-9]|_[1-9]\d+)?",
+                     "worker_<n>, worker_<n>_c1, worker_<n>_c2, fix_<n>, fix_<n>_<k>"),
+    "issue_worker_escalated": (r"worker_\d+_e1(_c1)?", "worker_<n>_e1, worker_<n>_e1_c1"),
     "criteria_checker": (r"check_\d+(_[234])?", "check_<n>, check_<n>_2, check_<n>_3, check_<n>_4"),
     "ci_watcher": (r"(ci_\d+|deploy_[0-9a-f]{7}|suite_\d+)(_r2)?",
                    "ci_<pr>, ci_<pr>_r2, deploy_<sha7>, deploy_<sha7>_r2, suite_<n>, suite_<n>_r2"),
@@ -75,7 +77,7 @@ ROLE_PATTERNS = {
 }
 
 # FR-run-budget-25: the budget stops new work. The gate roles stay free so that live work can finish.
-BUDGET_ROLES = {"issue_worker", "explorer"}
+BUDGET_ROLES = {"issue_worker", "issue_worker_escalated", "explorer"}
 TAIL_BYTES = 1 << 20
 
 # FR-spawn-limits-12: a worker name needs a spawn of its predecessor.
@@ -84,6 +86,7 @@ WORKER_PREDECESSOR = {"_c1": "", "_e1": "", "_c2": "_c1", "_e1_c1": "_e1"}
 # The check chain: `check_<n>_2` needs `check_<n>`, `check_<n>_<k>` needs `check_<n>_<k-1>`.
 CHECK_PARTS = re.compile(r"(check_\d+)(?:_(\d))?")
 ESCALATION_NAME = re.compile(r"worker_\d+_e1(_c1)?")
+WORKER_ROLES = ("issue_worker", "issue_worker_escalated")
 # The fix chain of the batch gate: `fix_<n>_2` needs `fix_<n>`, `fix_<n>_<k>` needs `fix_<n>_<k-1>`.
 FIX_PARTS = re.compile(r"(fix_\d+)(?:_(\d+))?")
 
@@ -96,7 +99,7 @@ FORK_REASON = (
 
 ROLE_REASON = (
     "issue-flow spawn guard: task_name TASK_NAME is a worker name, but agent_type is "
-    "AGENT_TYPE. Call spawn_agent again and pass agent_type \"issue_worker\""
+    "AGENT_TYPE. Call spawn_agent again and pass agent_type \"EXPECTED\""
 )
 
 ALLOWLIST_REASON = (
@@ -133,14 +136,15 @@ BUDGET_REASON = (
 
 
 MODEL_REASON = (
-    "issue-flow spawn guard: task_name TASK_NAME sets FIELDS. Only the escalation spawn "
-    "(worker_<n>_e1 or worker_<n>_e1_c1) sets a model or a reasoning effort. Call spawn_agent "
-    "again without FIELDS"
+    "issue-flow spawn guard: task_name TASK_NAME sets FIELDS. Codex ignores a spawn model when the "
+    "role file sets one, so the field does nothing. Call spawn_agent again without FIELDS. To "
+    "escalate a worker, spawn agent_type \"issue_worker_escalated\" (worker_<n>_e1): its role file "
+    "sets the escalation model"
 )
 
-ESCALATION_REASON = (
-    "issue-flow spawn guard: task_name TASK_NAME is an escalation spawn and sets no FIELDS. "
-    "Call spawn_agent again and pass model (escalationModel) and reasoning_effort (escalationEffort)"
+ESCALATION_ROLE_REASON = (
+    "issue-flow spawn guard: task_name TASK_NAME is an escalation spawn, but agent_type is AGENT_TYPE. "
+    "Call spawn_agent again and pass agent_type \"issue_worker_escalated\""
 )
 
 
@@ -173,13 +177,13 @@ def check_pm_spawn(tool_input, used_names):
         return fill(ALLOWLIST_REASON, task_name, shown_type)
     pattern, patterns = ROLE_PATTERNS[agent_type]
     if not isinstance(task_name, str) or not re.fullmatch(pattern, task_name):
-        note = CAP_NOTE if agent_type == "issue_worker" else ""
+        note = CAP_NOTE if agent_type in WORKER_ROLES else ""
         return fill(PATTERN_REASON, task_name, shown_type, patterns) + note
     if used_names is None:
         return None
     if task_name in used_names:
         return fill(REUSE_REASON, task_name, shown_type, patterns)
-    chained = agent_type in ("issue_worker", "criteria_checker")
+    chained = agent_type in (*WORKER_ROLES, "criteria_checker")
     predecessor = chain_predecessor(task_name) if chained else ""
     if predecessor and predecessor not in used_names:
         return fill(CHAIN_REASON, task_name, shown_type, patterns, predecessor)
@@ -187,19 +191,15 @@ def check_pm_spawn(tool_input, used_names):
 
 
 def check_model(tool_input):
-    """Return the deny reason for a model setting on a PM `issue_worker` spawn, or None.
+    """Return the deny reason for a model setting on a PM worker spawn, or None.
 
-    The guard tests the name, not the brief, because it cannot read `message`. Any `model` or
-    `reasoning_effort` on a non-escalation spawn is a deny, also when it equals the role's model.
+    The guard tests the field, not the brief, because it cannot read `message`. Any `model` or
+    `reasoning_effort` is a deny, also when it equals the role's model.
     """
-    if tool_input.get("agent_type") != "issue_worker":
+    if tool_input.get("agent_type") not in WORKER_ROLES:
         return None
-    task_name = tool_input.get("task_name")
-    if ESCALATION_NAME.fullmatch(task_name):
-        missing = [k for k in ("model", "reasoning_effort") if tool_input.get(k) is None]
-        return fill(ESCALATION_REASON, task_name, "", "").replace("FIELDS", " or ".join(missing)) if missing else None
     given = [k for k in ("model", "reasoning_effort") if tool_input.get(k) is not None]
-    return fill(MODEL_REASON, task_name, "").replace("FIELDS", " and ".join(given)) if given else None
+    return fill(MODEL_REASON, tool_input.get("task_name"), "").replace("FIELDS", " and ".join(given)) if given else None
 
 
 def budget_percent(cwd):
@@ -253,9 +253,13 @@ def decide(payload, used_names=None):
         return FORK_REASON.replace("FORK_TURNS", shown, 1)
     task_name = tool_input.get("task_name")
     agent_type = tool_input.get("agent_type")
-    if isinstance(task_name, str) and WORKER_NAME.fullmatch(task_name) and agent_type != "issue_worker":
-        shown = "omitted" if agent_type is None else json.dumps(agent_type)
-        return ROLE_REASON.replace("TASK_NAME", task_name, 1).replace("AGENT_TYPE", shown, 1)
+    if isinstance(task_name, str) and WORKER_NAME.fullmatch(task_name):
+        expected = "issue_worker_escalated" if ESCALATION_NAME.fullmatch(task_name) else "issue_worker"
+        if agent_type != expected:
+            shown = "omitted" if agent_type is None else json.dumps(agent_type)
+            template = ESCALATION_ROLE_REASON if expected == "issue_worker_escalated" else ROLE_REASON
+            return (template.replace("TASK_NAME", task_name, 1).replace("AGENT_TYPE", shown, 1)
+                    .replace("EXPECTED", expected, 1))
     if "agent_id" in payload:
         return None
     # The model and budget rules run before `record`, so a spawn denied for the budget records no name.

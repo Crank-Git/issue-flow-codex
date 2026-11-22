@@ -385,20 +385,35 @@ def rollout_models(home):
 ESCALATION_MODEL = "gpt-6.1-sol"
 
 
+# P14 observed on codex-cli 0.167.1 (2026-11-22): a spawn `model` of gpt-6.1-sol with a role file
+# that sets gpt-6-luna ran both turns on gpt-6-luna. The hook saw `model` and `reasoning_effort`,
+# and Codex ignored them (codex-harness.md, fact 31).
+P14_OBSERVED = "an earlier run showed that a spawn model does not override the role file model"
+
+
+def escalation_result(models, fields):
+    """Return (ok, evidence) of P14: the turns ran on the model of the role file.
+
+    `models` is the `turn_context.model` list of the rollouts. `fields` is the set of
+    `model` and `reasoning_effort` keys that the spawn payload carried. The probe passes
+    when the role file model appears in `models`, because the spawn sets no model.
+    """
+    return ESCALATION_MODEL in models, (
+        f"turn_context models {models}; the role file sets {ESCALATION_MODEL}; "
+        f"PreToolUse tool_input carries {sorted(fields)}; {P14_OBSERVED}")
+
+
 def p14():
-    """FR-criteria-check-29: a spawn `model` beats the model in the role file."""
+    """FR-criteria-check-29: a role file that sets the escalation model decides the model of a spawn."""
     with probe_env() as env:
         env.exec(
-            f"Use spawn_agent with agent_type \"escalation_probe\", fork_turns \"none\", "
-            f"model \"{ESCALATION_MODEL}\" and reasoning_effort \"high\", with the task: reply with only "
+            "Use spawn_agent with agent_type \"escalated_probe\" and fork_turns \"none\", "
+            "and no model and no reasoning_effort, with the task: reply with only "
             "{\"ok\": 1}. Wait for the subagent with wait_agent, then reply done."
         )
         spawns = hook_events(env, "PreToolUse", "spawn_agent")
-        fields = sorted({k for s in spawns for k in s.get("tool_input", {}) if k in ("model", "reasoning_effort")})
-        models = rollout_models(env.home)
-        return ESCALATION_MODEL in models, (
-            f"turn_context models {models}; the role file sets {MODEL}; "
-            f"PreToolUse tool_input carries {fields}")
+        fields = {k for s in spawns for k in s.get("tool_input", {}) if k in ("model", "reasoning_effort")}
+        return escalation_result(rollout_models(env.home), fields)
 
 
 PROBES = {f"P{i}": fn for i, fn in enumerate((p1, p2, p3, p4, p5, p6, p7, p8, p9, p10, p11, p12, p13, p14), 1)}

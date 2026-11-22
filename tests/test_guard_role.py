@@ -143,6 +143,17 @@ class RoleGuardTest(unittest.TestCase):
     def test_denies_spawn_of_issue_worker_from_issue_worker(self):
         self.assertDenied(spawn("issue_worker", "issue_worker"), "issue_worker", "spawn")
 
+    def test_escalation_role_has_the_issue_worker_policy(self):
+        policy = json.loads((ROOT / "hooks" / "role-policy.json").read_text(encoding="utf-8"))
+        self.assertEqual(policy["issue_worker_escalated"], policy["issue_worker"])
+
+    def test_denies_spawn_of_the_escalation_role_from_issue_worker(self):
+        self.assertDenied(spawn("issue_worker", "issue_worker_escalated"), "issue_worker_escalated", "spawn")
+
+    def test_denies_patch_outside_the_worktrees_for_the_escalation_role(self):
+        self.assertDenied(payload(OUTSIDE, "issue_worker_escalated"), "worktree", "/home/user/project/README.md")
+        self.assertAllowed(payload(INSIDE, "issue_worker_escalated"))
+
     def test_allows_spawn_of_another_role_from_issue_worker(self):
         self.assertAllowed(spawn("issue_worker", "code_auditor"))
 

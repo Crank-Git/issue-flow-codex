@@ -23,9 +23,10 @@ it, and what the PM does when a removal is refused.
 The spawn guard (`hooks/guard-spawn.py`) denies a `spawn_agent` call that breaks the
 launch rules of Stage B. The guard does not create or move a worktree.
 
-The guard also denies a PM spawn of `issue_worker` that sets `model` or `reasoning_effort`
-unless its `task_name` is `worker_<n>_e1` or `worker_<n>_e1_c1`. Each of those two spawns
-sets both fields. The guard tests the name, because it cannot read the brief.
+The guard also denies a PM spawn of `issue_worker` or `issue_worker_escalated` that sets
+`model` or `reasoning_effort`, because Codex ignores a spawn model when the role file sets
+one. The names `worker_<n>_e1` and `worker_<n>_e1_c1` need `agent_type` `issue_worker_escalated`.
+The guard tests the fields and the name, because it cannot read the brief.
 
 ## What the script does
 

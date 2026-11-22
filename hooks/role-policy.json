@@ -24,6 +24,10 @@
   },
   "issue_worker": {
     "patch_only_under_project_worktrees": true,
-    "spawn_roles": ["issue_worker"]
+    "spawn_roles": ["issue_worker", "issue_worker_escalated"]
+  },
+  "issue_worker_escalated": {
+    "patch_only_under_project_worktrees": true,
+    "spawn_roles": ["issue_worker", "issue_worker_escalated"]
   }
 }

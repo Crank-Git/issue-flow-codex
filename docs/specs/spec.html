@@ -623,6 +623,8 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li>2026-11-22 — Operator decision on FR-worker-model-eval-28: the criteria checker stays on <code>gpt-6-luna</code>. The worker eval cases now use the upstream brief fix of upstream PR #126 (commit <code>c7b95d2</code>): each brief names a single-member batch, so <code>batch</code> agrees with <code>ci: skip</code>. The 22 changed case files are <code>patched</code> in <code>upstream.lock</code> until the next upstream tag. The Feature 10 results were measured on the old brief.
 </li>
+<li>2026-11-22 — Operator decision after the worker suites ran again on the fixed brief: the <code>PREPATCH_RUN</code> rule of the <code>verdict</code> grader also accepts "against the base commit" and similar words, and the saved runs are graded again with it. Result: <code>gpt-6-luna</code> 22 of 22, <code>gpt-6.1-sol</code> 18 of 22; hidden tests 100% and 95%. The default <code>workerModel</code> stays <code>gpt-6-luna</code>. With the old rule, condition 2 of the #150 rule failed on <code>worker-easy-low-stock-boundary</code>. <code>evals/BASELINE.md</code> and <code>evals/candidates/150-worker-model/</code> hold the new results.
+</li>
 <li>2026-11-22 — README decision (operator): <code>README.md</code> is exempt from STE, and US English still applies. <code>README.md</code> becomes <code>rewritten</code> in <code>upstream.lock</code>, and the upstream reference body moves to <code>docs/how-it-works.md</code>, changed for Codex. Goal 3 now names the six upstream roles of <code>issue-flow--v0.21.0</code> and the two port roles. The public repository holds no internal host name: the Gitea server comes from <code>GITEA_SERVER_URL</code>.
 </li>
 </ul><nav class="pager">

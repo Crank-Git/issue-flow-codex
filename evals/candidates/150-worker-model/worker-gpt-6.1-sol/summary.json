@@ -1,24 +1,24 @@
 {
   "suite": {
     "runs": 22,
-    "passed": 20,
-    "failed": 2,
+    "passed": 18,
+    "failed": 4,
     "errors": 0,
-    "pass_rate": 0.909,
+    "pass_rate": 0.818,
     "hidden_tests_pass_rate": 0.95,
-    "mean_input_tokens": 530252.727,
-    "mean_output_tokens": 4762.773
+    "mean_input_tokens": 578641.409,
+    "mean_output_tokens": 4993.409
   },
   "cases": {
     "worker-easy-low-stock-boundary": {
       "runs": 2,
-      "passed": 1,
-      "failed": 1,
+      "passed": 2,
+      "failed": 0,
       "errors": 0,
-      "pass_rate": 0.5,
-      "hidden_tests_pass_rate": 0.5,
-      "mean_input_tokens": 308273.0,
-      "mean_output_tokens": 2930.5
+      "pass_rate": 1.0,
+      "hidden_tests_pass_rate": 1.0,
+      "mean_input_tokens": 592107.0,
+      "mean_output_tokens": 4552.0
     },
     "worker-easy-negative-qty": {
       "runs": 2,
@@ -27,8 +27,8 @@
       "errors": 0,
       "pass_rate": 1.0,
       "hidden_tests_pass_rate": 1.0,
-      "mean_input_tokens": 511576.5,
-      "mean_output_tokens": 3814.0
+      "mean_input_tokens": 616954.5,
+      "mean_output_tokens": 4300.5
     },
     "worker-hard-ambiguous-tax": {
       "runs": 2,
@@ -37,18 +37,18 @@
       "errors": 0,
       "pass_rate": 1.0,
       "hidden_tests_pass_rate": null,
-      "mean_input_tokens": 353310.0,
-      "mean_output_tokens": 2170.0
+      "mean_input_tokens": 321687.0,
+      "mean_output_tokens": 2060.5
     },
     "worker-hard-error-lines": {
       "runs": 2,
-      "passed": 2,
-      "failed": 0,
+      "passed": 1,
+      "failed": 1,
       "errors": 0,
-      "pass_rate": 1.0,
+      "pass_rate": 0.5,
       "hidden_tests_pass_rate": 1.0,
-      "mean_input_tokens": 563498.5,
-      "mean_output_tokens": 6132.0
+      "mean_input_tokens": 681473.5,
+      "mean_output_tokens": 6346.0
     },
     "worker-hard-location": {
       "runs": 2,
@@ -57,8 +57,8 @@
       "errors": 0,
       "pass_rate": 1.0,
       "hidden_tests_pass_rate": 1.0,
-      "mean_input_tokens": 648277.0,
-      "mean_output_tokens": 7212.0
+      "mean_input_tokens": 494796.0,
+      "mean_output_tokens": 6798.5
     },
     "worker-large-hard-one-discount": {
       "runs": 2,
@@ -67,28 +67,28 @@
       "errors": 0,
       "pass_rate": 1.0,
       "hidden_tests_pass_rate": 1.0,
-      "mean_input_tokens": 615714.5,
-      "mean_output_tokens": 5948.0
+      "mean_input_tokens": 644633.0,
+      "mean_output_tokens": 6137.0
     },
     "worker-large-locate-repeated-sku": {
+      "runs": 2,
+      "passed": 0,
+      "failed": 2,
+      "errors": 0,
+      "pass_rate": 0.0,
+      "hidden_tests_pass_rate": 0.5,
+      "mean_input_tokens": 461488.5,
+      "mean_output_tokens": 3688.5
+    },
+    "worker-large-medium-report-midnight": {
       "runs": 2,
       "passed": 2,
       "failed": 0,
       "errors": 0,
       "pass_rate": 1.0,
       "hidden_tests_pass_rate": 1.0,
-      "mean_input_tokens": 714301.0,
-      "mean_output_tokens": 5781.5
-    },
-    "worker-large-medium-report-midnight": {
-      "runs": 2,
-      "passed": 1,
-      "failed": 1,
-      "errors": 0,
-      "pass_rate": 0.5,
-      "hidden_tests_pass_rate": 1.0,
-      "mean_input_tokens": 502767.5,
-      "mean_output_tokens": 4517.5
+      "mean_input_tokens": 719765.5,
+      "mean_output_tokens": 5536.0
     },
     "worker-medium-csv-format": {
       "runs": 2,
@@ -97,18 +97,18 @@
       "errors": 0,
       "pass_rate": 1.0,
       "hidden_tests_pass_rate": 1.0,
-      "mean_input_tokens": 520876.5,
-      "mean_output_tokens": 4996.0
+      "mean_input_tokens": 654954.5,
+      "mean_output_tokens": 5177.0
     },
     "worker-medium-money-refactor": {
       "runs": 2,
-      "passed": 2,
-      "failed": 0,
+      "passed": 1,
+      "failed": 1,
       "errors": 0,
-      "pass_rate": 1.0,
+      "pass_rate": 0.5,
       "hidden_tests_pass_rate": 1.0,
-      "mean_input_tokens": 581599.0,
-      "mean_output_tokens": 4693.5
+      "mean_input_tokens": 627320.5,
+      "mean_output_tokens": 5684.5
     },
     "worker-medium-price-parse": {
       "runs": 2,
@@ -117,10 +117,8 @@
       "errors": 0,
       "pass_rate": 1.0,
       "hidden_tests_pass_rate": 1.0,
-      "mean_input_tokens": 512586.5,
-      "mean_output_tokens": 4195.5
+      "mean_input_tokens": 549875.5,
+      "mean_output_tokens": 4647.0
     }
-  },
-  "partial": false,
-  "stop_reason": null
+  }
 }

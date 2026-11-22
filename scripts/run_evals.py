@@ -486,7 +486,8 @@ HIDDEN_COMMAND = [sys.executable, "-m", "unittest", "discover", "-s", ".", "-p",
 # The words that name the pre-patch run. The worker brief gives no fixed field for it, so
 # workers say it in their own words.
 PREPATCH_RUN = (r"(?i)\bpre-?(patch|fix|change)|\bunpatched\b"
-                r"|\b(before|without) (the|my|this|any) (fix|change|patch|implementation)\b")
+                r"|\b(before|without) (the|my|this|any) (fix|change|patch|implementation)\b"
+                r"|\b(against|on) the (base|original|unchanged) (commit|implementation|code|branch)\b")
 
 
 def acceptance_criteria(tracker, number):

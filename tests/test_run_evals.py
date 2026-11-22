@@ -351,6 +351,18 @@ class OrderTest(unittest.TestCase):
         self.assertTrue(any(tags) and not all(tags))
 
 
+class PrepatchWordingTest(unittest.TestCase):
+    def test_words_that_name_the_pre_patch_run(self):
+        for text in ("pre-patch: 2 new tests fail", "the tests failed before the fix",
+                     "both new tests failed against the base implementation as expected",
+                     "both new tests failed against the base commit as expected"):
+            with self.subTest(text=text):
+                self.assertRegex(text, run_evals.PREPATCH_RUN)
+
+    def test_a_plain_test_run_does_not_name_the_pre_patch_run(self):
+        self.assertNotRegex("python3 -m unittest: 12 tests passed", run_evals.PREPATCH_RUN)
+
+
 class MainErrorTest(unittest.TestCase):
     def test_a_sandbox_failure_prints_one_line_and_exits_nonzero(self):
         out = tempfile.mkdtemp(prefix="run-evals-error-")

@@ -254,5 +254,81 @@ class OrderTest(unittest.TestCase):
         self.assertTrue(any(tags) and not all(tags))
 
 
+def write_root_rollout(run_dir, samples):
+    """Write a root rollout whose token_count events carry `samples`, a list of (used_percent, resets_at)."""
+    folder = Path(run_dir) / "rollouts"
+    folder.mkdir(parents=True, exist_ok=True)
+    lines = [{"timestamp": "2026-11-22T10:00:00.000Z", "type": "session_meta", "payload": {"id": "root"}}]
+    for minute, (used, resets) in enumerate(samples):
+        lines.append({"timestamp": f"2026-11-22T10:{minute:02d}:30.000Z", "type": "event_msg", "payload": {
+            "type": "token_count", "rate_limits": {"primary": {"used_percent": used, "resets_at": resets}}}})
+    (folder / "rollout-root.jsonl").write_text("\n".join(json.dumps(line) for line in lines) + "\n")
+
+
+class QuotaLimitTest(unittest.TestCase):
+    WINDOW = 1795000000
+
+    def setUp(self):
+        self.out = Path(tempfile.mkdtemp(prefix="run-evals-quota-"))
+        self.addCleanup(shutil.rmtree, self.out, ignore_errors=True)
+
+    def invoke(self, runs_samples, *extra):
+        """Run three runs of one case with a fake run_case; run n writes runs_samples[n - 1]."""
+        def fake_run_case(case, suite, n, args, run_dir):
+            write_root_rollout(run_dir, runs_samples[n - 1])
+            return {"case": case["name"], "outcome": "pass", "graders": [], "run": n,
+                    "usage": {"input": 0, "output": 0}, "error": None}
+        with mock.patch.object(run_evals, "run_case", side_effect=fake_run_case) as run_case, \
+                contextlib.redirect_stdout(io.StringIO()):
+            code = run_evals.main(["--suite", "worker", "--case", CASE, "--runs", "3",
+                                   "--out", str(self.out), *extra])
+        summary = json.loads((self.out / "summary.json").read_text())
+        return code, run_case.call_count, summary
+
+    def test_stops_at_limit_writes_partial(self):
+        w = self.WINDOW
+        code, calls, summary = self.invoke([[(10, w), (11, w)], [(12, w), (14, w)], [(15, w)]],
+                                           "--max-quota-percent", "3")
+        self.assertEqual(calls, 2)
+        self.assertIs(summary["partial"], True)
+        self.assertIn("4", summary["stop_reason"])
+        self.assertEqual(code, 1)
+
+    def test_default_limit_is_3(self):
+        w = self.WINDOW
+        _, calls, summary = self.invoke([[(10, w), (13, w)], [(13, w)], [(13, w)]])
+        self.assertEqual(calls, 1)
+        self.assertTrue(summary["partial"])
+
+    def test_below_limit_runs_all_and_is_not_partial(self):
+        w = self.WINDOW
+        code, calls, summary = self.invoke([[(10, w), (11, w)], [(12, w)], [(12, w)]])
+        self.assertEqual(calls, 3)
+        self.assertEqual((summary["partial"], summary["stop_reason"], code), (False, None, 0))
+
+    def test_limit_off_never_stops(self):
+        w = self.WINDOW
+        _, calls, summary = self.invoke([[(10, w), (60, w)], [(90, w)], [(99, w)]], "--max-quota-percent", "off")
+        self.assertEqual(calls, 3)
+        self.assertFalse(summary["partial"])
+
+    def test_share_spans_window_reset(self):
+        w = self.WINDOW
+        # Run 1 shares 1 point. After the reset (new resets_at) run 2 counts from 0: 1 + 2.5 = 3.5.
+        _, calls, summary = self.invoke([[(98, w), (99, w)], [(2.5, w + 604800)], [(3, w + 604800)]])
+        self.assertEqual(calls, 2)
+        self.assertTrue(summary["partial"])
+
+    def test_missing_quota_stops_before_second_run(self):
+        code, calls, summary = self.invoke([[], [], []])
+        self.assertEqual(calls, 1)
+        self.assertTrue(summary["partial"])
+        self.assertIn("--max-quota-percent off", summary["stop_reason"])
+
+    def test_rejects_a_limit_that_is_not_a_number(self):
+        with contextlib.redirect_stderr(io.StringIO()), self.assertRaises(SystemExit):
+            run_evals.main(["--suite", "worker", "--max-quota-percent", "lots", "--out", str(self.out)])
+
+
 if __name__ == "__main__":
     unittest.main()

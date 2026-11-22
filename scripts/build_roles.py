@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parent.parent
 # Claude Code front-matter until then (issue #35).
 PORTED = (
     "issue-worker", "ci-watcher", "ux-explorer", "deploy-verifier",
-    "review-scribe", "code-auditor",
+    "review-scribe", "code-auditor", "criteria-checker",
 )
 # The Codex model and effort of each ported role. The agent file names a Claude model.
 CODEX_MODELS = {
@@ -30,6 +30,7 @@ CODEX_MODELS = {
     "deploy_verifier": ("gpt-6-luna", "low"),
     "review_scribe": ("gpt-6.1-sol", "medium"),
     "code_auditor": ("gpt-6-luna", "low"),
+    "criteria_checker": ("gpt-6-luna", "medium"),
 }
 FRONTMATTER = re.compile(r"^---\n(.*?)\n---\n", re.S)
 LITERAL_DELIMITER = "'''"

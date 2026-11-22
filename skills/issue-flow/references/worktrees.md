@@ -36,11 +36,17 @@ sets both fields. The guard tests the name, because it cannot read the brief.
   It copies the files that `.worktreeinclude` names and git ignores (`.env` and local
   secrets), because a worktree is a fresh checkout of *tracked* files only. Keep
   `.worktreeinclude` accurate instead of copying those files by hand.
+- `create --project <dir> --task check_<n> --detach <sha>` makes a **check worktree**:
+  `HEAD` is at `<sha>` and git creates no branch. It prints `{"path","branch","base_sha"}`
+  with `branch` null. `--detach` excludes `--branch` and `--base`. It exits 1 when the
+  worktree exists. The PM creates the check worktree before it spawns `criteria_checker`,
+  and passes the path as `worktree`.
 - `remove --project <dir> --task <task_name> [--merged]` removes the worktree and deletes
   its branch. Pass `--merged` only after the PM has verified the sub-merge. A squash merge
   leaves the branch commits on no remote ref, so without the flag the script refuses. The
-  flag skips the unpushed-commit check only. The script still refuses uncommitted changes
-  and a worktree that is not on a branch.
+  flag skips the unpushed-commit check only. The script still refuses uncommitted changes.
+  A detached check worktree has no branch: `remove` deletes none, and it still refuses a
+  commit that no remote holds.
 
 `create` reuses a **local** branch when one exists, and else makes the branch from
 `--base`. A branch that exists only on the remote is not reused. For a rework spawn or a

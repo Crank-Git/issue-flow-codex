@@ -121,6 +121,68 @@ class WorktreeTest(unittest.TestCase):
         self.assertFalse(self.tree.exists())
         self.assertEqual(git(self.project, "branch", "--list", BRANCH), "")
 
+    def create_detached(self, sha=None, task="check_19"):
+        return run_script("create", "--project", str(self.project), "--task", task,
+                          "--detach", sha or git(self.project, "rev-parse", "origin/main"))
+
+    def test_create_detach_sets_head_to_sha_without_branch(self):
+        sha = git(self.project, "rev-parse", "origin/main")
+        result = self.create_detached(sha)
+        self.assertEqual(result.returncode, 0, result.stderr)
+        tree = self.project / ".worktrees" / "check_19"
+        self.assertEqual(git(tree, "rev-parse", "HEAD"), sha)
+        self.assertEqual(git(tree, "branch", "--show-current"), "")
+        self.assertEqual(json.loads(result.stdout), {"path": str(tree.resolve()), "branch": None,
+                                                     "base_sha": sha})
+
+    def test_create_detach_exits_1_when_the_tree_exists(self):
+        self.create_detached()
+        result = self.create_detached()
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(len(result.stderr.splitlines()), 1)
+
+    def test_create_detach_is_exclusive_with_branch_and_base(self):
+        sha = git(self.project, "rev-parse", "origin/main")
+        for extra in (["--branch", BRANCH], ["--base", "origin/main"]):
+            with self.subTest(extra=extra):
+                result = run_script("create", "--project", str(self.project), "--task", "check_19",
+                                    "--detach", sha, *extra)
+                self.assertEqual(result.returncode, 2)
+
+    def test_create_requires_branch_and_base_without_detach(self):
+        result = run_script("create", "--project", str(self.project), "--task", "worker_19")
+        self.assertEqual(result.returncode, 2)
+
+    def test_remove_detached_worktree(self):
+        self.create_detached()
+        result = run_script("remove", "--project", str(self.project), "--task", "check_19")
+        self.assertEqual(result.returncode, 0, result.stderr)
+        self.assertFalse((self.project / ".worktrees" / "check_19").exists())
+
+    def test_remove_detached_worktree_deletes_no_branch(self):
+        self.create_detached()
+        run_script("remove", "--project", str(self.project), "--task", "check_19")
+        self.assertEqual(git(self.project, "branch", "--list", "main"), "* main")
+
+    def test_refuses_to_remove_a_detached_worktree_with_an_uncommitted_file(self):
+        self.create_detached()
+        (self.project / ".worktrees" / "check_19" / "new.txt").write_text("x\n")
+        result = run_script("remove", "--project", str(self.project), "--task", "check_19")
+        self.assertEqual(result.returncode, 1)
+
+    def test_refuses_to_remove_a_detached_worktree_with_an_unpushed_commit(self):
+        self.create_detached()
+        tree = self.project / ".worktrees" / "check_19"
+        git(tree, "config", "user.email", "test@example.invalid")
+        git(tree, "config", "user.name", "Test")
+        (tree / "new.txt").write_text("x\n")
+        git(tree, "add", "new.txt")
+        git(tree, "commit", "-q", "-m", "work")
+        result = run_script("remove", "--project", str(self.project), "--task", "check_19")
+        self.assertEqual(result.returncode, 1)
+        self.assertEqual(len(result.stderr.splitlines()), 1)
+        self.assertTrue(tree.exists())
+
     def commit_work(self):
         git(self.tree, "config", "user.email", "test@example.invalid")
         git(self.tree, "config", "user.name", "Test")
@@ -147,14 +209,6 @@ class WorktreeTest(unittest.TestCase):
         (self.tree / "new.txt").write_text("x\n")
         result = run_script("remove", "--project", str(self.project), "--task", "worker_19",
                             "--merged")
-        self.assertEqual(result.returncode, 1)
-        self.assertEqual(len(result.stderr.splitlines()), 1)
-        self.assertTrue(self.tree.exists())
-
-    def test_refuses_a_worktree_with_a_detached_head(self):
-        self.create()
-        git(self.tree, "checkout", "-q", "--detach")
-        result = self.remove()
         self.assertEqual(result.returncode, 1)
         self.assertEqual(len(result.stderr.splitlines()), 1)
         self.assertTrue(self.tree.exists())

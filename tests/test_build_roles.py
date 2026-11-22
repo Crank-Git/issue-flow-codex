@@ -34,6 +34,7 @@ REVIEW_ROLES = {
     "deploy-verifier": ("gpt-6-luna", "low"),
     "review-scribe": ("gpt-6.1-sol", "medium"),
     "code-auditor": ("gpt-6-luna", "low"),
+    "criteria-checker": ("gpt-6-luna", "medium"),
 }
 
 
@@ -46,7 +47,8 @@ class Fixture(unittest.TestCase):
         (self.repo / "agents" / "ci-watcher.md").write_text(WATCHER, encoding="utf-8")
         (self.repo / "agents" / "other-agent.md").write_text(
             AGENT.replace("issue-worker", "other-agent"), encoding="utf-8")
-        for stem in ("ux-explorer", "deploy-verifier", "review-scribe", "code-auditor"):
+        for stem in ("ux-explorer", "deploy-verifier", "review-scribe", "code-auditor",
+                     "criteria-checker"):
             source = ROOT / "agents" / f"{stem}.md"
             (self.repo / "agents" / f"{stem}.md").write_text(
                 source.read_text(encoding="utf-8"), encoding="utf-8")
@@ -77,14 +79,22 @@ class TestBuildRoles(Fixture):
         self.assertEqual(role["name"], "ci_watcher")
         self.assertEqual(role["model"], "gpt-6-luna")
 
+    def test_sets_the_criteria_checker_model_and_effort(self):
+        build_roles.write(self.repo)
+        role = tomllib.loads(
+            (self.repo / "roles" / "criteria-checker.toml").read_text(encoding="utf-8"))
+        self.assertEqual(role["name"], "criteria_checker")
+        self.assertEqual((role["model"], role["model_reasoning_effort"]),
+                         ("gpt-6-luna", "medium"))
+
     def test_joins_the_folded_description_into_one_line(self):
         self.assertEqual(self.role()["description"], "Builds one issue inside a worktree.")
 
     def test_builds_only_ported_agents(self):
         build_roles.write(self.repo)
         self.assertEqual(sorted(p.name for p in (self.repo / "roles").iterdir()),
-                         ["ci-watcher.toml", "code-auditor.toml", "deploy-verifier.toml",
-                          "issue-worker.toml", "review-scribe.toml", "ux-explorer.toml"])
+                         ["ci-watcher.toml", "code-auditor.toml", "criteria-checker.toml",
+                          "deploy-verifier.toml", "issue-worker.toml", "review-scribe.toml", "ux-explorer.toml"])
 
     def test_check_passes_on_a_fresh_role_file(self):
         build_roles.write(self.repo)
@@ -100,19 +110,26 @@ class TestBuildRoles(Fixture):
     def test_check_fails_when_the_role_file_is_missing(self):
         self.assertEqual(sorted(build_roles.stale(self.repo)),
                          ["roles/ci-watcher.toml", "roles/code-auditor.toml",
-                          "roles/deploy-verifier.toml", "roles/issue-worker.toml",
+                          "roles/criteria-checker.toml", "roles/deploy-verifier.toml",
+                          "roles/issue-worker.toml",
                           "roles/review-scribe.toml", "roles/ux-explorer.toml"])
 
     def test_builds_only_supported_roles(self):
         self.assertEqual(set(build_roles.PORTED), {
             "issue-worker", "ci-watcher", "ux-explorer", "deploy-verifier",
-            "review-scribe", "code-auditor",
+            "review-scribe", "code-auditor", "criteria-checker",
         })
 
 
 class TestRepositoryRole(unittest.TestCase):
     def test_built_role_file_is_current(self):
         self.assertEqual(build_roles.stale(ROOT), [])
+
+    def test_criteria_checker_role_file_is_current(self):
+        role = tomllib.loads((ROOT / "roles" / "criteria-checker.toml").read_text(encoding="utf-8"))
+        self.assertEqual(role["name"], "criteria_checker")
+        self.assertEqual(role["model"], "gpt-6-luna")
+        self.assertNotIn("criteria_checker.toml", build_roles.stale(ROOT))
 
     def test_ci_watcher_role_file_uses_gpt_6_luna(self):
         role = tomllib.loads((ROOT / "roles" / "ci-watcher.toml").read_text(encoding="utf-8"))

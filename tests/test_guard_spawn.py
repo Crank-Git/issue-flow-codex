@@ -11,6 +11,7 @@ import os
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
 from pathlib import Path
 
@@ -36,7 +37,7 @@ def subagent(**changes):
     return {**spawn(**changes), "agent_id": "01a1a281-2222-7003-8c3a-dbc52a350578"}
 
 
-class GuardSpawnTest(unittest.TestCase):
+class HookCase(unittest.TestCase):
     def setUp(self):
         self.data = tempfile.TemporaryDirectory()
         self.addCleanup(self.data.cleanup)
@@ -65,6 +66,8 @@ class GuardSpawnTest(unittest.TestCase):
     def assertAllowed(self, payload, env=None):
         self.assertIsNone(self.run_hook(payload, env))
 
+
+class GuardSpawnTest(HookCase):
     def test_denies_the_recorded_payload_without_agent_type(self):
         self.assertDenied(RECORDED)
 
@@ -215,6 +218,193 @@ class GuardSpawnTest(unittest.TestCase):
 
     def test_denies_for_an_unrecognized_setting(self):
         self.assertDenied(spawn(fork_turns="all"), {"ISSUE_FLOW_SPAWN_GUARD": "anything"})
+
+
+R1 = 1_795_000_000
+R2 = R1 + 7 * 86400
+
+
+def token_count_line(used, resets=R1):
+    return json.dumps({"type": "event_msg", "payload": {
+        "type": "token_count", "info": None,
+        "rate_limits": {"primary": {"used_percent": used, "resets_at": resets}}}}) + "\n"
+
+
+class RunBudgetTest(HookCase):
+    """The run budget rule: FR-run-budget-21 to 28."""
+
+    def setUp(self):
+        super().setUp()
+        self.project = Path(self.data.name) / "project"
+        self.project.mkdir()
+        self.rollout = Path(self.data.name) / "rollout.jsonl"
+
+    def configure(self, text):
+        (self.project / ".issue-flow.codex.json").write_text(text)
+
+    def write_rollout(self, *lines):
+        self.rollout.write_text("".join(lines))
+
+    def seed(self, samples):
+        self.plugin_data.mkdir(parents=True, exist_ok=True)
+        (self.plugin_data / f"budget-{SESSION_ID}.json").write_text(json.dumps({"samples": samples}))
+
+    def samples(self):
+        return json.loads((self.plugin_data / f"budget-{SESSION_ID}.json").read_text())["samples"]
+
+    def pm_spawn(self, task_name="worker_42", agent_type="issue_worker"):
+        payload = spawn(task_name=task_name, agent_type=agent_type)
+        payload.update(cwd=str(self.project), transcript_path=str(self.rollout))
+        return payload
+
+    def test_issue_worker_denied_at_16_over_15_names_drain(self):
+        self.configure('{"runBudgetPercent": 15}')
+        self.seed([[10.0, R1]])
+        self.write_rollout(token_count_line(26.0))
+        reason = self.assertDenied(self.pm_spawn())
+        for word in ("16", "15", "gate", "digest", "park", "end the turn"):
+            self.assertIn(word, reason)
+
+    def test_explorer_denied_at_the_budget(self):
+        self.configure('{"runBudgetPercent": 15}')
+        self.seed([[10.0, R1]])
+        self.write_rollout(token_count_line(25.0))
+        self.assertDenied(self.pm_spawn("docs_1", "explorer"))
+
+    def test_issue_worker_allowed_below_the_budget(self):
+        self.configure('{"runBudgetPercent": 15}')
+        self.seed([[10.0, R1]])
+        self.write_rollout(token_count_line(24.0))
+        self.assertAllowed(self.pm_spawn())
+
+    def test_other_roles_not_budget_denied(self):
+        self.configure('{"runBudgetPercent": 15}')
+        self.seed([[10.0, R1]])
+        self.write_rollout(token_count_line(60.0))
+        for name, role in (("check_42", "criteria_checker"), ("ci_42", "ci_watcher"),
+                           ("verify_deploy_abcdef0", "deploy_verifier"), ("code_auditor", "code_auditor"),
+                           ("ux_home", "ux_explorer"), ("review_scribe", "review_scribe")):
+            with self.subTest(role=role):
+                self.assertAllowed(self.pm_spawn(name, role))
+
+    def test_criteria_checker_not_budget_denied(self):
+        self.configure('{"runBudgetPercent": 15}')
+        self.seed([[10.0, R1]])
+        self.write_rollout(token_count_line(26.0))
+        self.assertAllowed(self.pm_spawn("check_42", "criteria_checker"))
+
+    def test_null_budget_no_deny(self):
+        self.configure('{"runBudgetPercent": null}')
+        self.seed([[10.0, R1]])
+        self.write_rollout(token_count_line(90.0))
+        self.assertAllowed(self.pm_spawn())
+
+    def test_missing_key_no_deny(self):
+        self.configure('{"waitMs": 600000}')
+        self.seed([[10.0, R1]])
+        self.write_rollout(token_count_line(90.0))
+        self.assertAllowed(self.pm_spawn())
+
+    def test_bad_budget_values_no_deny(self):
+        self.seed([[10.0, R1]])
+        self.write_rollout(token_count_line(90.0))
+        texts = ('{"runBudgetPercent": 0}', '{"runBudgetPercent": 101}', '{"runBudgetPercent": "15"}',
+                 '{"runBudgetPercent": true}', '{"runBudgetPercent": 1.5}', "not json")
+        for number, text in enumerate(texts):
+            with self.subTest(text=text):
+                self.configure(text)
+                self.assertAllowed(self.pm_spawn(f"worker_{number}"))
+
+    def test_missing_config_file_no_deny(self):
+        self.seed([[10.0, R1]])
+        self.write_rollout(token_count_line(90.0))
+        self.assertAllowed(self.pm_spawn())
+
+    def test_no_rate_limits_no_deny(self):
+        self.configure('{"runBudgetPercent": 15}')
+        self.seed([[10.0, R1]])
+        line = json.dumps({"type": "event_msg", "payload": {"type": "token_count", "rate_limits": None}}) + "\n"
+        self.write_rollout(line)
+        self.assertAllowed(self.pm_spawn())
+
+    def test_missing_rollout_no_deny(self):
+        self.configure('{"runBudgetPercent": 15}')
+        self.seed([[10.0, R1]])
+        self.assertAllowed(self.pm_spawn())
+
+    def test_first_spawn_records_start(self):
+        self.configure('{"runBudgetPercent": 15}')
+        self.write_rollout(token_count_line(40.0))
+        self.assertAllowed(self.pm_spawn())
+        self.assertEqual(self.samples(), [[40.0, R1]])
+
+    def test_first_spawn_records_start_when_budget_is_null(self):
+        self.configure('{"runBudgetPercent": null}')
+        self.write_rollout(token_count_line(40.0))
+        self.assertAllowed(self.pm_spawn())
+        self.assertEqual(self.samples(), [[40.0, R1]])
+
+    def test_later_spawn_keeps_start_and_updates_last_sample(self):
+        self.configure('{"runBudgetPercent": 15}')
+        self.write_rollout(token_count_line(40.0))
+        self.assertAllowed(self.pm_spawn("worker_1"))
+        self.write_rollout(token_count_line(42.0))
+        self.assertAllowed(self.pm_spawn("worker_2"))
+        self.write_rollout(token_count_line(44.0))
+        self.assertAllowed(self.pm_spawn("worker_3"))
+        self.assertEqual(self.samples(), [[40.0, R1], [44.0, R1]])
+
+    def test_window_change_keeps_old_window_last(self):
+        self.configure('{"runBudgetPercent": 15}')
+        self.seed([[40.0, R1], [50.0, R1]])
+        self.write_rollout(token_count_line(3.0, R2))
+        self.assertAllowed(self.pm_spawn())
+        self.assertEqual(self.samples(), [[40.0, R1], [50.0, R1], [3.0, R2]])
+
+    def test_share_counts_the_old_window_and_the_new_window(self):
+        self.configure('{"runBudgetPercent": 15}')
+        self.seed([[40.0, R1], [50.0, R1]])
+        self.write_rollout(token_count_line(6.0, R2))
+        reason = self.assertDenied(self.pm_spawn())
+        self.assertIn("16", reason)
+
+    def test_budget_deny_records_no_task_name(self):
+        self.configure('{"runBudgetPercent": 15}')
+        self.seed([[10.0, R1]])
+        self.write_rollout(token_count_line(30.0))
+        self.assertDenied(self.pm_spawn())
+        self.assertFalse((self.plugin_data / f"spawns-{SESSION_ID}.json").exists())
+
+    def test_subagent_spawn_not_budget_denied(self):
+        self.configure('{"runBudgetPercent": 15}')
+        self.seed([[10.0, R1]])
+        self.write_rollout(token_count_line(30.0))
+        payload = {**self.pm_spawn("helper_1", "default"), "agent_id": "01a1a281-2222-7003-8c3a-dbc52a350578"}
+        self.assertAllowed(payload)
+
+    def fifty_mib_rollout(self, event_at_end):
+        filler = (json.dumps({"type": "response_item", "payload": {"text": "x" * 900}}) + "\n").encode()
+        with open(self.rollout, "wb") as handle:
+            if not event_at_end:
+                handle.write(token_count_line(30.0).encode())
+            for _ in range(50 * 1024 * 1024 // len(filler)):
+                handle.write(filler)
+            if event_at_end:
+                handle.write(token_count_line(30.0).encode())
+
+    def test_reads_at_most_1mib_of_50mib_under_1s(self):
+        self.configure('{"runBudgetPercent": 15}')
+        self.seed([[10.0, R1]])
+        self.fifty_mib_rollout(event_at_end=True)
+        started = time.monotonic()
+        self.assertDenied(self.pm_spawn())
+        self.assertLess(time.monotonic() - started, 1.0)
+
+    def test_ignores_a_token_count_event_before_the_last_1mib(self):
+        self.configure('{"runBudgetPercent": 15}')
+        self.seed([[10.0, R1]])
+        self.fifty_mib_rollout(event_at_end=False)
+        self.assertAllowed(self.pm_spawn())
 
 
 if __name__ == "__main__":

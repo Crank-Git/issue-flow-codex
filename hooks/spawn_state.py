@@ -11,8 +11,8 @@ from pathlib import Path
 from uuid import UUID
 
 
-def state_path(session_id):
-    """Return the session file path when the session id and plugin data exist."""
+def state_path(session_id, prefix="spawns"):
+    """Return the `<prefix>-<session id>.json` path when the session id and plugin data exist."""
     data_root = os.environ.get("PLUGIN_DATA")
     if not data_root or not isinstance(session_id, str):
         return None
@@ -20,7 +20,7 @@ def state_path(session_id):
         UUID(session_id)
     except ValueError:
         return None
-    return Path(data_root) / f"spawns-{session_id}.json"
+    return Path(data_root) / f"{prefix}-{session_id}.json"
 
 
 def read_names(session_id):

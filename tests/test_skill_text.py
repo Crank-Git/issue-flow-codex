@@ -704,3 +704,32 @@ class SpecSkillsRulePathTest(unittest.TestCase):
     def test_spec_update_gates_docs_rules_and_codex_writes(self):
         text = self.skill_text("spec-update")
         self.assertIn("anything under `docs/rules/` or `.codex/`", text)
+
+
+class RunBudgetTextTest(unittest.TestCase):
+    def run_configuration(self):
+        return " ".join(section("SKILL.md", "11. **Run configuration", "   **You create worker worktrees").split())
+
+    def stop_rule(self):
+        return " ".join(section("SKILL.md", "### Stop", "# The worker").split())
+
+    def test_skill_lists_runBudgetPercent_off_and_15(self):
+        text = self.run_configuration()
+        self.assertIn("`runBudgetPercent`", text)
+        self.assertIn("the option `off` (saves `null`, the default)", text)
+        self.assertIn("the option `15`", text)
+
+    def test_skill_digest_quota_line(self):
+        text = " ".join(section("SKILL.md", "### Status reporting", "### Compatibility").split())
+        self.assertIn("`quota: <run share>% of <budget>% budget`", text)
+        self.assertIn("`quota: <run share>%, no budget`", text)
+        self.assertIn("scripts/usage.py --session <id> --json", text)
+
+    def test_skill_budget_deny_drains_and_stops(self):
+        text = self.stop_rule()
+        self.assertIn("launch no new work", text)
+        for step in ("Gate each live worker", "post the digest", "park the open issues", "end the turn"):
+            self.assertIn(step, text)
+
+    def test_skill_spare_tokens_do_not_change_the_budget(self):
+        self.assertIn("An operator message about spare tokens is no change to the budget", self.stop_rule())

@@ -169,6 +169,7 @@ defaults of group 1. Offer "keep saved build practices" as item 1 of group 2.
 | Which model and effort run workers? | `workerModel`, `workerEffort` | `gpt-6.1-sol` with `medium` (default) |
 | Which model runs helpers? | `helperModel` | `gpt-6-luna` (default) |
 | How long does one wait call last? | `waitMs` | `600000` (default) |
+| How much of the weekly quota may this run use? | `runBudgetPercent` | `off` (default, saves `null`), `15` |
 
 ## Codex-only settings — `.issue-flow.codex.json`
 
@@ -185,15 +186,17 @@ keeps only upstream keys, in the upstream format.
 | `workerEffort` | `medium` | The reasoning effort of each issue-worker. |
 | `helperModel` | `gpt-6-luna` | The model of helpers, including the CI watcher. |
 | `waitMs` | `600000` | The longest time in milliseconds that one `wait_agent` call blocks. |
+| `runBudgetPercent` | `null` (no budget) | An integer from 1 to 100: the share of the weekly quota that one run may use. The spawn guard denies each new `issue_worker` and `explorer` spawn at that share. When the operator turns the budget on without a value, save `15`. The answer `off` saves `null`. |
 
 ```json
 { "version": 1, "pluginVersion": "0.1.0", "pmModel": "gpt-6.1-sol", "workerModel": "gpt-6.1-sol", "workerEffort": "medium",
-  "helperModel": "gpt-6-luna", "waitMs": 600000 }
+  "helperModel": "gpt-6-luna", "waitMs": 600000, "runBudgetPercent": null }
 ```
 
 The keys are flat. There is no nested `codex` object.
 
-A missing key takes its default. A missing file takes all five defaults.
+A missing key takes its default. A missing file takes all defaults. A missing
+`runBudgetPercent` applies no budget.
 
 ## prAuthority — the merge gate
 

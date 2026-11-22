@@ -342,7 +342,7 @@ notes = "port-only: wait_agent timeout guard (#66)"
 path = "hooks/guard-spawn.py"
 mode = "rewritten"
 upstream_sha256 = "4f505785d867897653f7ad3bbc261fe9489e9d9a7d331e9005910064a4b80b84"
-notes = "V2 spawn rules on `fork_turns`, `task_name`, `agent_type`. The brief detection is dropped: `message` is encrypted. Role allowlist, task_name patterns, reuse and worker chain rules for a PM spawn (#135)."
+notes = "V2 spawn rules on `fork_turns`, `task_name`, `agent_type`. The brief detection is dropped: `message` is encrypted. Role allowlist, task_name patterns, reuse and worker chain rules for a PM spawn (#135). Run budget rule (#139)."
 
 [[file]]
 path = "hooks/hooks.json"
@@ -1165,3 +1165,9 @@ path = "docs/specs/pages/spend-analysis.md"
 mode = "new"
 upstream_sha256 = ""
 notes = "Port-only file."
+
+[[file]]
+path = "hooks/budget_state.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: store the quota samples of a PM session for the run budget (#139)"

@@ -6,7 +6,7 @@ status: approved
 spec_version: 2
 created: 2026-11-03
 approved: 2026-11-21
-html_generated: 2026-11-21
+html_generated: 2026-11-22
 branch_model: dev-and-live
 visibility: public
 features:
@@ -434,3 +434,4 @@ Created by spec-to-issues on 2026-11-03 in `Crank-Git/issue-flow-codex`. Epics 7
 - 2026-11-21 — Spend control, change round 1 (draft). The operator reported a run that used about 1.35 weekly quotas. The measurement is on the new page [Quota use of an operator run](pages/spend-analysis.md). Operator answers: the spawn guard limits the roles and the workers of an issue (five at most: build, two checkpoints, escalation, one escalation checkpoint); the port syncs to upstream 0.21.0 with the criteria check, one rework round, and one escalation to `gpt-6.1-sol` at effort `high`; the run budget is optional, and drains the run before it stops; the spec skills tell the operator to start a new session for the loop; a worker model eval decides `gpt-6-luna` against `gpt-6.1-sol`. The live Codex runs of Epics 7 and 8 use at most 10% of the weekly quota. New features 07 to 10, Epics 7 and 8, milestone M5.
 - 2026-11-21 — Spend control, review round 1: approved. Operator ruling: the run budget is off by default; when the operator turns it on, the suggested value is 15%.
 - 2026-11-21 — spec-to-issues: the planned Epic 7 held three features and too many sub-issues for one batch. It is now Epic 7 (Features 07 and 09), Epic 8 (Feature 08), and Epic 9 (Feature 10, formerly Epic 8). Scope is unchanged.
+- 2026-11-22 — Epic 7 gate decision: the quota share starts a new window only when `resets_at` moves by more than 3600 s. Real rollouts move `resets_at` by 1 to 3 s inside one window. FR-run-budget-13 and 14 and harness fact 30 now say so (#138).

@@ -213,9 +213,9 @@ body.rv-open .layout { padding-right:21rem; }
 <ul>
 <li>FR-run-budget-12 — The quota share uses <code>rate_limits.primary.used_percent</code> and <code>rate_limits.primary.resets_at</code> from the <code>token_count</code> events of the root thread.
 </li>
-<li>FR-run-budget-13 — Within one value of <code>resets_at</code>, the share is the last <code>used_percent</code> minus the first <code>used_percent</code>.
+<li>FR-run-budget-13 — Within one window, the share is the last <code>used_percent</code> minus the first <code>used_percent</code>. A window ends only when <code>resets_at</code> moves by more than 3600 s. A smaller move of <code>resets_at</code> stays in the same window.
 </li>
-<li>FR-run-budget-14 — When <code>resets_at</code> changes, the share adds the share of the previous window to the share of the new window. The new window starts from 0.
+<li>FR-run-budget-14 — When a new window starts, the share adds the share of the previous window to the share of the new window. The new window starts from 0.
 </li>
 <li>FR-run-budget-15 — When the root thread has no <code>rate_limits</code>, the quota share is <code>null</code>, and the report says "no quota data".
 </li>

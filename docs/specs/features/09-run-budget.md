@@ -51,8 +51,8 @@ ChatGPT usage page. This feature adds two parts:
 ### Quota share
 
 - FR-run-budget-12 — The quota share uses `rate_limits.primary.used_percent` and `rate_limits.primary.resets_at` from the `token_count` events of the root thread.
-- FR-run-budget-13 — Within one value of `resets_at`, the share is the last `used_percent` minus the first `used_percent`.
-- FR-run-budget-14 — When `resets_at` changes, the share adds the share of the previous window to the share of the new window. The new window starts from 0.
+- FR-run-budget-13 — Within one window, the share is the last `used_percent` minus the first `used_percent`. A window ends only when `resets_at` moves by more than 3600 s. A smaller move of `resets_at` stays in the same window.
+- FR-run-budget-14 — When a new window starts, the share adds the share of the previous window to the share of the new window. The new window starts from 0.
 - FR-run-budget-15 — When the root thread has no `rate_limits`, the quota share is `null`, and the report says "no quota data".
 
 ### Run budget setting

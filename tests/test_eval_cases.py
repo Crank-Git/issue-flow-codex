@@ -2,6 +2,7 @@
 
 import json
 import os
+import re
 import shutil
 import subprocess
 import sys
@@ -87,6 +88,28 @@ class SuiteTest(unittest.TestCase):
         for needle in ("Sniper7Kills-LLC/claude-plugins", "issue-flow--v0.21.0", "MIT",
                        "Copyright (c) 2026 Sniper7Kills LLC"):
             self.assertIn(needle, text)
+
+    def test_worker_briefs_are_consistent(self):
+        """A `ci: skip` brief names a single-member batch whose type:batch issue is in the tracker.
+
+        Port of upstream `test_briefs_are_consistent` (scripts/test-worker-cases.py, c7b95d2).
+        """
+        for case in worker_cases():
+            data = load_case(case)
+            brief = re.search(r"^BRIEF START\n(.*?)^BRIEF END", data["prompt"], re.S | re.M).group(1)
+            fields = dict(re.findall(r"^(\w+):\s+(\S.*?)\s*$", brief, re.M))
+            with self.subTest(case=case.name):
+                self.assertEqual(fields.get("ci"), "skip")
+                batch = re.fullmatch(r"batch #(\d+)", fields.get("batch", ""))
+                self.assertIsNotNone(batch, fields.get("batch"))
+                self.assertEqual(fields.get("members"), "1")
+                self.assertTrue(fields.get("crossCheck", "").startswith("n/a"))
+                tracker = json.loads((case / data["tracker"]).read_text(encoding="utf-8"))
+                tracking = [i for i in tracker["issues"] if i["number"] == int(batch.group(1))]
+                self.assertEqual(len(tracking), 1)
+                self.assertIn("type:batch", tracking[0]["labels"])
+                issue = int(re.search(r"#(\d+)", fields["issue"]).group(1))
+                self.assertNotEqual(int(batch.group(1)), issue)
 
     def test_results_directory_is_ignored_by_git(self):
         lines = (ROOT / ".gitignore").read_text(encoding="utf-8").splitlines()

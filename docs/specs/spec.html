@@ -621,6 +621,8 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li>2026-11-22 — Epic 9 gate decision (operator delegated it to the PM, rule fixed in #150 before the results): the default <code>workerModel</code> is <code>gpt-6-luna</code> at effort <code>medium</code>, and the default escalation is <code>gpt-6.1-sol</code> at effort <code>medium</code> (FR-worker-model-eval-26, 27). The hidden-test pass rate is 100% for <code>gpt-6-luna</code> and 95% for <code>gpt-6.1-sol</code>, and no case failed on both <code>gpt-6-luna</code> runs. <code>gpt-6-luna</code> used about 1.75 times the mean input tokens and about 1.5 times the mean output tokens of <code>gpt-6.1-sol</code>, and the eval cannot measure the quota cost of each model at a resolution of 1 point. Results: <code>evals/candidates/150-worker-model/</code> and <code>evals/BASELINE.md</code>. Open question for the operator (FR-worker-model-eval-28): the checker passed 10 of 11 cases on <code>gpt-6-luna</code>, and the one fail was a dispatcher write error, not a checker error. Keep the checker on <code>gpt-6-luna</code>?
 </li>
+<li>2026-11-22 — Operator decision on FR-worker-model-eval-28: the criteria checker stays on <code>gpt-6-luna</code>. The worker eval cases now use the upstream brief fix of upstream PR #126 (commit <code>c7b95d2</code>): each brief names a single-member batch, so <code>batch</code> agrees with <code>ci: skip</code>. The 22 changed case files are <code>patched</code> in <code>upstream.lock</code> until the next upstream tag. The Feature 10 results were measured on the old brief.
+</li>
 </ul><nav class="pager">
 <span></span>
 <a href="html/page-codex-harness.html">Codex harness facts &rarr;</a>

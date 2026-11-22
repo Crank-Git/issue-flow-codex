@@ -158,7 +158,7 @@ body.rv-open .layout { padding-right:21rem; }
 </ul></aside>
 <main>
 <h1>Feature: Worker model eval</h1>
-<p class="meta">Epic 9: Worker model eval &nbsp; <span class="badge">issued</span></p>
+<p class="meta">Epic 9: Worker model eval &nbsp; <span class="badge">built</span></p>
 <h3 id="worker-model-eval-purpose">Purpose</h3>
 <p>This feature measures <code>gpt-6-luna</code> against <code>gpt-6.1-sol</code> as the worker model. The result decides the default <code>workerModel</code>.</p>
 <p>Upstream moved its worker from Opus to Sonnet after an eval: on 8 cases with 3 runs each, Sonnet passed the hidden tests on 21 of 21 runs, at 72% lower cost (Sniper7Kills-LLC/claude-plugins#109). The Codex models are different, so the port needs its own numbers. The operator does not know the code quality of <code>gpt-6-luna</code>, and asked for a test before a change.</p>

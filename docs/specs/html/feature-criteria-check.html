@@ -267,7 +267,7 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li>FR-criteria-check-31 — The replacement of a checkpointed escalation worker is <code>worker_&lt;n&gt;_e1_c1</code>, with <code>agent_type: "issue_worker_escalated"</code> and the same <code>escalation:</code> field.
 </li>
-<li>FR-criteria-check-32 — <code>.issue-flow.codex.json</code> holds <code>escalationModel</code>, default <code>gpt-6.1-sol</code>, and <code>escalationEffort</code>, default <code>high</code>. The setup script writes both into the role file <code>issue-worker-escalated.toml</code>, and <code>workerModel</code> never reaches that file.
+<li>FR-criteria-check-32 — <code>.issue-flow.codex.json</code> holds <code>escalationModel</code>, default <code>gpt-6.1-sol</code>, and <code>escalationEffort</code>, default <code>medium</code> (Feature 10 changed it from <code>high</code> when <code>gpt-6-luna</code> became the worker model). The setup script writes both into the role file <code>issue-worker-escalated.toml</code>, and <code>workerModel</code> never reaches that file.
 </li>
 <li>FR-criteria-check-33 — The spawn guard denies a PM spawn of <code>issue_worker</code> or <code>issue_worker_escalated</code> that sets <code>model</code> or <code>reasoning_effort</code>. The reason says that Codex ignores a spawn model when the role file sets one, and names the escalation role.
 </li>

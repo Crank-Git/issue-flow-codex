@@ -70,7 +70,7 @@ class TestBuildRoles(Fixture):
 
     def test_sets_the_issue_worker_model_and_effort(self):
         role = self.role()
-        self.assertEqual(role["model"], "gpt-6.1-sol")
+        self.assertEqual(role["model"], "gpt-6-luna")
         self.assertEqual(role["model_reasoning_effort"], "medium")
 
     def test_sets_the_ci_watcher_model(self):
@@ -92,14 +92,14 @@ class TestBuildRoles(Fixture):
         role = tomllib.loads(
             (self.repo / "roles" / "issue-worker-escalated.toml").read_text(encoding="utf-8"))
         self.assertEqual(role["name"], "issue_worker_escalated")
-        self.assertEqual((role["model"], role["model_reasoning_effort"]), ("gpt-6.1-sol", "high"))
+        self.assertEqual((role["model"], role["model_reasoning_effort"]), ("gpt-6.1-sol", "medium"))
         self.assertTrue(role["description"].startswith("Escalation worker."))
         self.assertEqual(role["developer_instructions"], self.role()["developer_instructions"])
 
     def test_check_fails_when_the_escalation_role_file_is_stale(self):
         build_roles.write(self.repo)
         path = self.repo / "roles" / "issue-worker-escalated.toml"
-        path.write_text(path.read_text(encoding="utf-8").replace("high", "low"), encoding="utf-8")
+        path.write_text(path.read_text(encoding="utf-8").replace("medium", "low"), encoding="utf-8")
         self.assertEqual(build_roles.stale(self.repo), ["roles/issue-worker-escalated.toml"])
 
     def test_joins_the_folded_description_into_one_line(self):

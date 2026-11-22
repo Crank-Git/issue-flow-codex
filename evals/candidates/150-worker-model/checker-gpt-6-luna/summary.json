@@ -1,0 +1,126 @@
+{
+  "suite": {
+    "runs": 11,
+    "passed": 10,
+    "failed": 1,
+    "errors": 0,
+    "pass_rate": 0.909,
+    "hidden_tests_pass_rate": null,
+    "mean_input_tokens": 241290.818,
+    "mean_output_tokens": 3197.818
+  },
+  "cases": {
+    "checker-full-easy-low-stock-boundary": {
+      "runs": 1,
+      "passed": 1,
+      "failed": 0,
+      "errors": 0,
+      "pass_rate": 1.0,
+      "hidden_tests_pass_rate": null,
+      "mean_input_tokens": 190638.0,
+      "mean_output_tokens": 1709.0
+    },
+    "checker-full-easy-negative-qty": {
+      "runs": 1,
+      "passed": 1,
+      "failed": 0,
+      "errors": 0,
+      "pass_rate": 1.0,
+      "hidden_tests_pass_rate": null,
+      "mean_input_tokens": 191898.0,
+      "mean_output_tokens": 1842.0
+    },
+    "checker-full-hard-error-lines": {
+      "runs": 1,
+      "passed": 1,
+      "failed": 0,
+      "errors": 0,
+      "pass_rate": 1.0,
+      "hidden_tests_pass_rate": null,
+      "mean_input_tokens": 269187.0,
+      "mean_output_tokens": 4300.0
+    },
+    "checker-full-hard-location": {
+      "runs": 1,
+      "passed": 1,
+      "failed": 0,
+      "errors": 0,
+      "pass_rate": 1.0,
+      "hidden_tests_pass_rate": null,
+      "mean_input_tokens": 243004.0,
+      "mean_output_tokens": 3239.0
+    },
+    "checker-full-large-hard-one-discount": {
+      "runs": 1,
+      "passed": 1,
+      "failed": 0,
+      "errors": 0,
+      "pass_rate": 1.0,
+      "hidden_tests_pass_rate": null,
+      "mean_input_tokens": 288271.0,
+      "mean_output_tokens": 4198.0
+    },
+    "checker-full-large-locate-repeated-sku": {
+      "runs": 1,
+      "passed": 1,
+      "failed": 0,
+      "errors": 0,
+      "pass_rate": 1.0,
+      "hidden_tests_pass_rate": null,
+      "mean_input_tokens": 327463.0,
+      "mean_output_tokens": 3917.0
+    },
+    "checker-full-large-medium-report-midnight": {
+      "runs": 1,
+      "passed": 1,
+      "failed": 0,
+      "errors": 0,
+      "pass_rate": 1.0,
+      "hidden_tests_pass_rate": null,
+      "mean_input_tokens": 244767.0,
+      "mean_output_tokens": 3833.0
+    },
+    "checker-full-medium-csv-format": {
+      "runs": 1,
+      "passed": 1,
+      "failed": 0,
+      "errors": 0,
+      "pass_rate": 1.0,
+      "hidden_tests_pass_rate": null,
+      "mean_input_tokens": 216428.0,
+      "mean_output_tokens": 2527.0
+    },
+    "checker-full-medium-money-refactor": {
+      "runs": 1,
+      "passed": 1,
+      "failed": 0,
+      "errors": 0,
+      "pass_rate": 1.0,
+      "hidden_tests_pass_rate": null,
+      "mean_input_tokens": 195921.0,
+      "mean_output_tokens": 2452.0
+    },
+    "checker-full-medium-price-parse": {
+      "runs": 1,
+      "passed": 0,
+      "failed": 1,
+      "errors": 0,
+      "pass_rate": 0.0,
+      "hidden_tests_pass_rate": null,
+      "mean_input_tokens": 213998.0,
+      "mean_output_tokens": 2277.0
+    },
+    "checker-partial-hard-error-lines": {
+      "runs": 1,
+      "passed": 1,
+      "failed": 0,
+      "errors": 0,
+      "pass_rate": 1.0,
+      "hidden_tests_pass_rate": null,
+      "mean_input_tokens": 272624.0,
+      "mean_output_tokens": 4882.0
+    }
+  },
+  "partial": false,
+  "stop_reason": null
+}

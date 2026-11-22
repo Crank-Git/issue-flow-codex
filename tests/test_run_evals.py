@@ -248,7 +248,8 @@ class OrderTest(unittest.TestCase):
             run_case.side_effect = lambda case, suite, n, args, run_dir: {
                 "case": case["name"], "outcome": "pass", "graders": [], "usage": {"input": 0, "output": 0},
                 "error": None, "run": n}
-            run_evals.main(["--suite", "worker", "--runs", "1", "--out", tempfile.mkdtemp()])
+            run_evals.main(["--suite", "worker", "--runs", "1", "--out", tempfile.mkdtemp(),
+                           "--max-quota-percent", "off"])
         tags = ["large" in call.args[0]["tags"] for call in run_case.call_args_list]
         self.assertEqual(tags, sorted(tags))
         self.assertTrue(any(tags) and not all(tags))

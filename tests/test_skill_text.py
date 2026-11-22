@@ -244,12 +244,9 @@ class ReworkAndTeardownTest(unittest.TestCase):
         text = " ".join(c1_bullet("checkpoint").split())
         self.assertIn("worktree.py remove", text)
         self.assertIn("worktree.py create", text)
-        self.assertIn("--task worker_<n>_c<k>", text)
+        self.assertIn("--task <next_name>", text)
         self.assertIn("--base <remote>/issue/<n>-<slug>", text)
         self.assertLess(text.index("worktree.py remove"), text.index("worktree.py create"))
-
-    def test_checkpoint_keeps_the_cap_of_three(self):
-        self.assertIn("after 3 consecutive checkpoints", c1_bullet("checkpoint"))
 
     def test_sub_merge_teardown_uses_worktree_remove(self):
         self.assertIn("worktree.py remove", section("SKILL.md", "  6. **Then the bookkeeping.**", "  **Standalone/hotfix"))
@@ -704,3 +701,64 @@ class SpecSkillsRulePathTest(unittest.TestCase):
     def test_spec_update_gates_docs_rules_and_codex_writes(self):
         text = self.skill_text("spec-update")
         self.assertIn("anything under `docs/rules/` or `.codex/`", text)
+
+
+def flat(text):
+    return " ".join(text.split())
+
+
+class SpawnLimitsTextTest(unittest.TestCase):
+    def test_c2_and_phase_0_spawn_suite_as_ci_watcher(self):
+        for name, text in (("phase 0", phase_0()), ("C2", flat(stage_c2()))):
+            with self.subTest(text=name):
+                self.assertIn('task_name: "suite_<n>"', text)
+                self.assertIn('agent_type: "ci_watcher"', text)
+                self.assertIn("kind: suite", text)
+                self.assertIn('"state": "success | failure | error"', text)
+
+    def test_suite_r2_only_after_a_merged_fix(self):
+        text = flat(stage_c2())
+        self.assertIn("suite_<n>_r2", text)
+        self.assertIn("only after a fix for a suite failure is merged", text)
+
+    def test_no_send_message_instruction_to_a_worker(self):
+        for path in ("SKILL.md", "references/issue-worker.md", "references/batching.md"):
+            for line in (SKILL_DIR / path).read_text().splitlines():
+                if "send_message" in line:
+                    with self.subTest(path=path):
+                        self.assertRegex(line, r"[Nn]ever")
+
+    def test_checkpoint_chain_caps_at_c2_without_reset(self):
+        text = flat(c1_bullet("checkpoint"))
+        self.assertIn("worker_<n>_c1", text)
+        self.assertIn("worker_<n>_c2", text)
+        self.assertIn("worker_<n>_e1_c1", text)
+        self.assertIn("New commits on the PR do not reset the count", text)
+        self.assertNotIn("after 3 consecutive checkpoints", text)
+        self.assertNotIn("reset it whenever", text)
+        self.assertNotIn("worker_<n>_c<k>", text)
+
+    def test_recovery_list_names_the_escalation_and_rerun_names(self):
+        text = flat(section("SKILL.md", "### After a compaction", "Then continue the loop."))
+        for name in ("worker_<n>_c1", "worker_<n>_c2", "worker_<n>_e1", "worker_<n>_e1_c1", "suite_<n>_r2"):
+            with self.subTest(name=name):
+                self.assertIn(name, text)
+
+    def test_brief_has_no_phase_or_scratch_limit(self):
+        for name, text in (("stage B", flat(stage_b())),
+                           ("issue-worker reference", flat(worker_reference()))):
+            with self.subTest(text=name):
+                self.assertIn("whole issue in one brief", text)
+                self.assertIn("no phase limit", text)
+                self.assertIn("no scratch-only limit", text)
+                self.assertIn("no instruction to wait for a later PM step", text)
+
+    def test_browser_issue_launches_only_with_no_browser_user(self):
+        text = flat(stage_b())
+        self.assertIn("needs the browser", text)
+        self.assertIn("only when no other browser user is live", text)
+        self.assertIn("at launch, not during the build", text)
+
+    def test_no_suite_for_one_sub_issue(self):
+        text = flat(section("SKILL.md", "### C1", "- **`needs-feedback`**"))
+        self.assertIn("runs no test suite for one sub-issue", text)

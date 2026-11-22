@@ -16,6 +16,9 @@ Two rules apply to every spawn, both on readable fields:
    `worker_<n>_e1`, or `worker_<n>_e1_c1`; FR-worker-dispatch-10 and -11) unless `agent_type` is `issue_worker`. Without the role,
    the role guard and the role's model do not apply.
 
+A PM spawn of `issue_worker` also meets the model guard (FR-criteria-check-33 and -34): only
+`worker_<n>_e1` and `worker_<n>_e1_c1` set `model` and `reasoning_effort`, and each of them sets both.
+
 A payload with no `agent_id` is a PM spawn (codex-harness fact 19). A PM spawn also meets
 the limits of docs/specs/features/07-spawn-limits.md: a role allowlist, a `task_name` pattern
 for each role, no reused name, and no gap in a worker chain or a fix chain. `hooks/spawn_state.py` keeps the
@@ -52,7 +55,7 @@ from spawn_state import read_names, record, state_path
 sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
 import usage  # noqa: E402
 
-WORKER_NAME = re.compile(r"worker_\d+(_c\d+)?")
+WORKER_NAME = re.compile(r"worker_\d+(_c\d+|_e1(_c1)?)?")
 
 # Each pattern is a full match. `<n>`, `<pr>` and `<k>` are decimal, `<sha7>` is 7 hex digits.
 ROLE_PATTERNS = {
@@ -78,6 +81,9 @@ TAIL_BYTES = 1 << 20
 # FR-spawn-limits-12: a worker name needs a spawn of its predecessor.
 WORKER_PARTS = re.compile(r"(worker_\d+)(_c1|_c2|_e1_c1|_e1)?")
 WORKER_PREDECESSOR = {"_c1": "", "_e1": "", "_c2": "_c1", "_e1_c1": "_e1"}
+# The check chain: `check_<n>_2` needs `check_<n>`, `check_<n>_<k>` needs `check_<n>_<k-1>`.
+CHECK_PARTS = re.compile(r"(check_\d+)(?:_(\d))?")
+ESCALATION_NAME = re.compile(r"worker_\d+_e1(_c1)?")
 # The fix chain of the batch gate: `fix_<n>_2` needs `fix_<n>`, `fix_<n>_<k>` needs `fix_<n>_<k-1>`.
 FIX_PARTS = re.compile(r"(fix_\d+)(?:_(\d+))?")
 
@@ -126,6 +132,18 @@ BUDGET_REASON = (
 )
 
 
+MODEL_REASON = (
+    "issue-flow spawn guard: task_name TASK_NAME sets FIELDS. Only the escalation spawn "
+    "(worker_<n>_e1 or worker_<n>_e1_c1) sets a model or a reasoning effort. Call spawn_agent "
+    "again without FIELDS"
+)
+
+ESCALATION_REASON = (
+    "issue-flow spawn guard: task_name TASK_NAME is an escalation spawn and sets no FIELDS. "
+    "Call spawn_agent again and pass model (escalationModel) and reasoning_effort (escalationEffort)"
+)
+
+
 def fill(template, task_name, agent_type, patterns="", predecessor=""):
     """Return `template` with its placeholders replaced."""
     return (template.replace("TASK_NAME", str(task_name)).replace("AGENT_TYPE", agent_type)
@@ -138,6 +156,10 @@ def chain_predecessor(task_name):
     if fix:
         step = int(fix.group(2) or 1)
         return "" if step == 1 else fix.group(1) if step == 2 else f"{fix.group(1)}_{step - 1}"
+    check = CHECK_PARTS.fullmatch(task_name)
+    if check:
+        step = int(check.group(2) or 1)
+        return "" if step == 1 else check.group(1) if step == 2 else f"{check.group(1)}_{step - 1}"
     parts = WORKER_PARTS.fullmatch(task_name)
     return parts.group(1) + WORKER_PREDECESSOR[parts.group(2)] if parts.group(2) else ""
 
@@ -157,10 +179,27 @@ def check_pm_spawn(tool_input, used_names):
         return None
     if task_name in used_names:
         return fill(REUSE_REASON, task_name, shown_type, patterns)
-    predecessor = chain_predecessor(task_name) if agent_type == "issue_worker" else ""
+    chained = agent_type in ("issue_worker", "criteria_checker")
+    predecessor = chain_predecessor(task_name) if chained else ""
     if predecessor and predecessor not in used_names:
         return fill(CHAIN_REASON, task_name, shown_type, patterns, predecessor)
     return None
+
+
+def check_model(tool_input):
+    """Return the deny reason for a model setting on a PM `issue_worker` spawn, or None.
+
+    The guard tests the name, not the brief, because it cannot read `message`. Any `model` or
+    `reasoning_effort` on a non-escalation spawn is a deny, also when it equals the role's model.
+    """
+    if tool_input.get("agent_type") != "issue_worker":
+        return None
+    task_name = tool_input.get("task_name")
+    if ESCALATION_NAME.fullmatch(task_name):
+        missing = [k for k in ("model", "reasoning_effort") if tool_input.get(k) is None]
+        return fill(ESCALATION_REASON, task_name, "", "").replace("FIELDS", " or ".join(missing)) if missing else None
+    given = [k for k in ("model", "reasoning_effort") if tool_input.get(k) is not None]
+    return fill(MODEL_REASON, task_name, "").replace("FIELDS", " and ".join(given)) if given else None
 
 
 def budget_percent(cwd):
@@ -219,8 +258,9 @@ def decide(payload, used_names=None):
         return ROLE_REASON.replace("TASK_NAME", task_name, 1).replace("AGENT_TYPE", shown, 1)
     if "agent_id" in payload:
         return None
-    # The budget rule runs before `record`, so a spawn denied for the budget records no name.
-    return check_pm_spawn(tool_input, used_names) or check_budget(payload, agent_type)
+    # The model and budget rules run before `record`, so a spawn denied for the budget records no name.
+    return (check_pm_spawn(tool_input, used_names) or check_model(tool_input)
+            or check_budget(payload, agent_type))
 
 
 def record_allowed(payload):

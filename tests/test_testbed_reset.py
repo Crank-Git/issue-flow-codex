@@ -34,6 +34,7 @@ class FakeForge:
         self.pulls = {}
         self.issues = {}
         self.labels = []
+        self.comments = {}
         self.calls = []
         self.git_commands = []
 
@@ -91,6 +92,13 @@ class FakeForge:
         if path == repo + "/labels" and method == "POST":
             self.labels.append({"id": 100 + len(self.labels), "name": body["name"]})
             return done("{}")
+        if path.startswith(repo + "/issues/comments/") and method == "DELETE":
+            comment_id = int(path.rsplit("/", 1)[1])
+            for items in self.comments.values():
+                items[:] = [c for c in items if c["id"] != comment_id]
+            return done()
+        if path.startswith(repo + "/issues/") and path.endswith("/comments") and method == "GET":
+            return done(json.dumps(self.comments.get(int(path.split("/")[-2]), [])))
         if path.startswith(repo + "/issues/") and method == "GET":
             issue = self.issues.get(int(path.rsplit("/", 1)[1]))
             if issue is None:
@@ -121,6 +129,29 @@ class FakeForge:
 
 
 class ResetTest(unittest.TestCase):
+    def test_deletes_escalated_comments_and_keeps_all_others(self):
+        for name in ("github", "gitea"):
+            forge = FakeForge(name)
+            number = forge.add_issue("Some issue")
+            closed = forge.add_issue("Closed issue", state="closed")
+            forge.comments = {number: [{"id": 1, "body": "escalated: attempt 1"},
+                                       {"id": 2, "body": "see escalated: later"},
+                                       {"id": 3, "body": "escalated: attempt 2"}],
+                              closed: [{"id": 4, "body": "escalated: old"}]}
+            code, _, _ = forge.reset(name)
+            self.assertEqual(code, 0)
+            self.assertEqual([c["id"] for c in forge.comments[number]], [2])
+            self.assertEqual(forge.comments[closed], [])
+
+    def test_a_second_reset_deletes_no_comment(self):
+        forge = FakeForge("github")
+        number = forge.add_issue("Some issue")
+        forge.comments = {number: [{"id": 1, "body": "escalated: attempt 1"}]}
+        forge.reset("github")
+        forge.calls.clear()
+        forge.reset("github")
+        self.assertEqual([c for c in forge.calls if c[1] == "DELETE"], [])
+
     def test_creates_the_repository_when_it_is_missing(self):
         forge = FakeForge("github", repo_exists=False)
         code, _, _ = forge.reset("github")

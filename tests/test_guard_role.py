@@ -143,6 +143,17 @@ class RoleGuardTest(unittest.TestCase):
     def test_denies_spawn_of_issue_worker_from_issue_worker(self):
         self.assertDenied(spawn("issue_worker", "issue_worker"), "issue_worker", "spawn")
 
+    def test_escalation_role_has_the_issue_worker_policy(self):
+        policy = json.loads((ROOT / "hooks" / "role-policy.json").read_text(encoding="utf-8"))
+        self.assertEqual(policy["issue_worker_escalated"], policy["issue_worker"])
+
+    def test_denies_spawn_of_the_escalation_role_from_issue_worker(self):
+        self.assertDenied(spawn("issue_worker", "issue_worker_escalated"), "issue_worker_escalated", "spawn")
+
+    def test_denies_patch_outside_the_worktrees_for_the_escalation_role(self):
+        self.assertDenied(payload(OUTSIDE, "issue_worker_escalated"), "worktree", "/home/user/project/README.md")
+        self.assertAllowed(payload(INSIDE, "issue_worker_escalated"))
+
     def test_allows_spawn_of_another_role_from_issue_worker(self):
         self.assertAllowed(spawn("issue_worker", "code_auditor"))
 
@@ -172,6 +183,21 @@ class RoleGuardTest(unittest.TestCase):
         for role in ("code_auditor", "deploy_verifier"):
             with self.subTest(role=role):
                 self.assertDenied(patch(role, "note.txt"), role, "apply_patch")
+
+    def test_denies_apply_patch_for_criteria_checker(self):
+        self.assertDenied(patch("criteria_checker", "note.txt"), "criteria_checker", "apply_patch")
+
+    def test_denies_bash_prefixes_for_criteria_checker(self):
+        for command in ("git commit -m x", "git push origin x", "git rebase main", "git reset --hard",
+                        "git stash", "gh pr view 1", "tea pr list", "  git commit -m x"):
+            with self.subTest(command=command):
+                self.assertDenied(bash("criteria_checker", command), "criteria_checker")
+
+    def test_allows_git_diff_for_criteria_checker(self):
+        for command in ("git diff --stat origin/dev...HEAD", "git checkout -q --detach abc123",
+                        "git -C . fetch origin", "teapot --help"):
+            with self.subTest(command=command):
+                self.assertAllowed(bash("criteria_checker", command))
 
     def test_allows_playwright_tools_for_ux_explorer(self):
         self.assertAllowed(payload(BASH, "ux_explorer", tool_name="mcp__playwright__browser_click"))

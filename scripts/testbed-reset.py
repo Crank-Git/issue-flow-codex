@@ -10,6 +10,7 @@
 5. Close every issue outside the seed set.
 6. Create the missing labels.
 7. Open the seed issues.
+8. Delete every issue comment whose body starts with `escalated:`.
 
 The last stdout line is one JSON object that describes the resulting state.
 The script exits 1 before any remote call when a repository name does not end in `-testbed`.
@@ -240,6 +241,18 @@ def seed_issues(forge, bed, label_ids):
     ensure(seed["epic"], seed["epic"]["body"].replace("{{checklist}}", checklist))
 
 
+def delete_escalation_comments(forge, bed):
+    """Delete each issue comment that starts with `escalated:`.
+
+    The PM counts `escalated:` comments before it escalates. A left-over comment
+    sends the next escalation test straight to `status:blocked`.
+    """
+    for issue in read_issues(forge, bed):
+        for comment in get_all(forge, f"/repos/{bed.repo}/issues/{issue['number']}/comments"):
+            if (comment.get("body") or "").startswith("escalated:"):
+                api(forge, "DELETE", f"/repos/{bed.repo}/issues/comments/{comment['id']}")
+
+
 def describe(forge, bed):
     repository = api(forge, "GET", f"/repos/{bed.repo}")
     return {"forge": forge, "repository": bed.repo,
@@ -267,6 +280,7 @@ def main(argv=None):
         close_pull_requests(forge, bed)
         label_ids = ensure_labels(forge, bed)
         seed_issues(forge, bed, label_ids)
+        delete_escalation_comments(forge, bed)
         print(json.dumps(describe(forge, bed)))
     except ResetError as error:
         print(f"testbed-reset: {error}", file=sys.stderr)

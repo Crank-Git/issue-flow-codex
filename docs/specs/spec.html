@@ -502,7 +502,7 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li><strong>Rollout format.</strong> The run budget reads Codex rollout files, an internal format. Mitigation: the guard fails open, and a conformance probe reads one <code>token_count</code> event (Feature 09).
 </li>
-<li><strong>Spawn model precedence.</strong> The escalation passes <code>model</code> on a spawn of a role that sets its own <code>model</code>. Which one wins is not recorded. Mitigation: a conformance probe (Feature 08).
+<li><strong>Spawn model precedence.</strong> The role file <code>model</code> wins over a spawn <code>model</code> (fact 31). The escalation uses its own role, <code>issue_worker_escalated</code>, whose role file sets the escalation model. Mitigation: the conformance probe P14 (Feature 08).
 </li>
 </ul>
 <h2 id="issue-map">Issue map</h2>
@@ -614,6 +614,10 @@ body.rv-open .layout { padding-right:21rem; }
 <li>2026-11-22 — Epic 7 gate decision: the quota share starts a new window only when <code>resets_at</code> moves by more than 3600 s. Real rollouts move <code>resets_at</code> by 1 to 3 s inside one window. FR-run-budget-13 and 14 and harness fact 30 now say so (#138).
 </li>
 <li>2026-11-22 — Epic 7 gate decision: the batch review found PM spawns in the skill text with names that the spawn guard denies. The guard and Feature 07 now allow <code>survey_&lt;k&gt;</code> and <code>deploylog_&lt;sha7&gt;</code> (explorer), <code>review_scribe_&lt;slug&gt;</code>, and <code>fix_&lt;n&gt;</code>, <code>fix_&lt;n&gt;_&lt;k&gt;</code> (issue_worker, with a chain rule). Each skill text uses them.
+</li>
+<li>2026-11-22 — Epic 8 batch gate, probe P14 failed on codex-cli 0.167.1: a spawn <code>model</code> does not override the role file model (fact 31). Decision: the escalation spawns the role <code>issue_worker_escalated</code>, built from the issue-worker instructions, and its role file carries <code>escalationModel</code> and <code>escalationEffort</code>. The spawn guard denies <code>model</code> and <code>reasoning_effort</code> on every worker spawn. FR-criteria-check-29, 31 to 34 changed to match. ADR 0006.
+</li>
+<li>2026-11-22 — Epic #140 batch gate decision: the check of an escalated worker takes the next unused name of the check chain (<code>check_&lt;n&gt;</code> to <code>check_&lt;n&gt;_4</code>), not a fixed <code>check_&lt;n&gt;_3</code>. On the <code>blocked</code> path no check runs before the escalation, and the spawn guard denies <code>check_&lt;n&gt;_3</code> without <code>check_&lt;n&gt;_2</code>. FR-criteria-check-22 and the new FR-criteria-check-38 changed to match.
 </li>
 </ul><nav class="pager">
 <span></span>

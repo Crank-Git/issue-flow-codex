@@ -257,6 +257,19 @@ class ReworkAndTeardownTest(unittest.TestCase):
         self.assertIn("forge.branch.delete", text)
         self.assertIn("git ls-remote --heads <remote> issue/<n>-<slug>", text)
 
+    def test_github_sub_merge_command_does_not_pass_delete_branch(self):
+        text = section("SKILL.md", "### C1 — Sub-merge gate", "### C2 — Batch gate")
+        command = re.search(r"`(gh pr merge <pr> --squash --subject[^`]*)`", text).group(1)
+        self.assertNotIn("--delete-branch", command)
+        self.assertIn("Do not pass `--delete-branch`", " ".join(text.split()))
+        self.assertIn("used by worktree", text)
+
+    def test_sub_merge_row_of_forge_reference_does_not_pass_delete_branch(self):
+        text = (SKILL_DIR.parent.parent / "references" / "forge.md").read_text()
+        row = next(line for line in text.splitlines()
+                   if line.startswith("| GitHub |") and "[skip ci]" in line)
+        self.assertNotIn("--delete-branch", row.split("|")[2])
+
     def test_worktrees_reference_does_not_mention_peers_py(self):
         self.assertNotIn("peers.py", (SKILL_DIR / "references/worktrees.md").read_text())
 
@@ -854,6 +867,203 @@ class CrossCheckFetchTextTest(unittest.TestCase):
             self.assertIn("never with a web page fetch", text, path)
 
 
+def step_1c():
+    text = section("SKILL.md", "  1c. **Independent criteria check.**", "  2. **Conflict vs")
+    return " ".join(text.split())
+
+
+class CriteriaCheckGateTextTest(unittest.TestCase):
+    def test_step_1c_spawns_check_n_with_the_criteria_checker_role(self):
+        text = step_1c()
+        self.assertIn('`task_name: "check_<n>"`', text)
+        self.assertIn('`agent_type: "criteria_checker"`', text)
+        self.assertIn('`fork_turns: "none"`', text)
+        self.assertIn("`spawn_agent`", text)
+        self.assertIn("`wait_agent`", text)
+        self.assertIn("no `model`", text)
+
+    def test_check_brief_has_no_worker_claims(self):
+        text = step_1c()
+        for field in ("`issue`", "`head`", "`headSha`", "`base`", "`remote`", "`testCommand`", "`worktree`", "`criteria`"):
+            self.assertIn(field, text)
+        self.assertIn("Never put the worker's verdict, its `criteria`, its `localChecks`, the PR body, or a comment URL in the brief.", text)
+
+    def test_check_worktree_is_created_detached_before_the_checker_spawns(self):
+        text = step_1c()
+        self.assertIn("worktree.py create --project <dir> --task check_<n> --detach <headSha>", text)
+        self.assertLess(text.index("worktree.py create"), text.index("spawn_agent"))
+
+    def test_check_worktree_is_removed_with_merged_after_the_verdict(self):
+        self.assertIn("worktree.py remove --project <dir> --task check_<n> --merged", step_1c())
+
+    def test_stale_check_worktree_removal_uses_merged(self):
+        text = step_1c()
+        self.assertIn("A stale check worktree", text)
+        stale = text[text.index("A stale check worktree"):text.index("Spawn the checker")]
+        self.assertIn("worktree.py remove --project <dir> --task check_<n> --merged", stale)
+
+    def test_gate_merges_only_the_checked_head_sha(self):
+        text = step_1c()
+        self.assertIn("Merge only the commit at the checker's `headSha`", text)
+        self.assertIn("run the check again", text)
+
+    def test_rework_round_uses_followup_task_with_status_and_evidence(self):
+        text = step_1c()
+        self.assertIn("`followup_task` to `worker_<n>`", text)
+        self.assertIn("`status` and `evidence`", text)
+        self.assertIn('"Escalation" (below)', text)
+
+    def test_no_verdict_json_spawns_the_next_unused_check_name(self):
+        self.assertIn("spawn the checker once more with the next unused check name", step_1c())
+
+    def test_a_second_answer_with_no_verdict_keeps_the_member_in_review(self):
+        self.assertIn("Keep the member `status:in-review`", step_1c())
+
+    def test_check_names_run_out_to_status_blocked(self):
+        text = step_1c()
+        for name in ("`check_<n>`", "`check_<n>_2`", "`check_<n>_3`", "`check_<n>_4`"):
+            self.assertIn(name, text)
+        self.assertIn("all four names are used", text)
+        self.assertIn("`status:blocked`", text)
+
+    def test_standalone_gate_runs_the_check_with_base_dev(self):
+        text = " ".join(section("SKILL.md", "  **Standalone/hotfix", "  **Anything that goes back").split())
+        self.assertIn("criteria check of step 1c", text)
+        self.assertIn("`base` set to `dev`", text)
+
+    def test_check_cost_points_to_the_feature_10_eval(self):
+        text = step_1c()
+        self.assertIn("evals/BASELINE.md", text)
+        self.assertNotIn("$0.03", text)
+        self.assertNotIn("Sonnet", text)
+
+    def test_the_worker_reference_row_names_the_criteria_check(self):
+        row = next(l for l in (SKILL_DIR / "references/issue-worker.md").read_text().splitlines() if l.startswith("| `ready-to-merge`"))
+        self.assertIn("criteria check", row)
+        self.assertIn("step 1c", row)
+
+    def test_the_go_back_paragraph_covers_a_check_finding(self):
+        text = " ".join(section("SKILL.md", "  **Anything that goes back", "### C2").split())
+        self.assertIn("a criterion that the check finds `unmet` or `unclear`", text)
+
+
+
+
+def escalation_section():
+    text = section("SKILL.md", "  **Escalation.**", "### C2")
+    return " ".join(text.split())
+
+
+class EscalationTextTest(unittest.TestCase):
+    def test_escalation_has_two_triggers_only(self):
+        text = escalation_section()
+        self.assertIn("two triggers, and no others", text)
+        self.assertIn("The re-check fails.", text)
+        self.assertIn("The worker returns `blocked` for a technical reason", text)
+
+    def test_needs_feedback_and_checkpoint_never_escalate(self):
+        text = escalation_section()
+        self.assertIn("A `needs-feedback` verdict never escalates, and neither does a `checkpoint`", text)
+
+    def test_second_escalation_goes_to_status_blocked(self):
+        text = escalation_section()
+        self.assertIn("at most one escalation", text)
+        self.assertIn("`escalated:` comment", text)
+        self.assertIn("`forge.issue.status.set <n> status:blocked`", text)
+
+    def test_pm_comments_escalated_before_the_spawn(self):
+        text = escalation_section()
+        self.assertIn("**Comment before the spawn:** `escalated: <reason>`", text)
+        self.assertLess(text.index("Comment before the spawn"), text.index("spawn_agent"))
+
+    def test_escalation_spawn_names_worker_n_e1_with_the_escalation_role(self):
+        text = escalation_section()
+        for part in ('`task_name: "worker_<n>_e1"`', '`agent_type: "issue_worker_escalated"`',
+                     '`fork_turns: "none"`', "no `model` and no `reasoning_effort`",
+                     "`escalationModel` and `escalationEffort`"):
+            self.assertIn(part, text)
+
+    def test_escalation_brief_carries_published_base_pr_and_escalation_field(self):
+        text = escalation_section()
+        self.assertIn("`base: <remote>/issue/<n>-<slug>`", text)
+        self.assertIn("the same `crossCheck`", text)
+        self.assertIn("the PR number in the plan", text)
+        self.assertIn("`escalation:` field", text)
+        self.assertIn("worktree.py create --project <dir> --task worker_<n>_e1", text)
+
+    def test_e1_checkpoint_replacement_keeps_role_and_escalation_field(self):
+        text = escalation_section()
+        self.assertIn("`worker_<n>_e1_c1`", text)
+        self.assertIn("the same `escalation:` field", text)
+        self.assertIn("no second `escalated:` comment", text)
+
+    def test_escalated_worker_check_takes_the_next_unused_name(self):
+        text = escalation_section()
+        self.assertIn("next unused name of the check chain", text)
+        self.assertNotIn("`check_<n>_3`.", text)
+
+    def test_escalation_removes_the_worktree_of_the_worker_that_returned_the_verdict(self):
+        text = escalation_section()
+        self.assertIn("`worker_<n>_c1`, or `worker_<n>_c2`", text)
+        self.assertNotIn("--task worker_<n>`)", text)
+
+    def test_blocked_bullet_points_to_the_escalation(self):
+        text = " ".join(section("SKILL.md", "- **`blocked`**", "- **`checkpoint`**").split())
+        self.assertIn("is the blocker technical?", text)
+        self.assertIn('"Escalation" (below)', text)
+
+    def test_checkpoint_bullet_names_the_escalation_role_for_e1_replacements(self):
+        text = " ".join(section("SKILL.md", "- **`checkpoint`**", "- **`ready-to-merge`**").split())
+        self.assertIn('`"issue_worker_escalated"` when `<next_name>` is `worker_<n>_e1_c1`', text)
+
+    def test_model_tiers_state_that_the_escalation_sets_no_model(self):
+        text = section("SKILL.md", "**Model tiers.**", "## The batch model")
+        self.assertIn("issue_worker_escalated", text)
+
+    def test_worker_reference_lists_the_escalation_field_and_outcomes(self):
+        text = worker_reference()
+        self.assertIn("escalation:", text)
+        text = " ".join((SKILL_DIR / "references/issue-worker.md").read_text().split())
+        self.assertIn("technical `blocker`", text)
+
+    def test_worker_role_has_escalation_section(self):
+        for path in ("agents/issue-worker.md", "roles/issue-worker.toml",
+                     "roles/issue-worker-escalated.toml"):
+            text = " ".join((SKILL_DIR.parent.parent / path).read_text().split())
+            self.assertIn("## Escalation", text, path)
+            self.assertIn("Continue the published branch", text, path)
+            self.assertIn("Read the findings before the code", text, path)
+            self.assertIn("A worker whose brief has `escalation:` is the escalated attempt", text, path)
+
+    def test_no_escalated_to_opus_marker_anywhere(self):
+        root = SKILL_DIR.parent.parent
+        for path in ("skills/issue-flow/SKILL.md", "skills/issue-flow/references/issue-worker.md",
+                     "agents/issue-worker.md", "roles/issue-worker.toml"):
+            text = (root / path).read_text()
+            self.assertNotIn("escalated to Opus", text, path)
+            self.assertNotIn("Opus", text, path)
+
+
+class WorkerRoleBatchGateFixTextTest(unittest.TestCase):
+    def test_the_role_line_names_the_escalation_role_and_no_fixed_model(self):
+        text = agent_section("issue-worker.md", "You run as the Codex role", "All tracker calls")
+        self.assertIn("`issue_worker_escalated` when your brief carries `escalation:`", text)
+        self.assertIn("on the model of your role file", text)
+        self.assertNotIn("gpt-6.1-sol", text)
+
+    def test_a_child_on_a_plugin_role_gets_no_model(self):
+        text = agent_section("issue-worker.md", "### Hard rules for every subagent", "2. **Spawn only")
+        self.assertIn("A child on a plugin role", text)
+        self.assertIn("gets no `model`", text)
+
+    def test_a_child_on_a_built_in_role_keeps_the_helper_model(self):
+        text = agent_section("issue-worker.md", "### Hard rules for every subagent", "2. **Spawn only")
+        self.assertIn('A child on a built-in role takes `model: "gpt-6-luna"`', text)
+
+    def test_the_child_rule_denies_both_worker_roles(self):
+        text = agent_section("issue-worker.md", "### Hard rules for every subagent", "2. **Spawn only")
+        self.assertIn("`issue_worker` or `issue_worker_escalated`", text)
+
+
 if __name__ == "__main__":
     unittest.main()
-

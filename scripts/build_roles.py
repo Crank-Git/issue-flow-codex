@@ -20,7 +20,7 @@ ROOT = Path(__file__).resolve().parent.parent
 # Claude Code front-matter until then (issue #35).
 PORTED = (
     "issue-worker", "ci-watcher", "ux-explorer", "deploy-verifier",
-    "review-scribe", "code-auditor",
+    "review-scribe", "code-auditor", "criteria-checker",
 )
 # The Codex model and effort of each ported role. The agent file names a Claude model.
 CODEX_MODELS = {
@@ -30,7 +30,12 @@ CODEX_MODELS = {
     "deploy_verifier": ("gpt-6-luna", "low"),
     "review_scribe": ("gpt-6.1-sol", "medium"),
     "code_auditor": ("gpt-6-luna", "low"),
+    "criteria_checker": ("gpt-6-luna", "medium"),
+    "issue_worker_escalated": ("gpt-6.1-sol", "high"),
 }
+# The escalation role reuses the issue-worker instructions. Codex ignores a spawn `model` when the
+# role file sets one (codex-harness.md fact 31), so the escalation model needs a role file of its own.
+ESCALATED = ("issue-worker", "issue-worker-escalated", "issue_worker_escalated")
 FRONTMATTER = re.compile(r"^---\n(.*?)\n---\n", re.S)
 LITERAL_DELIMITER = "'''"
 
@@ -49,10 +54,16 @@ def toml_basic(value):
     return '"' + value.replace("\\", "\\\\").replace('"', '\\"') + '"'
 
 
-def render(text):
-    """Return the TOML text of the role file for one agent file."""
+def render(text, escalated=False):
+    """Return the TOML text of the role file for one agent file.
+
+    With `escalated`, the file is the escalation role built from the issue-worker agent file.
+    """
     name, description, body = parse_agent(text)
     role = name.replace("-", "_")
+    if escalated:
+        role = ESCALATED[2]
+        description = f"Escalation worker. {description}"
     model, effort = CODEX_MODELS[role]
     if LITERAL_DELIMITER in body:
         raise ValueError(f"{name}: the body holds {LITERAL_DELIMITER}, "
@@ -69,9 +80,12 @@ def render(text):
 
 
 def built(root):
-    """Return {relative path: TOML text} for each ported agent file."""
-    return {f"roles/{stem}.toml": render((root / "agents" / f"{stem}.md").read_text(encoding="utf-8"))
-            for stem in PORTED}
+    """Return {relative path: TOML text} for each ported agent file and the escalation role."""
+    files = {f"roles/{stem}.toml": render((root / "agents" / f"{stem}.md").read_text(encoding="utf-8"))
+             for stem in PORTED}
+    source = (root / "agents" / f"{ESCALATED[0]}.md").read_text(encoding="utf-8")
+    files[f"roles/{ESCALATED[1]}.toml"] = render(source, escalated=True)
+    return files
 
 
 def write(root):

@@ -11,6 +11,10 @@
     "tools": ["^apply_patch$"],
     "bash_prefixes": ["git commit", "git push"]
   },
+  "criteria_checker": {
+    "tools": ["^apply_patch$"],
+    "bash_prefixes": ["git commit", "git push", "git rebase", "git reset", "git stash", "gh", "tea"]
+  },
   "ux_explorer": {
     "patch_only_under": ".worktrees/review/",
     "bash_prefixes": ["git"]
@@ -20,6 +24,10 @@
   },
   "issue_worker": {
     "patch_only_under_project_worktrees": true,
-    "spawn_roles": ["issue_worker"]
+    "spawn_roles": ["issue_worker", "issue_worker_escalated"]
+  },
+  "issue_worker_escalated": {
+    "patch_only_under_project_worktrees": true,
+    "spawn_roles": ["issue_worker", "issue_worker_escalated"]
   }
 }

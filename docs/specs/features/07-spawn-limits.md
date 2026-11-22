@@ -51,7 +51,7 @@ worker count.
 
 ### Worker cap
 
-- FR-spawn-limits-11 — The worker `task_name` pattern allows exactly five names for one issue: `worker_<n>`, `worker_<n>_c1`, `worker_<n>_c2`, `worker_<n>_e1`, and `worker_<n>_e1_c1`.
+- FR-spawn-limits-11 — The worker `task_name` pattern allows exactly five names for one issue: `worker_<n>`, `worker_<n>_c1`, `worker_<n>_c2`, `worker_<n>_e1`, and `worker_<n>_e1_c1`. The two `_e1` names belong to the role `issue_worker_escalated`, and the cap of five counts both roles.
 - FR-spawn-limits-12 — The spawn guard denies a worker name when the session has no spawn of its predecessor. `worker_<n>_c1` and `worker_<n>_e1` need `worker_<n>`. `worker_<n>_c2` needs `worker_<n>_c1`. `worker_<n>_e1_c1` needs `worker_<n>_e1`. `fix_<n>_2` needs `fix_<n>`, and `fix_<n>_<k>` needs `fix_<n>_<k-1>`.
 - FR-spawn-limits-13 — The deny reason for a name past the cap tells the PM to label the issue `status:blocked` and to comment with the chain of `remaining` notes.
 - FR-spawn-limits-14 — The PM counts checkpoints for each attempt without a reset. New commits on the PR do not reset the count.
@@ -85,7 +85,8 @@ worker count.
 
 | `agent_type` | Allowed `task_name` for a PM spawn |
 |---|---|
-| `issue_worker` | `worker_<n>`, `worker_<n>_c1`, `worker_<n>_c2`, `worker_<n>_e1`, `worker_<n>_e1_c1`, `fix_<n>`, `fix_<n>_<k>` |
+| `issue_worker` | `worker_<n>`, `worker_<n>_c1`, `worker_<n>_c2`, `fix_<n>`, `fix_<n>_<k>` |
+| `issue_worker_escalated` | `worker_<n>_e1`, `worker_<n>_e1_c1` |
 | `criteria_checker` | `check_<n>`, `check_<n>_2`, `check_<n>_3`, `check_<n>_4` |
 | `ci_watcher` | `ci_<pr>`, `ci_<pr>_r2`, `deploy_<sha7>`, `deploy_<sha7>_r2`, `suite_<n>`, `suite_<n>_r2` |
 | `deploy_verifier` | `verify_deploy_<sha7>` |

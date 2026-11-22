@@ -342,7 +342,7 @@ Secrets: the forge tokens live in the `gh` and `tea` credential stores. No file 
 - **Documentation and source disagree.** The plugin docs say plugin hooks work "only for plugins installed manually in Codex desktop". The live test showed plugin hooks running in the CLI. The port relies on the observed behavior and the conformance suite checks it.
 - **Quota.** Concurrency 3 with `gpt-6.1-sol` workers can use a large share of a ChatGPT plan. One measured run used about 1.35 weekly quotas in 5.5 days ([Quota use of an operator run](pages/spend-analysis.md)). Mitigation: Features 07 to 10.
 - **Rollout format.** The run budget reads Codex rollout files, an internal format. Mitigation: the guard fails open, and a conformance probe reads one `token_count` event (Feature 09).
-- **Spawn model precedence.** The escalation passes `model` on a spawn of a role that sets its own `model`. Which one wins is not recorded. Mitigation: a conformance probe (Feature 08).
+- **Spawn model precedence.** The role file `model` wins over a spawn `model` (fact 31). The escalation uses its own role, `issue_worker_escalated`, whose role file sets the escalation model. Mitigation: the conformance probe P14 (Feature 08).
 
 ## Issue map
 
@@ -436,3 +436,5 @@ Created by spec-to-issues on 2026-11-03 in `Crank-Git/issue-flow-codex`. Epics 7
 - 2026-11-21 — spec-to-issues: the planned Epic 7 held three features and too many sub-issues for one batch. It is now Epic 7 (Features 07 and 09), Epic 8 (Feature 08), and Epic 9 (Feature 10, formerly Epic 8). Scope is unchanged.
 - 2026-11-22 — Epic 7 gate decision: the quota share starts a new window only when `resets_at` moves by more than 3600 s. Real rollouts move `resets_at` by 1 to 3 s inside one window. FR-run-budget-13 and 14 and harness fact 30 now say so (#138).
 - 2026-11-22 — Epic 7 gate decision: the batch review found PM spawns in the skill text with names that the spawn guard denies. The guard and Feature 07 now allow `survey_<k>` and `deploylog_<sha7>` (explorer), `review_scribe_<slug>`, and `fix_<n>`, `fix_<n>_<k>` (issue_worker, with a chain rule). Each skill text uses them.
+- 2026-11-22 — Epic 8 batch gate, probe P14 failed on codex-cli 0.167.1: a spawn `model` does not override the role file model (fact 31). Decision: the escalation spawns the role `issue_worker_escalated`, built from the issue-worker instructions, and its role file carries `escalationModel` and `escalationEffort`. The spawn guard denies `model` and `reasoning_effort` on every worker spawn. FR-criteria-check-29, 31 to 34 changed to match. ADR 0006.
+- 2026-11-22 — Epic #140 batch gate decision: the check of an escalated worker takes the next unused name of the check chain (`check_<n>` to `check_<n>_4`), not a fixed `check_<n>_3`. On the `blocked` path no check runs before the escalation, and the spawn guard denies `check_<n>_3` without `check_<n>_2`. FR-criteria-check-22 and the new FR-criteria-check-38 changed to match.

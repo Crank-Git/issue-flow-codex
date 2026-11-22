@@ -929,3 +929,91 @@ class CriteriaCheckGateTextTest(unittest.TestCase):
 if __name__ == "__main__":
     unittest.main()
 
+
+
+def escalation_section():
+    text = section("SKILL.md", "  **Escalation.**", "### C2")
+    return " ".join(text.split())
+
+
+class EscalationTextTest(unittest.TestCase):
+    def test_escalation_has_two_triggers_only(self):
+        text = escalation_section()
+        self.assertIn("two triggers, and no others", text)
+        self.assertIn("The re-check fails.", text)
+        self.assertIn("The worker returns `blocked` for a technical reason", text)
+
+    def test_needs_feedback_and_checkpoint_never_escalate(self):
+        text = escalation_section()
+        self.assertIn("A `needs-feedback` verdict never escalates, and neither does a `checkpoint`", text)
+
+    def test_second_escalation_goes_to_status_blocked(self):
+        text = escalation_section()
+        self.assertIn("at most one escalation", text)
+        self.assertIn("`escalated:` comment", text)
+        self.assertIn("`forge.issue.status.set <n> status:blocked`", text)
+
+    def test_pm_comments_escalated_before_the_spawn(self):
+        text = escalation_section()
+        self.assertIn("**Comment before the spawn:** `escalated: <reason>`", text)
+        self.assertLess(text.index("Comment before the spawn"), text.index("spawn_agent"))
+
+    def test_escalation_spawn_names_worker_n_e1_with_the_escalation_role(self):
+        text = escalation_section()
+        for part in ('`task_name: "worker_<n>_e1"`', '`agent_type: "issue_worker_escalated"`',
+                     '`fork_turns: "none"`', "no `model` and no `reasoning_effort`",
+                     "`escalationModel` and `escalationEffort`"):
+            self.assertIn(part, text)
+
+    def test_escalation_brief_carries_published_base_pr_and_escalation_field(self):
+        text = escalation_section()
+        self.assertIn("`base: <remote>/issue/<n>-<slug>`", text)
+        self.assertIn("the same `crossCheck`", text)
+        self.assertIn("the PR number in the plan", text)
+        self.assertIn("`escalation:` field", text)
+        self.assertIn("worktree.py create --project <dir> --task worker_<n>_e1", text)
+
+    def test_e1_checkpoint_replacement_keeps_role_and_escalation_field(self):
+        text = escalation_section()
+        self.assertIn("`worker_<n>_e1_c1`", text)
+        self.assertIn("the same `escalation:` field", text)
+        self.assertIn("no second `escalated:` comment", text)
+
+    def test_escalated_worker_is_checked_as_check_n_3(self):
+        self.assertIn("`check_<n>_3`", escalation_section())
+
+    def test_blocked_bullet_points_to_the_escalation(self):
+        text = " ".join(section("SKILL.md", "- **`blocked`**", "- **`checkpoint`**").split())
+        self.assertIn("is the blocker technical?", text)
+        self.assertIn('"Escalation" (below)', text)
+
+    def test_checkpoint_bullet_names_the_escalation_role_for_e1_replacements(self):
+        text = " ".join(section("SKILL.md", "- **`checkpoint`**", "- **`ready-to-merge`**").split())
+        self.assertIn('`"issue_worker_escalated"` when `<next_name>` is `worker_<n>_e1_c1`', text)
+
+    def test_model_tiers_state_that_the_escalation_sets_no_model(self):
+        text = section("SKILL.md", "**Model tiers.**", "## The batch model")
+        self.assertIn("issue_worker_escalated", text)
+
+    def test_worker_reference_lists_the_escalation_field_and_outcomes(self):
+        text = worker_reference()
+        self.assertIn("escalation:", text)
+        text = " ".join((SKILL_DIR / "references/issue-worker.md").read_text().split())
+        self.assertIn("technical `blocker`", text)
+
+    def test_worker_role_has_escalation_section(self):
+        for path in ("agents/issue-worker.md", "roles/issue-worker.toml",
+                     "roles/issue-worker-escalated.toml"):
+            text = " ".join((SKILL_DIR.parent.parent / path).read_text().split())
+            self.assertIn("## Escalation", text, path)
+            self.assertIn("Continue the published branch", text, path)
+            self.assertIn("Read the findings before the code", text, path)
+            self.assertIn("A worker whose brief has `escalation:` is the escalated attempt", text, path)
+
+    def test_no_escalated_to_opus_marker_anywhere(self):
+        root = SKILL_DIR.parent.parent
+        for path in ("skills/issue-flow/SKILL.md", "skills/issue-flow/references/issue-worker.md",
+                     "agents/issue-worker.md", "roles/issue-worker.toml"):
+            text = (root / path).read_text()
+            self.assertNotIn("escalated to Opus", text, path)
+            self.assertNotIn("Opus", text, path)

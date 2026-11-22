@@ -242,6 +242,9 @@ $issue-flow:issue-flow            # build it autonomously
 
 Do not run them yourself unless the user asks.
 
+Your last message tells the operator to start a new Codex session with
+`codex -p issue-flow -a never`, then run `$issue-flow:issue-flow` in it.
+
 ## Output checklist
 
 Before you declare the planner done, verify:

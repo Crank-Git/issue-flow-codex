@@ -187,6 +187,9 @@ $issue-flow:issue-flow            # build them
 Say explicitly how many features went out `built` (documented, no issues) versus
 `planned` (to be issued), so the user knows what the tracker is about to receive.
 
+Your last message tells the operator to start a new Codex session with
+`codex -p issue-flow -a never`, then run `$issue-flow:issue-flow` in it.
+
 ## Output checklist
 
 Everything on `project-planner`'s output checklist applies. Additionally verify:

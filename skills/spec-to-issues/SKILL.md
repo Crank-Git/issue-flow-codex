@@ -168,6 +168,9 @@ order:
 $issue-flow:issue-flow        # the PM will batch each epic onto an integration branch and build it
 ```
 
+Your last message tells the operator to start a new Codex session with
+`codex -p issue-flow -a never`, then run `$issue-flow:issue-flow` in it.
+
 ## Rules
 
 - **Approved specs only** (explicit user override counts as approval — record it).

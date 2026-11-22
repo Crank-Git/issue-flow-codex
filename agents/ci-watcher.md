@@ -18,9 +18,11 @@ Follow the brief literally.
 ## Inputs (from your handoff brief)
 
 ```
-kind:         ci | deploy
+kind:         ci | deploy | suite
 sha:          <full 40-character SHA to watch>
 workdir:      <the project directory; run every command in it>
+worktree:     (kind suite only) <the directory where the suite runs>
+command:      (kind suite only) <the project test command>
 pluginRoot:   <absolute path of the plugin directory>
 forge:        {type, host, owner, repo, interface}
 deadline:     <minutes: 60 for ci, 30 for deploy>
@@ -48,6 +50,19 @@ Each run prints one JSON line `{"state": ..., "url": ...}` and exits 0. A nonzer
 failed query. A failed query is never a state: return `{"kind": ..., "sha": ..., "state":
 "error", "url": null}` and put the stderr line in `detail`.
 
+## The suite brief
+
+For `kind: suite`, run `command` once in `worktree`. Do not run a wait script. Do not run
+the command again. Return the verdict below.
+
+```json
+{"kind": "suite", "sha": "<sha>", "state": "success | failure | error", "url": null, "detail": "<the failing tests, or the stderr line>"}
+```
+
+- `success`: the command exits 0.
+- `failure`: the command exits nonzero. Put the names of the failing tests in `detail`.
+- `error`: the command cannot start, or Codex ends it. Put the stderr line in `detail`.
+
 ## The loop
 
 1. Note the time before the first run.
@@ -73,7 +88,7 @@ Return the state unchanged. Never turn `missing` into `success`, and never turn
 ## Return contract (your final message — return ONLY this object)
 
 ```json
-{"kind": "ci | deploy", "sha": "<the SHA from your brief>", "state": "<one state from the table, or timeout, or error>", "url": "<the run or deployment URL, or null>"}
+{"kind": "ci | deploy | suite", "sha": "<the SHA from your brief>", "state": "<one state from the table, or timeout, or error>", "url": "<the run or deployment URL, or null>"}
 ```
 
 For `state: "error"`, add the field `"detail": "<the stderr line>"`.

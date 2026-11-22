@@ -132,7 +132,7 @@ notes = "Becomes a role file; Playwright tool names."
 path = "agents/issue-worker.md"
 mode = "rewritten"
 upstream_sha256 = "bcd39c9d9b9fdc74eeb46b2ccd6c4e7570c66f79e17db3b3aae809f4e0b7e43f"
-notes = "Front-matter becomes `roles/issue-worker.toml`. Rewrite: the toolbox section, the four spawn rules (lines 162-236), the worktree boundary (lines 237-350), and the CI watch in the runbook."
+notes = "Front-matter becomes `roles/issue-worker.toml`. Rewrite: the toolbox section, the four spawn rules (lines 162-236), the worktree boundary (lines 237-350), and the CI watch in the runbook. Turn budget: checkpoint only at the budget; verify step runs the conventions test command once."
 
 [[file]]
 path = "agents/review-scribe.md"
@@ -342,7 +342,7 @@ notes = "port-only: wait_agent timeout guard (#66)"
 path = "hooks/guard-spawn.py"
 mode = "rewritten"
 upstream_sha256 = "4f505785d867897653f7ad3bbc261fe9489e9d9a7d331e9005910064a4b80b84"
-notes = "V2 spawn rules on `fork_turns`, `task_name`, `agent_type`. The brief detection is dropped: `message` is encrypted."
+notes = "V2 spawn rules on `fork_turns`, `task_name`, `agent_type`. The brief detection is dropped: `message` is encrypted. Role allowlist, task_name patterns, reuse and worker chain rules for a PM spawn (#135)."
 
 [[file]]
 path = "hooks/hooks.json"
@@ -924,7 +924,7 @@ notes = "port-only: Epic 2 batch-gate live run report (#3)"
 path = "agents/ci-watcher.md"
 mode = "new"
 upstream_sha256 = ""
-notes = "Port-only file. Upstream waits in a background shell; Codex waits in this role. Built into `roles/ci-watcher.toml`."
+notes = "Port-only file. Upstream waits in a background shell; Codex waits in this role. Adds the suite brief. Built into `roles/ci-watcher.toml`."
 
 [[file]]
 path = "roles/ci-watcher.toml"
@@ -967,6 +967,12 @@ path = "hooks/record-wait-state.py"
 mode = "new"
 upstream_sha256 = ""
 notes = "port-only: record wait timeout and Stage A0 hook state (#75)"
+
+[[file]]
+path = "hooks/spawn_state.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: store per-session spawned task names for the spawn guard (#135)"
 
 [[file]]
 path = "hooks/wait_state.py"
@@ -1069,3 +1075,93 @@ path = "tests/fixtures/hooks/apply_patch_inside_worktree.json"
 mode = "new"
 upstream_sha256 = ""
 notes = "port-only: live worker apply_patch payload inside a worktree (#108, gate #111)"
+
+[[file]]
+path = "scripts/usage.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: ported from upstream scripts/usage.py at issue-flow--v0.21.0 (#138)"
+
+[[file]]
+path = "tests/test_usage.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: rollout usage report (#138)"
+
+[[file]]
+path = "tests/fixtures/rollouts/2026/10/01/rollout-2026-10-01T09-00-00-00000000-0000-7000-8000-000000000003.jsonl"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: synthetic rollout fixture (#138)"
+
+[[file]]
+path = "tests/fixtures/rollouts/2026/11/20/rollout-2026-11-20T10-00-00-00000000-0000-7000-8000-000000000001.jsonl"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: synthetic rollout fixture (#138)"
+
+[[file]]
+path = "tests/fixtures/rollouts/2026/11/20/rollout-2026-11-20T10-05-00-00000000-0000-7000-8000-000000000002.jsonl"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: synthetic rollout fixture (#138)"
+
+[[file]]
+path = "docs/specs/features/07-spawn-limits.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/features/08-criteria-check.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/features/09-run-budget.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/features/10-worker-model-eval.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/html/feature-criteria-check.html"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/html/feature-run-budget.html"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/html/feature-spawn-limits.html"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/html/feature-worker-model-eval.html"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/html/page-spend-analysis.html"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/pages/spend-analysis.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."

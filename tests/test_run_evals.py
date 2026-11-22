@@ -124,28 +124,40 @@ class ExecTest(RunnerCase):
         if not zsh:
             self.skipTest("zsh is not installed")
         found = subprocess.run([zsh, "-lc", "command -v gh"], env=env, capture_output=True, text=True)
-        self.assertEqual(found.stdout.strip(), str(ROOT / "evals" / "fakegh" / "gh"))
+        self.assertEqual(found.stdout.strip(), os.path.join(sandbox, "fakegh", "gh"))
 
     def test_config_turns_the_login_shell_off(self):
         self.run_suite("no-verdict")
         config = self.fake_saw()["config"]
         self.assertTrue(config.startswith("allow_login_shell = false\n"))
 
-    def test_fake_gh_first_on_path(self):
+    def test_fake_gh_comes_first_on_path(self):
         self.run_suite("no-verdict")
         saw = self.fake_saw()
-        self.assertEqual(saw["path_first"], str(ROOT / "evals" / "fakegh"))
-        self.assertEqual(saw["gh_on_path"], str(ROOT / "evals" / "fakegh" / "gh"))
+        fakegh = os.path.join(saw["sandbox"], "fakegh")
+        self.assertEqual(saw["path_first"], fakegh)
+        self.assertEqual(saw["gh_on_path"], os.path.join(fakegh, "gh"))
 
-    def test_exec_argv_approval_never_stdin_closed(self):
+    def test_sandbox_env_sets_the_shell_to_zsh(self):
+        with mock.patch.dict(os.environ, {"SHELL": "/bin/bash"}):
+            env = run_evals.sandbox_env("/sandbox", "/home")
+        self.assertEqual(env["SHELL"], "/bin/zsh")
+
+    def test_exec_sets_approval_never_without_an_a_flag(self):
         self.run_suite("no-verdict")
-        saw = self.fake_saw()
-        argv = saw["argv"]
+        argv = self.fake_saw()["argv"]
         self.assertEqual(argv[0], "exec")
         self.assertIn('approval_policy="never"', argv)
-        self.assertEqual(argv[argv.index("-m") + 1], "gpt-6-luna")
         self.assertNotIn("-a", argv)
-        self.assertTrue(saw["stdin_is_devnull"])
+
+    def test_exec_runs_the_dispatcher_model(self):
+        self.run_suite("no-verdict")
+        argv = self.fake_saw()["argv"]
+        self.assertEqual(argv[argv.index("-m") + 1], "gpt-6-luna")
+
+    def test_exec_closes_stdin(self):
+        self.run_suite("no-verdict")
+        self.assertTrue(self.fake_saw()["stdin_is_devnull"])
 
     def test_dispatcher_prompt_spawns_one_worker_fork_none(self):
         self.run_suite("no-verdict")
@@ -154,7 +166,7 @@ class ExecTest(RunnerCase):
         self.assertIn('agent_type: "issue_worker"', prompt)
         self.assertIn('fork_turns: "none"', prompt)
         self.assertIn("issue:        #2", prompt)
-        self.assertIn(f"pluginRoot:   {ROOT}", prompt)
+        self.assertNotIn(str(ROOT), prompt)
         self.assertIn("worktree:     ", prompt)
         self.assertNotIn("{plugin_dir}", prompt)
 
@@ -169,18 +181,36 @@ class ExecTest(RunnerCase):
         self.assertEqual(self.fake_saw()["hidden_during_run"], [])
         self.assertTrue(self.results()[0]["graders"][0]["passed"])
 
+    def test_plugin_root_and_quality_rule_are_copies_inside_the_sandbox(self):
+        self.run_suite("no-verdict")
+        saw = self.fake_saw()
+        prompt = saw["argv"][-1]
+        plugin = next(line.split(None, 1)[1] for line in prompt.splitlines() if line.startswith("pluginRoot:"))
+        rule = next(line.split(None, 1)[1] for line in prompt.splitlines() if line.startswith("qualityRule:"))
+        self.assertTrue(plugin.startswith(saw["sandbox"] + os.sep), plugin)
+        self.assertEqual(rule, os.path.join(plugin, "docs", "rules", "quality.md"))
+        self.assertEqual(saw["plugin_has"], {"roles": True, "evals": False, "git": False})
+
 
 class RecordTest(RunnerCase):
-    def test_record_fields_and_usage_totals(self):
+    def test_record_holds_the_fields_and_passing_graders_of_a_run(self):
         code = self.run_suite("worker-pass")
         record = self.results()[0]
         self.assertEqual(code, 0)
         self.assertEqual(record["outcome"], "pass")
-        for key in ("case", "run", "worker_model", "worker_effort", "graders", "outcome", "duration_s", "usage"):
+        for key in ("case", "run", "suite", "worker_model", "worker_effort", "graders", "outcome",
+                    "duration_s", "usage", "rollouts", "sandbox"):
             self.assertIn(key, record)
         self.assertEqual([g["type"] for g in record["graders"]], ["hidden_tests", "verdict", "diff_scope", "gh_log"])
         self.assertTrue(all(g["passed"] for g in record["graders"]), record["graders"])
-        self.assertEqual((record["usage"]["input"], record["usage"]["output"]), (1000, 100))
+
+    def test_record_sums_the_usage_of_all_rollouts(self):
+        self.run_suite("worker-pass")
+        usage = self.results()[0]["usage"]
+        self.assertEqual((usage["input"], usage["output"]), (1000, 100))
+
+    def test_run_copies_every_rollout(self):
+        self.run_suite("worker-pass")
         names = sorted(p.name for p in (self.out / CASE / "run-1" / "rollouts").iterdir())
         self.assertEqual(names, ["rollout-root.jsonl", "rollout-worker.jsonl"])
 
@@ -194,17 +224,49 @@ class RecordTest(RunnerCase):
         self.assertIn("does not exist", verdict["detail"])
         self.assertEqual(record["last_message"], "final words of the dispatcher")
 
-    def test_sandbox_denial_marks_error(self):
+    def test_denial_in_a_tool_output_of_a_failed_run_marks_error(self):
         self.run_suite("denied")
         record = self.results()[0]
         self.assertEqual(record["outcome"], "error")
         self.assertIn("sandbox denied", record["error"])
 
+    def test_denial_in_a_run_that_passes_every_grader_stays_a_pass(self):
+        self.run_suite("denied-pass")
+        self.assertEqual(self.results()[0]["outcome"], "pass")
+
+    def test_denial_text_outside_a_tool_output_stays_a_failure(self):
+        self.run_suite("quoted")
+        self.assertEqual(self.results()[0]["outcome"], "fail")
+
     def test_nonzero_exit_without_events_marks_error(self):
         self.run_suite("crash")
         record = self.results()[0]
         self.assertEqual(record["outcome"], "error")
-        self.assertIn("exit 3", record["error"])
+        self.assertIn("codex exit 3", record["error"])
+
+    def test_nonzero_exit_after_events_marks_error_with_the_last_stderr_line(self):
+        self.run_suite("crash-late")
+        record = self.results()[0]
+        self.assertEqual(record["outcome"], "error")
+        self.assertEqual(record["error"], "codex exit 4: boom")
+
+    def test_replaced_auth_link_copies_the_token_back_to_the_operator_file(self):
+        auth = self.home / ".codex" / "auth.json"
+        auth.chmod(0o644)
+        stderr = io.StringIO()
+        with contextlib.redirect_stderr(stderr):
+            self.run_suite("replace-auth")
+        self.assertEqual(auth.read_text(), '{"token": "refreshed"}')
+        self.assertFalse(auth.is_symlink())
+        self.assertEqual(auth.stat().st_mode & 0o777, 0o600)
+        self.assertEqual(len(stderr.getvalue().splitlines()), 1)
+
+    def test_unchanged_auth_link_leaves_the_operator_file_alone(self):
+        stderr = io.StringIO()
+        with contextlib.redirect_stderr(stderr):
+            self.run_suite("no-verdict")
+        self.assertEqual((self.home / ".codex" / "auth.json").read_text(), '{"token": "secret"}')
+        self.assertEqual(stderr.getvalue(), "")
 
     def test_timeout_marks_error(self):
         real = run_evals.load_cases
@@ -218,17 +280,24 @@ class RecordTest(RunnerCase):
         self.assertEqual(record["outcome"], "error")
         self.assertIn("timeout after 1s", record["error"])
 
-    def test_summary_means_and_errors_apart(self):
+    @staticmethod
+    def summary_of_records():
         def record(case, outcome, hidden, input_tokens, output_tokens):
             return {"case": case, "outcome": outcome, "graders": [{"type": "hidden_tests", "passed": hidden}],
                     "usage": {"input": input_tokens, "output": output_tokens}}
-        records = [record("a", "pass", True, 100, 10), record("a", "fail", False, 300, 30),
-                   record("a", "error", False, 9000, 900), record("b", "pass", True, 50, 5)]
-        summary = run_evals.summarize(records)
+        return run_evals.summarize([
+            record("a", "pass", True, 100, 10), record("a", "fail", False, 300, 30),
+            record("a", "error", False, 9000, 900), record("b", "pass", True, 50, 5)])
+
+    def test_summary_counts_errors_apart_from_failures(self):
+        summary = self.summary_of_records()
         self.assertEqual((summary["cases"]["a"]["errors"], summary["cases"]["a"]["failed"]), (1, 1))
+        self.assertEqual(summary["suite"]["runs"], 4)
+
+    def test_summary_means_skip_error_runs(self):
+        summary = self.summary_of_records()
         self.assertEqual(summary["cases"]["a"]["hidden_tests_pass_rate"], 0.5)
         self.assertEqual(summary["cases"]["a"]["mean_input_tokens"], 200)
-        self.assertEqual(summary["suite"]["runs"], 4)
         self.assertEqual(summary["suite"]["mean_output_tokens"], round((10 + 30 + 5) / 3, 3))
 
     def test_summary_json_is_written(self):
@@ -239,6 +308,10 @@ class RecordTest(RunnerCase):
 
 
 class OrderTest(unittest.TestCase):
+    def setUp(self):
+        self.out = tempfile.mkdtemp(prefix="run-evals-order-")
+        self.addCleanup(shutil.rmtree, self.out, ignore_errors=True)
+
     def test_large_cases_run_last(self):
         cases = run_evals.load_cases(str(ROOT / "evals"), "worker")
         with mock.patch.object(run_evals, "load_cases", return_value=cases), \
@@ -248,11 +321,35 @@ class OrderTest(unittest.TestCase):
             run_case.side_effect = lambda case, suite, n, args, run_dir: {
                 "case": case["name"], "outcome": "pass", "graders": [], "usage": {"input": 0, "output": 0},
                 "error": None, "run": n}
-            run_evals.main(["--suite", "worker", "--runs", "1", "--out", tempfile.mkdtemp(),
+            run_evals.main(["--suite", "worker", "--runs", "1", "--out", self.out,
                            "--max-quota-percent", "off"])
         tags = ["large" in call.args[0]["tags"] for call in run_case.call_args_list]
         self.assertEqual(tags, sorted(tags))
         self.assertTrue(any(tags) and not all(tags))
+
+
+class MainErrorTest(unittest.TestCase):
+    def test_a_sandbox_failure_prints_one_line_and_exits_nonzero(self):
+        out = tempfile.mkdtemp(prefix="run-evals-error-")
+        self.addCleanup(shutil.rmtree, out, ignore_errors=True)
+        stderr = io.StringIO()
+        with mock.patch.object(run_evals, "run_case", side_effect=RuntimeError("git init failed")), \
+                contextlib.redirect_stderr(stderr):
+            code = run_evals.main(["--suite", "worker", "--case", CASE, "--runs", "1", "--out", out,
+                                   "--max-quota-percent", "off"])
+        self.assertNotEqual(code, 0)
+        self.assertEqual(stderr.getvalue(), "error: git init failed\n")
+
+    def test_a_case_error_in_a_run_prints_one_line_and_exits_nonzero(self):
+        out = tempfile.mkdtemp(prefix="run-evals-error-")
+        self.addCleanup(shutil.rmtree, out, ignore_errors=True)
+        stderr = io.StringIO()
+        with mock.patch.object(run_evals, "run_case", side_effect=run_evals.CaseError("no issue number")), \
+                contextlib.redirect_stderr(stderr):
+            code = run_evals.main(["--suite", "worker", "--case", CASE, "--runs", "1", "--out", out,
+                                   "--max-quota-percent", "off"])
+        self.assertNotEqual(code, 0)
+        self.assertEqual(stderr.getvalue(), "error: no issue number\n")
 
 
 def write_root_rollout(run_dir, samples):

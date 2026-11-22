@@ -2,12 +2,14 @@
 """Run the worker and checker eval cases on `codex exec` and grade each run.
 
     python3 scripts/run_evals.py --suite worker|checker [--case <glob>] [--tag <tag>]
-        [--runs N] [--out <dir>] [--worker-model <id>] [--worker-effort <level>] [--keep]
+        [--runs N] [--out <dir>] [--worker-model <id>] [--worker-effort <level>]
+        [--max-quota-percent <p>|off] [--keep]
 
 Ports `scripts/run-evals.py` of upstream tag issue-flow--v0.21.0, which uses `claude -p`.
 Each run gets a temporary sandbox: a git repo with a local bare origin, a tracker.json
-that the fake `gh` in evals/fakegh/ serves, and an isolated CODEX_HOME. The isolated home
-links auth.json from the operator's Codex home, never copies it, and holds the role files
+that the fake `gh` serves, a copy of the plugin tree, and an isolated CODEX_HOME. The
+copy leaves out evals/, so the agent cannot read the hidden tests or a reference patch.
+The isolated home links auth.json from the operator's Codex home and holds the role files
 of this working tree. The fake `gh` is first on PATH, so no run reaches a real forge.
 The `codex` binary comes from IFE_CODEX, so the tests use a fake and spend nothing.
 
@@ -35,7 +37,9 @@ import conformance  # noqa: E402
 import usage  # noqa: E402
 
 ROOT = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-FAKE_GH_DIR = os.path.join(ROOT, "evals", "fakegh")
+# The sandbox copy leaves these out. The agent can read the whole disk, so the hidden tests
+# and the reference patches of evals/ must not sit in any path that it is told about.
+PLUGIN_COPY_IGNORE = shutil.ignore_patterns(".git", "evals", ".worktrees", ".claude")
 DISPATCHER_MODEL = "gpt-6-luna"
 DEFAULT_TIMEOUT_S = 900
 FAKE_TOKEN = "ife-eval-fake-token-without-access"
@@ -151,9 +155,19 @@ def git(cwd, *args):
     return result.stdout.strip()
 
 
+def plugin_dir(sandbox):
+    return os.path.join(sandbox, "plugin")
+
+
+def fake_gh_dir(sandbox):
+    return os.path.join(sandbox, "fakegh")
+
+
 def build_sandbox(case):
     """Create the temp dir, the fixture repo with a local bare origin, and the tracker."""
     sandbox = tempfile.mkdtemp(prefix="ife-")
+    shutil.copytree(ROOT, plugin_dir(sandbox), ignore=PLUGIN_COPY_IGNORE)
+    shutil.copytree(os.path.join(ROOT, "evals", "fakegh"), fake_gh_dir(sandbox))
     repo = os.path.join(sandbox, "repo")
     if case["fixture_path"]:
         shutil.copytree(case["fixture_path"], repo)
@@ -189,7 +203,7 @@ def build_sandbox(case):
     os.makedirs(zdotdir)
     for name in (".zshenv", ".zprofile"):
         with open(os.path.join(zdotdir, name), "w") as handle:
-            handle.write(f'export PATH="{FAKE_GH_DIR}:$PATH"\n')
+            handle.write(f'export PATH="{fake_gh_dir(sandbox)}:$PATH"\n')
     return sandbox, repo
 
 
@@ -234,12 +248,13 @@ def host_env_kept(name):
 def sandbox_env(sandbox, codex_home):
     """The run's environment: the allowed host variables, the fake gh, the isolated home, and git with no host setup.
 
-    The fake gh is first on PATH, and GH_TOKEN and GITHUB_TOKEN are a fake token. Git reads no
+    The fake gh is first on PATH, SHELL is zsh (the ZDOTDIR files cover zsh only), and GH_TOKEN and GITHUB_TOKEN are a fake token. Git reads no
     global or system config, so it has no credential helper; ssh for git fails, and git never prompts.
     """
     env = {name: value for name, value in os.environ.items() if host_env_kept(name)}
     env.update(
-        PATH=FAKE_GH_DIR + os.pathsep + env.get("PATH", ""),
+        PATH=fake_gh_dir(sandbox) + os.pathsep + env.get("PATH", ""),
+        SHELL="/bin/zsh",
         CODEX_HOME=codex_home,
         IFE_TRACKER=os.path.join(sandbox, "tracker.json"),
         IFE_GH_LOG=os.path.join(sandbox, "gh-log.jsonl"),
@@ -305,18 +320,18 @@ def build_codex_home(home, suite, worker_model=None, worker_effort=None):
     return role_key(text, "model"), role_key(text, "model_reasoning_effort")
 
 
-def dispatcher_prompt(case, suite, head_sha, worktree):
+def dispatcher_prompt(case, suite, head_sha, worktree, plugin):
     """Return the Codex dispatcher prompt: spawn one role with `fork_turns: "none"` and the brief.
 
     The case prompt is the upstream prompt for Claude Code, and its brief is what carries over.
-    The brief names this working tree as `pluginRoot`, and the worktree of the run.
+    The brief names the sandbox copy of the plugin as `pluginRoot`, and the worktree of the run.
     """
-    brief = brief_of(case).replace("{plugin_dir}", ROOT)
+    brief = brief_of(case).replace("{plugin_dir}", plugin)
     if head_sha:
         brief = brief.replace("{head_sha}", head_sha)
     brief = brief.rstrip("\n") + f"\nworktree:     {worktree}\n"
     if suite == "worker":
-        brief += f"qualityRule:  {os.path.join(ROOT, 'docs', 'rules', 'quality.md')}\n"
+        brief += f"qualityRule:  {os.path.join(plugin, 'docs', 'rules', 'quality.md')}\n"
     role = SUITES[suite][0]
     number = re.search(r"#(\d+)", brief_field(brief, "issue") or "").group(1)
     target = "verdict.json" if suite == "worker" else "checker-verdict.json"
@@ -338,13 +353,9 @@ def dispatcher_prompt(case, suite, head_sha, worktree):
 # ---------------------------------------------------------------- codex
 
 
-def codex_command():
-    return shlex.split(os.environ.get("IFE_CODEX", "codex"))
-
-
 def exec_argv(repo, last_message, prompt):
     """Fact 11: `codex exec` has no `-a` flag, so approval comes from `-c approval_policy="never"`."""
-    return [*codex_command(), "exec", "-m", DISPATCHER_MODEL, "--json",
+    return [*shlex.split(os.environ.get("IFE_CODEX", "codex")), "exec", "-m", DISPATCHER_MODEL, "--json",
             "-c", 'approval_policy="never"', "-C", repo, "-o", last_message, prompt]
 
 
@@ -358,20 +369,12 @@ def run_codex(argv, cwd, env, timeout_s):
     except subprocess.TimeoutExpired:
         # A killed run leaves no result; stop the whole tree so no child keeps working.
         os.killpg(process.pid, signal.SIGTERM)
-        stdout, stderr = process.communicate()
-        return process.returncode, stdout, stderr, True
-
-
-def parse_events(stdout):
-    events = []
-    for line in (stdout or "").splitlines():
         try:
-            event = json.loads(line)
-        except ValueError:
-            continue
-        if isinstance(event, dict):
-            events.append(event)
-    return events
+            stdout, stderr = process.communicate(timeout=10)
+        except subprocess.TimeoutExpired:
+            os.killpg(process.pid, signal.SIGKILL)
+            stdout, stderr = process.communicate()
+        return process.returncode, stdout, stderr, True
 
 
 def read_rollouts(home):
@@ -381,14 +384,43 @@ def read_rollouts(home):
 
 
 def sandbox_denied(rollouts):
-    """True when the rollout of a spawned agent shows a command that the sandbox refused."""
+    """True when a tool output in the rollout of a spawned agent shows a command that the sandbox refused.
+
+    Text that the agent read or wrote is not a denial, so only `function_call_output` lines count.
+    """
     for row in rollouts:
         if row["role"] == "root":
             continue
         with open(row["path"], errors="replace") as handle:
-            if SANDBOX_DENIAL in handle.read():
-                return True
+            for line in handle:
+                if SANDBOX_DENIAL not in line:
+                    continue
+                try:
+                    payload = json.loads(line).get("payload")
+                except ValueError:
+                    continue
+                if isinstance(payload, dict) and payload.get("type") == "function_call_output" \
+                        and SANDBOX_DENIAL in json.dumps(payload.get("output")):
+                    return True
     return False
+
+
+def restore_auth(codex_home):
+    """Copy a token that Codex wrote over the auth.json link back to the operator's file.
+
+    Codex writes auth.json through a temporary file and a rename (codex-harness, "auth.json is written through a temporary file"). When
+    that replaces the link, the refreshed token would die with the sandbox, and the operator's
+    file would keep a refresh token that Codex has retired.
+    """
+    link = os.path.join(codex_home, "auth.json")
+    if os.path.islink(link) or not os.path.isfile(link):
+        return
+    target = operator_auth()
+    temporary = target + ".ife-tmp"
+    shutil.copyfile(link, temporary)
+    os.chmod(temporary, 0o600)
+    os.replace(temporary, target)
+    print(f"restored a refreshed auth.json to {target}", file=sys.stderr)
 
 
 # ---------------------------------------------------------------- graders
@@ -680,22 +712,15 @@ GRADERS = {"gh_log": grade_gh_log, "hidden_tests": grade_hidden_tests, "verdict"
 # ---------------------------------------------------------------- one run
 
 
-def read_text(path):
-    if not os.path.isfile(path):
-        return ""
-    with open(path, errors="replace") as handle:
-        return handle.read()
-
-
 def run_case(case, suite, run_number, args, run_dir):
     """Run one case once and return its record."""
     sandbox, repo = build_sandbox(case)
     state = start_state(case, sandbox, repo)
     codex_home = os.path.join(sandbox, "codex-home")
     model, effort = build_codex_home(codex_home, suite, args.worker_model, args.worker_effort)
-    brief = brief_of(case).replace("{plugin_dir}", ROOT)
+    brief = brief_of(case).replace("{plugin_dir}", plugin_dir(sandbox))
     worktree = make_worktree(case, suite, repo, brief, state["head_sha"])
-    prompt = dispatcher_prompt(case, suite, state["head_sha"], worktree)
+    prompt = dispatcher_prompt(case, suite, state["head_sha"], worktree, plugin_dir(sandbox))
     last_message = os.path.join(sandbox, "last-message.txt")
     timeout_s = case.get("timeout_s", DEFAULT_TIMEOUT_S)
 
@@ -703,15 +728,14 @@ def run_case(case, suite, run_number, args, run_dir):
     code, stdout, stderr, timed_out = run_codex(exec_argv(repo, last_message, prompt), repo,
                                                 sandbox_env(sandbox, codex_home), timeout_s)
     duration = time.time() - started
-    events = parse_events(stdout)
+    restore_auth(codex_home)
     rollouts = read_rollouts(codex_home)
     error = None
     if timed_out:
         error = f"timeout after {timeout_s}s"
-    elif code != 0 and not events:
-        error = f"codex exit {code} with no events: {(stderr or stdout or '').strip()[-300:]}"
-    elif sandbox_denied(rollouts):
-        error = "the sandbox denied a command of the agent"
+    elif code != 0:
+        last_line = next((line for line in reversed((stderr or "").splitlines()) if line.strip()), "")
+        error = f"codex exit {code}: {last_line.strip()[:300]}"
 
     os.makedirs(run_dir, exist_ok=True)
     for name, text in (("codex-stdout.jsonl", stdout), ("codex-stderr.txt", stderr)):
@@ -720,7 +744,7 @@ def run_case(case, suite, run_number, args, run_dir):
     for name in ("gh-log.jsonl", "tracker.json"):
         if os.path.exists(os.path.join(sandbox, name)):
             shutil.copyfile(os.path.join(sandbox, name), os.path.join(run_dir, name))
-    # The root rollouts carry the quota samples of the run. The others show why an agent failed.
+    # The root rollout carries the quota samples of the run. The others show why an agent failed.
     os.makedirs(os.path.join(run_dir, "rollouts"), exist_ok=True)
     for row in rollouts:
         shutil.copyfile(row["path"], os.path.join(run_dir, "rollouts", os.path.basename(row["path"])))
@@ -735,7 +759,13 @@ def run_case(case, suite, run_number, args, run_dir):
             passed, detail = False, f"grader crashed: {crash!r}"
         graders.append({"type": grader["type"], "passed": passed, "detail": detail})
 
-    message = read_text(last_message).strip()[:LAST_MESSAGE_LIMIT]
+    if not error and not all(g["passed"] for g in graders) and sandbox_denied(rollouts):
+        error = "the sandbox denied a command of the agent"
+
+    message = ""
+    if os.path.isfile(last_message):
+        with open(last_message, errors="replace") as handle:
+            message = handle.read().strip()[:LAST_MESSAGE_LIMIT]
     if args.keep:
         kept = sandbox
     else:
@@ -896,7 +926,11 @@ def main(argv=None):
             print(f"stopped: {reason}; {len(plan) - index} run(s) not started")
             break
         run_dir = os.path.join(out, case["name"], f"run-{run_number}")
-        record = run_case(case, args.suite, run_number, args, run_dir)
+        try:
+            record = run_case(case, args.suite, run_number, args, run_dir)
+        except (CaseError, RuntimeError) as error:
+            print(f"error: {error}", file=sys.stderr)
+            return 2
         results["records"].append(record)
         write_json(os.path.join(out, "results.json"), results)
         print(summary_line(record), flush=True)

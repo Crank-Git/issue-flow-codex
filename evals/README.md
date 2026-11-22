@@ -44,7 +44,7 @@ SOFTWARE.
 |---|---|
 | `evals/worker/<case>/case.json` | One worker case: the prompt, the fixture, and the graders. |
 | `evals/worker/<case>/tracker.json` | The tracker state at the start of the case: one issue with its acceptance criteria. |
-| `evals/worker/<case>/hidden/` | The hidden tests. The agent never sees them. |
+| `evals/worker/<case>/hidden/` | The hidden tests. The sandbox of a run holds no copy of them. |
 | `evals/worker/<case>/reference.patch` | A reference solution. `tests/test_eval_cases.py` proves that the hidden tests pass with it. |
 | `evals/worker/_fixture/` | The small project of the cases tagged `small`. |
 | `evals/worker/_fixture_large/` | The large project of the cases tagged `large`. |
@@ -77,10 +77,15 @@ python3 scripts/run_evals.py --suite worker|checker [--case <glob>] [--tag <tag>
     [--keep]
 ```
 
-Each run has a new sandbox: a git repo with a local bare origin, the case tracker, the fake
-`gh` first on `PATH`, and an isolated `CODEX_HOME`. The isolated home links `auth.json` from
-`~/.codex/` (never a copy), holds `config.toml` with the `issue_flow` permission profile, and
-holds a copy of `roles/*.toml` in `agents/`. The runner never writes to `~/.codex/`.
+Each run has a new sandbox: a git repo with a local bare origin, the case tracker, a copy of
+the plugin tree (without `evals/`, `.git`, `.worktrees`, and `.claude`) that the brief names
+as `pluginRoot` and `qualityRule`, a copy of the fake `gh` first on `PATH`, and an isolated
+`CODEX_HOME`. The `:workspace` profile lets the agent read the whole disk, so the hidden
+tests and the reference patches stay out of every path that the brief names. The isolated home links `auth.json` from
+`~/.codex/`, holds `config.toml` with the `issue_flow` permission profile, and
+holds a copy of `roles/*.toml` in `agents/`. The runner writes to `~/.codex/` in one case: when Codex replaces
+the link with a refreshed token (codex-harness, "auth.json is written through a temporary file"), the runner copies that token back to
+`~/.codex/auth.json` (mode 600) and prints one line.
 
 - The dispatcher runs `codex exec -m gpt-6-luna` with `approval_policy="never"` and stdin
   closed. It spawns one `issue_worker` (worker suite) or `criteria_checker` (checker suite)
@@ -94,14 +99,15 @@ holds a copy of `roles/*.toml` in `agents/`. The runner never writes to `~/.code
 - `IFE_CODEX` replaces the `codex` binary. The tests use it with `tests/fake_codex.py`.
 
 The runner writes `results.json` and `summary.json` in `evals/results/<UTC time>/`, and
-`<case>/run-<n>/` with the Codex output, the `gh` log, and the root rollout files (for the
-quota samples). A record holds `case`, `run`, `worker_model`, `worker_effort`,
+`<case>/run-<n>/` with the Codex output, the `gh` log, and all rollout files (the root
+rollout holds the quota samples). A record holds `case`, `run`, `suite`, `worker_model`, `worker_effort`,
 `dispatcher_model`, `graders` (type, `passed`, `detail`), `outcome`, `error`, `duration_s`,
-`usage` (the `scripts/usage.py` totals of all rollouts of the run), and `last_message`.
+`usage` (the `scripts/usage.py` totals of all rollouts of the run), `rollouts` (path, id,
+role, model, and calls of each), `last_message`, and `sandbox` (its path with `--keep`, else null).
 
 The `outcome` is `pass` (every grader passed), `fail`, or `error`. A run is an `error` when it
-times out, when `codex` exits non-zero with no events, or when the sandbox refuses a command of
-the agent. `summary.json` counts errors apart from failures. Its pass rate, hidden-test pass
+times out, when `codex` exits non-zero (the error names the exit code and the last stderr line), or
+when a tool output of the agent shows a refused command and a grader failed. `summary.json` counts errors apart from failures. Its pass rate, hidden-test pass
 rate, and mean input and output tokens take only the runs that are not an `error`.
 
 ### Quota limit

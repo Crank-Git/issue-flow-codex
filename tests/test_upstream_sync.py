@@ -212,6 +212,12 @@ class SyncTest(unittest.TestCase):
         self.assertEqual((self.root / "rewritten.txt").read_text(), "port version\n")
         self.assertFalse((self.root / "deleted.txt").exists())
 
+    def test_report_headings_show_the_port_path(self):
+        self.run_sync("--to", "v2", "--report-only")
+        report = (self.root / "sync-report.md").read_text()
+        self.assertIn("### `rewritten.txt` (rewritten)", report)
+        self.assertNotIn("issue-flow/", report)
+
     def test_report_only_does_not_change_the_port_or_lock(self):
         old_lock = (self.root / "upstream.lock").read_bytes()
         self.assertEqual(self.run_sync("--to", "v2", "--report-only"), (0, ""))
@@ -328,6 +334,21 @@ class UpstreamPathTest(unittest.TestCase):
         report = (self.root / "sync-report.md").read_text()
         self.assertIn("evals/worker/case/case.json", report)
         self.assertIn('+{"v": 2}', report)
+
+    def test_sync_report_lists_added_and_deleted_eval_files_by_upstream_path(self):
+        (self.upstream / "evals" / "worker" / "new-case").mkdir()
+        (self.upstream / "evals" / "worker" / "new-case" / "case.json").write_text("{}\n")
+        (self.upstream / "evals" / "fakegh" / "gh").unlink()
+        (self.upstream / "evals" / "other" / "skip.txt").write_text("changed\n")
+        self.commit("v3")
+        self.run_tool("--import-evals", "v1")
+        self.commit_port()
+        self.assertEqual(self.run_tool("--to", "v3", "--report-only"), (0, ""))
+        report = (self.root / "sync-report.md").read_text()
+        added, deleted = report.split("## New upstream files without lock entries")[1].split("## Deleted upstream files")
+        self.assertIn("- `evals/worker/new-case/case.json`", added)
+        self.assertIn("- `evals/fakegh/gh`", deleted)
+        self.assertNotIn("evals/other", report)
 
 
 class SerializeTest(unittest.TestCase):

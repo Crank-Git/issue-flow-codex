@@ -106,6 +106,7 @@ enabled = true
 - **The Agent Plugin format loads no hooks.** A root `plugin.json` with an `agent-plugins.org` `$schema` gets no hooks. Source: `core-plugins/src/loader.rs:985-988`.
 - **Background processes do not notify the model on exit.** Source: `core/src/unified_exec/async_watcher.rs:155-160`. The default background timeout is 300 s. Source: `core/src/unified_exec/mod.rs:66-75`.
 - **Compaction.** After compaction, Codex queues SessionStart with `source = "compact"`. Source: `core/src/session/mod.rs:4783`.
+- **`auth.json` is written through a temporary file and a rename.** `FileAuthStorage::save` resolves a symlink at `auth.json` with `read_link` (up to 40 hops), writes `.auth-*` in the directory of the target, and renames it over the target. The link stays and the target file is replaced. Source: `login/src/auth/storage.rs` and `storage_file.rs` on the `main` branch of openai/codex (read 2026-11-22). The installed `codex-cli 0.167.1` binary holds `login/src/auth/storage.rs` but its strings do not show the write method, so the link handling of 0.167.1 is not confirmed. The runner copies a replaced `auth.json` back to the operator's file (`restore_auth` in `scripts/run_evals.py`).
 
 ## Known Codex issues that touch the port
 

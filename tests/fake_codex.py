@@ -7,8 +7,12 @@ runner gave it in --record, then acts as a dispatcher and a worker. --mode picks
 
     worker-pass   apply --patch in the worktree, commit, push, write --verdict
     no-verdict    change nothing and write no verdict
-    denied        like no-verdict, and the worker rollout shows a refused command
+    denied        like no-verdict, and a tool output of the worker shows a refused command
+    denied-pass   like worker-pass, with the same refused command in a tool output
+    quoted        like no-verdict, and the worker only quotes the refusal text in a message
+    replace-auth  like no-verdict, and replace the auth.json link with a file (a token refresh)
     crash         exit 3 with no output
+    crash-late    print an event, write "boom" to stderr, and exit 4
     hang          sleep until the runner kills it
 """
 
@@ -20,6 +24,12 @@ import time
 from pathlib import Path
 
 TOKENS = {"root": (100, 10), "worker": (900, 90)}
+DENIAL = "sandbox-exec: sandbox_apply: Operation not permitted\n"
+TOOL_OUTPUT = {"timestamp": "2026-11-22T10:00:03.000Z", "type": "response_item",
+               "payload": {"type": "function_call_output", "call_id": "c1", "output": DENIAL}}
+QUOTED = {"timestamp": "2026-11-22T10:00:03.000Z", "type": "response_item",
+          "payload": {"type": "message", "role": "assistant",
+                      "content": [{"type": "output_text", "text": "the docs show: " + DENIAL}]}}
 
 
 def write_rollout(home, name, role, input_tokens, output_tokens, extra=""):
@@ -57,7 +67,8 @@ def main(argv):
     home = Path(os.environ["CODEX_HOME"])
     repo = Path(option(argv, "-C"))
     last = option(argv, "-o")
-    hidden = [str(p) for p in repo.parent.rglob("hidden_test*.py")]
+    hidden = [str(p) for pattern in ("hidden_test*.py", "reference.patch") for p in repo.parent.rglob(pattern)]
+    plugin = Path(next(line.split(None, 1)[1] for line in argv[-1].splitlines() if line.startswith("pluginRoot:")))
     Path(settings["record"]).write_text(json.dumps({
         "argv": argv,
         "path_first": os.environ["PATH"].split(os.pathsep)[0],
@@ -69,16 +80,23 @@ def main(argv):
         "config": (home / "config.toml").read_text(),
         "stdin_is_devnull": os.fstat(0).st_rdev == os.stat(os.devnull).st_rdev,
         "hidden_during_run": hidden,
+        "sandbox": str(repo.parent),
+        "plugin_has": {"roles": (plugin / "roles").is_dir(), "evals": (plugin / "evals").exists(),
+                       "git": (plugin / ".git").exists()},
         "gh_on_path": subprocess.run(["which", "gh"], capture_output=True, text=True).stdout.strip(),
     }))
     if mode == "crash":
         sys.exit(3)
+    if mode == "replace-auth":
+        (home / "auth.json").unlink()
+        (home / "auth.json").write_text('{"token": "refreshed"}')
     if mode == "hang":
         time.sleep(60)
     write_rollout(home, "root", "root", *TOKENS["root"])
-    denial = "sandbox-exec: sandbox_apply: Operation not permitted\n" if mode == "denied" else ""
-    write_rollout(home, "worker", "issue_worker", *TOKENS["worker"], extra=denial)
-    if mode == "worker-pass":
+    extra = {"denied": TOOL_OUTPUT, "denied-pass": TOOL_OUTPUT, "quoted": QUOTED}.get(mode)
+    write_rollout(home, "worker", "issue_worker", *TOKENS["worker"],
+                  extra=json.dumps(extra) + "\n" if extra else "")
+    if mode in ("worker-pass", "denied-pass"):
         worktree = next((repo / ".worktrees").iterdir())
         git(worktree, "apply", settings["patch"])
         git(worktree, "add", "-A")
@@ -88,7 +106,10 @@ def main(argv):
         git(worktree, "push", "-q", "origin", branch)
         (repo / ".eval" / "verdict.json").write_text(Path(settings["verdict"]).read_text())
     Path(last).write_text("final words of the dispatcher\n")
-    print(json.dumps({"type": "thread.started", "thread_id": "root"}))
+    print(json.dumps({"type": "thread.started", "thread_id": "root"}), flush=True)
+    if mode == "crash-late":
+        print("boom", file=sys.stderr)
+        sys.exit(4)
 
 
 if __name__ == "__main__":

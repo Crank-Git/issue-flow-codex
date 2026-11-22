@@ -180,6 +180,15 @@ def source_text(repository, commit, path):
     return result.stdout.decode("utf-8", errors="replace").splitlines(keepends=True)
 
 
+def port_path(path):
+    """Return the path as it reads in the port: `issue-flow/` files lose their prefix."""
+    return path.removeprefix(UPSTREAM_PREFIX + "/")
+
+
+def is_ported_source(path):
+    return path.startswith(tuple(f"{prefix}/" for prefix in (UPSTREAM_PREFIX, *EVAL_SOURCES)))
+
+
 def sync_report(repository, old_commit, new_commit, old_paths, new_paths, entries):
     modes = {upstream_location(entry): entry["mode"] for entry in entries}
     lines = [f"# Upstream sync: {new_commit}", "", "## Changes to ported files", ""]
@@ -192,16 +201,15 @@ def sync_report(repository, old_commit, new_commit, old_paths, new_paths, entrie
         if old == new:
             continue
         changed.append(path)
-        lines += [f"### `{path}` ({modes[path]})", "", "```diff"]
-        lines.extend(difflib.unified_diff(old, new, fromfile=f"a/{path}", tofile=f"b/{path}"))
+        shown = port_path(path)
+        lines += [f"### `{shown}` ({modes[path]})", "", "```diff"]
+        lines.extend(difflib.unified_diff(old, new, fromfile=f"a/{shown}", tofile=f"b/{shown}"))
         lines += ["```", ""]
     if not changed:
         lines.append("No changes.")
-    plugin = UPSTREAM_PREFIX + "/"
-    added = sorted(path[len(plugin):] for path in (new_paths - old_paths) - modes.keys()
-                   if path.startswith(plugin))
-    deleted = sorted(path[len(plugin):] for path in old_paths - new_paths
-                     if path.startswith(plugin))
+    added = sorted(port_path(path) for path in (new_paths - old_paths) - modes.keys()
+                   if is_ported_source(path))
+    deleted = sorted(port_path(path) for path in old_paths - new_paths if is_ported_source(path))
     lines += ["", "## New upstream files without lock entries", ""]
     lines.extend(f"- `{path}`" for path in added)
     if not added:

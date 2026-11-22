@@ -704,3 +704,59 @@ class SpecSkillsRulePathTest(unittest.TestCase):
     def test_spec_update_gates_docs_rules_and_codex_writes(self):
         text = self.skill_text("spec-update")
         self.assertIn("anything under `docs/rules/` or `.codex/`", text)
+
+
+def agent_section(name, start, end=None):
+    root = Path(__file__).resolve().parent.parent
+    text = (root / "agents" / name).read_text()
+    part = text[text.index(start):]
+    if end:
+        part = part[:part.index(end, len(start))]
+    return " ".join(part.split())
+
+
+def turn_budget():
+    return agent_section("issue-worker.md", "## Turn budget", "## Return contract")
+
+
+class SpawnLimitTextTest(unittest.TestCase):
+    def test_worker_checkpoints_only_at_turn_budget(self):
+        text = turn_budget()
+        self.assertNotIn("fresh phase", text)
+        self.assertIn("Return `checkpoint` only when your turn budget is reached", text)
+
+    def test_phase_limit_does_not_stop_the_build(self):
+        text = turn_budget()
+        self.assertIn("A phase limit in a brief does not stop the build", text)
+        self.assertIn("`notesForPM`", text)
+
+    def test_remaining_names_no_pm_wait(self):
+        text = turn_budget()
+        self.assertIn("names only work that the next worker does", text)
+        self.assertIn("never a wait for the PM", text)
+
+    def test_worker_runs_conventions_test_command_once(self):
+        text = agent_section("issue-worker.md", "5. **Verify.**", "## Hard limits")
+        self.assertIn("touched tests while you build", text)
+        self.assertIn("`conventions` test command once, before you return `ready-to-merge`", text)
+
+    def test_ci_watcher_describes_suite_kind(self):
+        text = agent_section("ci-watcher.md", "## Inputs")
+        self.assertIn("kind: ci | deploy | suite", text)
+        self.assertIn("run `command` once in `worktree`", text)
+        self.assertIn('{"kind": "suite", "sha": "<sha>", "state": "success | failure | error", "url": null, "detail"', text)
+
+    def test_spec_skills_end_with_new_session_handoff(self):
+        sections = {
+            "project-planner": ("## Phase 5", "## Output checklist"),
+            "project-inherit": ("## Phase 5", "## Output checklist"),
+            "spec-to-issues": ("## 5", "## Rules"),
+            "spec-update": ("5. **Handoff.**", "## Refresh mode"),
+        }
+        root = Path(__file__).resolve().parent.parent
+        for skill, (start, end) in sections.items():
+            with self.subTest(skill=skill):
+                text = (root / "skills" / skill / "SKILL.md").read_text()
+                part = " ".join(text[text.index(start):].split("\n" + end)[0].split())
+                self.assertIn("start a new Codex session with `codex -p issue-flow -a never`", part)
+                self.assertIn("`$issue-flow:issue-flow`", part)

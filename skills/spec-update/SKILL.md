@@ -65,7 +65,9 @@ external interfaces from fetched docs only, mockup and diagram obligations inclu
    resolved. A spec that was `approved` returns to `approved` only through the user's
    explicit approval of this round; record the round in `## Changelog`.
 5. **Handoff.** Commit and push, then point at `$issue-flow:spec-to-issues` — its `id` dedup
-   means only the new or changed `planned` work becomes issues.
+   means only the new or changed `planned` work becomes issues. Your last message tells the
+   operator to start a new Codex session with `codex -p issue-flow -a never`, then run
+   `$issue-flow:issue-flow` in it.
 
 ## Refresh mode — migrate the package to the current format
 

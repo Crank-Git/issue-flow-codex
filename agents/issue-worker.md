@@ -351,7 +351,11 @@ and it is the only check that must happen before you spend a turn.
 3. Absent, empty, `pending`, `TBD`, or `n/a` on a multi-member batch → **return `blocked`
    now**, with
    `blocker: "crossCheck absent — the batch cross-check had not run when I was launched"`.
-4. Present → fetch it. It must resolve to a comment on this batch's tracking issue. Broken,
+4. Present → fetch it with the forge CLI, never with a web page fetch: the repository can be
+   private, and a web fetch fails on it. The comment id is the number after `issuecomment-`.
+   GitHub: `gh api repos/<owner>/<repo>/issues/comments/<id> --jq .body`. Gitea:
+   `tea api /repos/<owner>/<repo>/issues/comments/<id>`. It must resolve to a comment on this
+   batch's tracking issue. Broken,
    404, or pointing somewhere else → **return `blocked`** with the URL and what you got.
 5. Resolves → read it. It records what a sibling already built, which plan was narrowed and
    why, and which shared resources are yours. Then start the runbook.

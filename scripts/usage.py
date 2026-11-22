@@ -196,12 +196,13 @@ def find_rollouts(args, since):
         raise SelectionError("usage.py: give --session, or --cwd with --since")
     root = sessions_root()
     paths = sorted(glob.glob(os.path.join(root, "**", "rollout-*.jsonl"), recursive=True))
+    cwd = os.path.realpath(args.cwd) if args.cwd else None
     selected = []
     for path in paths:
         rollout = read_rollout(path)
         if args.session and args.session not in (rollout["id"], rollout["session_id"]):
             continue
-        if args.cwd and rollout["cwd"] != args.cwd:
+        if cwd and (not rollout["cwd"] or os.path.realpath(rollout["cwd"]) != cwd):
             continue
         if since is not None and (rollout["last_time"] is None or rollout["last_time"] < since):
             continue

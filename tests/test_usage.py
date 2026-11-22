@@ -123,6 +123,25 @@ class SelectionTest(unittest.TestCase):
         _, report, _ = self.run_report(["--cwd", "/work/proj", "--since", "2026-11-01T00:00:00Z"])
         self.assertEqual({t["id"] for t in report["threads"]}, {ROOT_ID, WORKER_ID})
 
+    def test_cwd_resolves_a_relative_path_and_a_symlink(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            project = Path(tmp).resolve() / "proj"
+            project.mkdir()
+            line = {"timestamp": "2026-11-20T10:00:00Z", "type": "session_meta",
+                    "payload": {"id": "c1", "session_id": "c1", "cwd": str(project)}}
+            day = Path(tmp) / "sessions" / "2026" / "11" / "20"
+            day.mkdir(parents=True)
+            (day / "rollout-c1.jsonl").write_text(json.dumps(line) + "\n")
+            link = Path(tmp) / "link"
+            link.symlink_to(project)
+            previous = os.getcwd()
+            os.chdir(project)
+            self.addCleanup(os.chdir, previous)
+            for given in (".", str(link)):
+                code, out, _ = run_main(["--cwd", given, "--json"], {"CODEX_HOME": tmp})
+                self.assertEqual(code, 0, given)
+                self.assertEqual([t["id"] for t in json.loads(out)["threads"]], ["c1"])
+
     def test_since_limits_quota_samples_not_totals(self):
         _, report, _ = self.run_report(["--cwd", "/work/proj", "--since", "2026-11-21T00:00:00Z"])
         self.assertEqual(report["quota"]["share"], 8)

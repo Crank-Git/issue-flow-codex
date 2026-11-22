@@ -251,6 +251,8 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li>FR-run-budget-28 — When <code>runBudgetPercent</code> is <code>null</code>, or the rollout has no <code>rate_limits</code>, the spawn guard applies no budget rule.
 </li>
+<li>FR-run-budget-28a — The run budget has a resolution of 1 point, because <code>used_percent</code> is a whole number. A budget of 1 trips at the next whole-number step of <code>used_percent</code>, which can be less than one full point of use.
+</li>
 </ul>
 <h4 id="run-budget-pm-behaviour">PM behaviour</h4>
 <ul>

@@ -1012,7 +1012,9 @@ activity:
    out of a rewrite and it is gone, and by design nothing else holds it.
    Each digest has one `quota:` line: `quota: <run share>% of <budget>% budget`, or
    `quota: <run share>%, no budget`. Take the run share from
-   `python3 <pluginRoot>/scripts/usage.py --session <id> --json` (`quota.share`).
+   `python3 <pluginRoot>/scripts/usage.py --cwd "$PWD" --since <run start> --json` (`quota.share`).
+   The run start is the time of your first action in this session. Do not guess a
+   session id: the command selects the rollouts by directory and time.
    The **first digest of the session** also states the
    active run configuration in one line (concurrency, run length, PR granularity,
    authority, practices).

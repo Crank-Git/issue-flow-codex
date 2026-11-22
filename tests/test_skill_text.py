@@ -716,7 +716,8 @@ class RunBudgetTextTest(unittest.TestCase):
         text = " ".join(section("SKILL.md", "### Status reporting", "### Compatibility").split())
         self.assertIn("`quota: <run share>% of <budget>% budget`", text)
         self.assertIn("`quota: <run share>%, no budget`", text)
-        self.assertIn("scripts/usage.py --session <id> --json", text)
+        self.assertIn('scripts/usage.py --cwd "$PWD" --since <run start> --json', text)
+        self.assertNotIn("--session <id>", text)
 
     def test_skill_budget_deny_drains_and_stops(self):
         text = self.stop_rule()
@@ -844,6 +845,15 @@ class WorkerRoleSpawnLimitTextTest(unittest.TestCase):
                 self.assertIn("start a new Codex session with `codex -p issue-flow -a never`", part)
                 self.assertIn("`$issue-flow:issue-flow`", part)
 
+class CrossCheckFetchTextTest(unittest.TestCase):
+    def test_the_worker_fetches_the_cross_check_with_the_forge_cli(self):
+        root = Path(__file__).resolve().parent.parent
+        for path in ("agents/issue-worker.md", "roles/issue-worker.toml"):
+            text = " ".join((root / path).read_text().split())
+            self.assertIn("gh api repos/<owner>/<repo>/issues/comments/<id> --jq .body", text, path)
+            self.assertIn("never with a web page fetch", text, path)
+
 
 if __name__ == "__main__":
     unittest.main()
+

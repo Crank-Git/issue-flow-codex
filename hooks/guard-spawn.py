@@ -85,44 +85,44 @@ FORK_REASON = (
     "issue-flow spawn guard: this spawn_agent call has fork_turns FORK_TURNS. A subagent "
     "with fork_turns \"all\" (the default) inherits this whole session, including the PM "
     "loop, and nothing in it says to stop after one issue. Call spawn_agent again and "
-    "pass fork_turns \"none\"."
+    "pass fork_turns \"none\""
 )
 
 ROLE_REASON = (
     "issue-flow spawn guard: task_name TASK_NAME is a worker name, but agent_type is "
-    "AGENT_TYPE. Call spawn_agent again and pass agent_type \"issue_worker\"."
+    "AGENT_TYPE. Call spawn_agent again and pass agent_type \"issue_worker\""
 )
 
 ALLOWLIST_REASON = (
     "issue-flow spawn guard: agent_type AGENT_TYPE is not a plugin role (task_name TASK_NAME). "
     "Allowed agent_type values: " + ", ".join(ROLE_PATTERNS) + ". Call spawn_agent again "
-    "with one of them."
+    "with one of them"
 )
 
 PATTERN_REASON = (
     "issue-flow spawn guard: task_name TASK_NAME does not match agent_type AGENT_TYPE. "
-    "Allowed patterns: PATTERNS."
+    "Allowed patterns: PATTERNS"
 )
 
 CAP_NOTE = (
     " One issue uses at most five workers. Label the issue status:blocked and comment with "
-    "the chain of remaining notes."
+    "the chain of remaining notes"
 )
 
 REUSE_REASON = (
     "issue-flow spawn guard: task_name TASK_NAME was used by an earlier spawn in this session "
-    "(agent_type AGENT_TYPE). Allowed patterns: PATTERNS. Use the next name of the chain."
+    "(agent_type AGENT_TYPE). Allowed patterns: PATTERNS. Use the next name of the chain"
 )
 
 CHAIN_REASON = (
     "issue-flow spawn guard: task_name TASK_NAME needs an earlier spawn of PREDECESSOR in "
-    "this session (agent_type AGENT_TYPE). Allowed patterns: PATTERNS."
+    "this session (agent_type AGENT_TYPE). Allowed patterns: PATTERNS"
 )
 
 BUDGET_REASON = (
     "issue-flow spawn guard: this run used SHARE% of the weekly quota. The run budget is BUDGET%. "
     "Launch no new work. Drain the run: gate each live worker, post the status digest, park the "
-    "open issues, and end the turn."
+    "open issues, and end the turn"
 )
 
 

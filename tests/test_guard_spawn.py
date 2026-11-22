@@ -6,6 +6,7 @@ an encrypted token, so the guard cannot read it and no test sets it.
 """
 
 import copy
+import importlib.util
 import json
 import os
 import subprocess
@@ -65,6 +66,21 @@ class HookCase(unittest.TestCase):
 
     def assertAllowed(self, payload, env=None):
         self.assertIsNone(self.run_hook(payload, env))
+
+
+class DenyReasonEndTest(unittest.TestCase):
+    """Codex appends ". Tool: <name>" to a deny reason, so a final period would show as "..".
+    """
+
+    def test_no_deny_reason_ends_with_a_period(self):
+        sys.path[:0] = [str(ROOT / "hooks"), str(ROOT / "scripts")]
+        self.addCleanup(lambda: sys.path.__delitem__(slice(0, 2)))
+        spec = importlib.util.spec_from_file_location("guard_spawn", HOOK)
+        module = importlib.util.module_from_spec(spec)
+        spec.loader.exec_module(module)
+        for name in ("FORK_REASON", "ROLE_REASON", "ALLOWLIST_REASON", "PATTERN_REASON", "CAP_NOTE",
+                     "REUSE_REASON", "CHAIN_REASON", "BUDGET_REASON"):
+            self.assertFalse(getattr(module, name).rstrip().endswith("."), name)
 
 
 class GuardSpawnTest(HookCase):

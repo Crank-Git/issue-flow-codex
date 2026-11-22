@@ -73,6 +73,7 @@ ChatGPT usage page. This feature adds two parts:
 - FR-run-budget-26 — When the budget is reached, the spawn guard still allows `criteria_checker`, `ci_watcher`, and `deploy_verifier`, so that live work can finish its gate.
 - FR-run-budget-27 — The deny reason states the run share, the budget, and the drain steps: gate the live workers, post the digest, park the open issues, and end the turn.
 - FR-run-budget-28 — When `runBudgetPercent` is `null`, or the rollout has no `rate_limits`, the spawn guard applies no budget rule.
+- FR-run-budget-32 — The run budget has a resolution of 1 point, because `used_percent` is a whole number. A budget of 1 trips at the next whole-number step of `used_percent`, which can be less than one full point of use.
 
 ### PM behaviour
 

@@ -14,8 +14,8 @@ Upstream total: 40 files, 10,882 lines.
 | Mode | Files | Lines |
 |---|---|---|
 | verbatim | 4 | 1,476 |
-| patched | 23 | 4,639 |
-| rewritten | 12 | 4,503 |
+| patched | 22 | 4,100 |
+| rewritten | 13 | 5,042 |
 | dropped | 1 | 264 |
 
 `patched` means a few path, name, or tool-name edits. `rewritten` means whole sections
@@ -25,7 +25,7 @@ change. The table below names the sections.
 
 | Upstream path | Lines | Mode | What changes | Feature |
 |---|---|---|---|---|
-| `README.md` | 539 | patched | Port credit and Codex install steps. | 00 |
+| `README.md` | 539 | rewritten | Port front page: credit, Codex install and setup, skill table, known limits. The reference body moves to `docs/how-it-works.md`, changed for Codex. | 00 |
 | `.claude-plugin/plugin.json` | 25 | dropped | Replaced by `.codex-plugin/plugin.json`. | 01 |
 | `hooks/hooks.json` | 26 | rewritten | Codex events, `$PLUGIN_ROOT`, matcher `spawn_agent$`, role guard entry. | 01 |
 | `hooks/preflight.py` | 333 | patched | Output wrapper, `source` line, `ran` line. The digest logic stays. | 01, 03 |

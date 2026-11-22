@@ -2,7 +2,7 @@
 id: run-budget
 feature: Run budget and usage report
 epic: "Epic 7: Spawn limits and run budget"
-status: issued
+status: built
 issues: [138, 139]
 mockups: []
 ---
@@ -51,8 +51,8 @@ ChatGPT usage page. This feature adds two parts:
 ### Quota share
 
 - FR-run-budget-12 — The quota share uses `rate_limits.primary.used_percent` and `rate_limits.primary.resets_at` from the `token_count` events of the root thread.
-- FR-run-budget-13 — Within one value of `resets_at`, the share is the last `used_percent` minus the first `used_percent`.
-- FR-run-budget-14 — When `resets_at` changes, the share adds the share of the previous window to the share of the new window. The new window starts from 0.
+- FR-run-budget-13 — Within one window, the share is the last `used_percent` minus the first `used_percent`. A window ends only when `resets_at` moves by more than 3600 s. A smaller move of `resets_at` stays in the same window.
+- FR-run-budget-14 — When a new window starts, the share adds the share of the previous window to the share of the new window. The new window starts from 0.
 - FR-run-budget-15 — When the root thread has no `rate_limits`, the quota share is `null`, and the report says "no quota data".
 
 ### Run budget setting
@@ -73,6 +73,7 @@ ChatGPT usage page. This feature adds two parts:
 - FR-run-budget-26 — When the budget is reached, the spawn guard still allows `criteria_checker`, `ci_watcher`, and `deploy_verifier`, so that live work can finish its gate.
 - FR-run-budget-27 — The deny reason states the run share, the budget, and the drain steps: gate the live workers, post the digest, park the open issues, and end the turn.
 - FR-run-budget-28 — When `runBudgetPercent` is `null`, or the rollout has no `rate_limits`, the spawn guard applies no budget rule.
+- FR-run-budget-32 — The run budget has a resolution of 1 point, because `used_percent` is a whole number. A budget of 1 trips at the next whole-number step of `used_percent`, which can be less than one full point of use.
 
 ### PM behaviour
 

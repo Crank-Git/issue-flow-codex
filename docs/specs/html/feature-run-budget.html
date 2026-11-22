@@ -158,7 +158,7 @@ body.rv-open .layout { padding-right:21rem; }
 </ul></aside>
 <main>
 <h1>Feature: Run budget and usage report</h1>
-<p class="meta">Epic 7: Spawn limits and run budget &nbsp; <span class="badge">issued</span></p>
+<p class="meta">Epic 7: Spawn limits and run budget &nbsp; <span class="badge">built</span></p>
 <h3 id="run-budget-purpose">Purpose</h3>
 <p>This feature lets the operator see and limit the quota of a PM run. It changes the built feature <a href="feature-loop-operations.html">Loop operations</a>: the run configuration, the digest, and the spawn guard.</p>
 <p>The run that <a href="page-spend-analysis.html">Quota use of an operator run</a> records used about 1.35 weekly quotas in 5.5 days, and nothing stopped it. The operator found out from the ChatGPT usage page. This feature adds two parts:</p>
@@ -213,9 +213,9 @@ body.rv-open .layout { padding-right:21rem; }
 <ul>
 <li>FR-run-budget-12 — The quota share uses <code>rate_limits.primary.used_percent</code> and <code>rate_limits.primary.resets_at</code> from the <code>token_count</code> events of the root thread.
 </li>
-<li>FR-run-budget-13 — Within one value of <code>resets_at</code>, the share is the last <code>used_percent</code> minus the first <code>used_percent</code>.
+<li>FR-run-budget-13 — Within one window, the share is the last <code>used_percent</code> minus the first <code>used_percent</code>. A window ends only when <code>resets_at</code> moves by more than 3600 s. A smaller move of <code>resets_at</code> stays in the same window.
 </li>
-<li>FR-run-budget-14 — When <code>resets_at</code> changes, the share adds the share of the previous window to the share of the new window. The new window starts from 0.
+<li>FR-run-budget-14 — When a new window starts, the share adds the share of the previous window to the share of the new window. The new window starts from 0.
 </li>
 <li>FR-run-budget-15 — When the root thread has no <code>rate_limits</code>, the quota share is <code>null</code>, and the report says "no quota data".
 </li>
@@ -250,6 +250,8 @@ body.rv-open .layout { padding-right:21rem; }
 <li>FR-run-budget-27 — The deny reason states the run share, the budget, and the drain steps: gate the live workers, post the digest, park the open issues, and end the turn.
 </li>
 <li>FR-run-budget-28 — When <code>runBudgetPercent</code> is <code>null</code>, or the rollout has no <code>rate_limits</code>, the spawn guard applies no budget rule.
+</li>
+<li>FR-run-budget-32 — The run budget has a resolution of 1 point, because <code>used_percent</code> is a whole number. A budget of 1 trips at the next whole-number step of <code>used_percent</code>, which can be less than one full point of use.
 </li>
 </ul>
 <h4 id="run-budget-pm-behaviour">PM behaviour</h4>

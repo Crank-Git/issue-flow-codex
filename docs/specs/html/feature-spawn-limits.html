@@ -158,7 +158,7 @@ body.rv-open .layout { padding-right:21rem; }
 </ul></aside>
 <main>
 <h1>Feature: Spawn limits</h1>
-<p class="meta">Epic 7: Spawn limits and run budget &nbsp; <span class="badge">issued</span></p>
+<p class="meta">Epic 7: Spawn limits and run budget &nbsp; <span class="badge">built</span></p>
 <h3 id="spawn-limits-purpose">Purpose</h3>
 <p>This feature puts hard limits on what the PM can spawn. It changes the built features <a href="feature-worker-dispatch.html">Worker dispatch</a> and <a href="feature-plugin-packaging.html">Plugin packaging and hooks</a>.</p>
 <p>In the run that <a href="page-spend-analysis.html">Quota use of an operator run</a> records, the PM made up a phase plan, ended each phase with a worker checkpoint, and spawned about 400 subagents outside the plugin roles. The skill text forbade none of it in a form that a hook could check. This feature moves the limits from prose into the spawn guard:</p>
@@ -215,7 +215,7 @@ body.rv-open .layout { padding-right:21rem; }
 <ul>
 <li>FR-spawn-limits-11 — The worker <code>task_name</code> pattern allows exactly five names for one issue: <code>worker_&lt;n&gt;</code>, <code>worker_&lt;n&gt;_c1</code>, <code>worker_&lt;n&gt;_c2</code>, <code>worker_&lt;n&gt;_e1</code>, and <code>worker_&lt;n&gt;_e1_c1</code>.
 </li>
-<li>FR-spawn-limits-12 — The spawn guard denies a worker name when the session has no spawn of its predecessor. <code>worker_&lt;n&gt;_c1</code> and <code>worker_&lt;n&gt;_e1</code> need <code>worker_&lt;n&gt;</code>. <code>worker_&lt;n&gt;_c2</code> needs <code>worker_&lt;n&gt;_c1</code>. <code>worker_&lt;n&gt;_e1_c1</code> needs <code>worker_&lt;n&gt;_e1</code>.
+<li>FR-spawn-limits-12 — The spawn guard denies a worker name when the session has no spawn of its predecessor. <code>worker_&lt;n&gt;_c1</code> and <code>worker_&lt;n&gt;_e1</code> need <code>worker_&lt;n&gt;</code>. <code>worker_&lt;n&gt;_c2</code> needs <code>worker_&lt;n&gt;_c1</code>. <code>worker_&lt;n&gt;_e1_c1</code> needs <code>worker_&lt;n&gt;_e1</code>. <code>fix_&lt;n&gt;_2</code> needs <code>fix_&lt;n&gt;</code>, and <code>fix_&lt;n&gt;_&lt;k&gt;</code> needs <code>fix_&lt;n&gt;_&lt;k-1&gt;</code>.
 </li>
 <li>FR-spawn-limits-13 — The deny reason for a name past the cap tells the PM to label the issue <code>status:blocked</code> and to comment with the chain of <code>remaining</code> notes.
 </li>
@@ -266,16 +266,16 @@ body.rv-open .layout { padding-right:21rem; }
 <h3 id="spawn-limits-task-names">Task names</h3>
 <div class="table-wrap"><table>
 <tr><th><code>agent_type</code></th><th>Allowed <code>task_name</code> for a PM spawn</th></tr>
-<tr><td><code>issue_worker</code></td><td><code>worker_&lt;n&gt;</code>, <code>worker_&lt;n&gt;_c1</code>, <code>worker_&lt;n&gt;_c2</code>, <code>worker_&lt;n&gt;_e1</code>, <code>worker_&lt;n&gt;_e1_c1</code></td></tr>
+<tr><td><code>issue_worker</code></td><td><code>worker_&lt;n&gt;</code>, <code>worker_&lt;n&gt;_c1</code>, <code>worker_&lt;n&gt;_c2</code>, <code>worker_&lt;n&gt;_e1</code>, <code>worker_&lt;n&gt;_e1_c1</code>, <code>fix_&lt;n&gt;</code>, <code>fix_&lt;n&gt;_&lt;k&gt;</code></td></tr>
 <tr><td><code>criteria_checker</code></td><td><code>check_&lt;n&gt;</code>, <code>check_&lt;n&gt;_2</code>, <code>check_&lt;n&gt;_3</code>, <code>check_&lt;n&gt;_4</code></td></tr>
 <tr><td><code>ci_watcher</code></td><td><code>ci_&lt;pr&gt;</code>, <code>ci_&lt;pr&gt;_r2</code>, <code>deploy_&lt;sha7&gt;</code>, <code>deploy_&lt;sha7&gt;_r2</code>, <code>suite_&lt;n&gt;</code>, <code>suite_&lt;n&gt;_r2</code></td></tr>
 <tr><td><code>deploy_verifier</code></td><td><code>verify_deploy_&lt;sha7&gt;</code></td></tr>
-<tr><td><code>explorer</code></td><td><code>locate_&lt;n&gt;_&lt;k&gt;</code>, <code>docs_&lt;n&gt;</code>, <code>crosscheck_&lt;n&gt;</code>, <code>batchreview_&lt;n&gt;</code></td></tr>
+<tr><td><code>explorer</code></td><td><code>locate_&lt;n&gt;_&lt;k&gt;</code>, <code>docs_&lt;n&gt;</code>, <code>crosscheck_&lt;n&gt;</code>, <code>batchreview_&lt;n&gt;</code>, <code>survey_&lt;k&gt;</code>, <code>deploylog_&lt;sha7&gt;</code></td></tr>
 <tr><td><code>code_auditor</code></td><td><code>code_auditor</code></td></tr>
 <tr><td><code>ux_explorer</code></td><td><code>ux_&lt;slug&gt;</code></td></tr>
-<tr><td><code>review_scribe</code></td><td><code>review_scribe</code>, <code>review_scribe_&lt;k&gt;</code></td></tr>
+<tr><td><code>review_scribe</code></td><td><code>review_scribe</code>, <code>review_scribe_&lt;k&gt;</code>, <code>review_scribe_&lt;slug&gt;</code></td></tr>
 </table></div>
-<p><code>&lt;n&gt;</code>, <code>&lt;pr&gt;</code>, and <code>&lt;k&gt;</code> are decimal numbers. <code>&lt;sha7&gt;</code> is seven lowercase hexadecimal characters. <code>&lt;slug&gt;</code> is lowercase letters, digits, and underscores.</p>
+<p><code>&lt;n&gt;</code>, <code>&lt;pr&gt;</code>, and <code>&lt;k&gt;</code> are decimal numbers. <code>&lt;sha7&gt;</code> is seven lowercase hexadecimal characters. For <code>ux_&lt;slug&gt;</code>, <code>&lt;slug&gt;</code> is lowercase letters, digits, and underscores. For <code>review_scribe_&lt;slug&gt;</code>, <code>&lt;slug&gt;</code> is lowercase letters, digits, and hyphens. <code>fix_&lt;n&gt;</code> is the batch-gate fix worker, where <code>&lt;n&gt;</code> is the batch or epic tracking issue, and <code>&lt;k&gt;</code> of <code>fix_&lt;n&gt;_&lt;k&gt;</code> starts at 2.</p>
 <h3 id="spawn-limits-user-flows">User flows</h3>
 <h4 id="spawn-limits-flow-1-the-spawn-guard-checks-a-pm-spawn">Flow 1 — The spawn guard checks a PM spawn</h4>
 <div class="diagram"><pre class="mermaid">flowchart TD

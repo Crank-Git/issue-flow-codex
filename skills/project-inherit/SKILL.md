@@ -71,7 +71,7 @@ against the code.
 
 Use `spawn_agent` to fan out **read-only survey agents** (`explorer`; one per area, in
 parallel) and have each return structured findings with `file:line` evidence. Set
-`fork_turns: "none"` and `model: "gpt-6-luna"` on every spawn. Check `list_agents`
+`fork_turns: "none"`, `model: "gpt-6-luna"`, and `task_name: "survey_<k>"` (`<k>` counts from 1) on every spawn. Check `list_agents`
 before each spawn. Size the fan-out to the repo — a small repo may merge areas, a
 monorepo may need one pass per package — but cover all of:
 
@@ -121,7 +121,7 @@ question budget is smaller, because the code answered the mechanical half. Ask a
 
 After each question message, end your turn and wait for the operator's answer. Continue
 the interview in a later turn. Use `spawn_agent` with `agent_type: "explorer"`,
-`fork_turns: "none"`, and `model: "gpt-6-luna"` for read-only surveys. Check
+`fork_turns: "none"`, `model: "gpt-6-luna"`, and `task_name: "survey_<k>"` for read-only surveys. Check
 `list_agents` before each spawn. If no slot is free, do that survey in your current
 thread.
 
@@ -186,6 +186,9 @@ $issue-flow:issue-flow            # build them
 
 Say explicitly how many features went out `built` (documented, no issues) versus
 `planned` (to be issued), so the user knows what the tracker is about to receive.
+
+Your last message tells the operator to start a new Codex session with
+`codex -p issue-flow -a never`, then run `$issue-flow:issue-flow` in it.
 
 ## Output checklist
 

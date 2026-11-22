@@ -2,7 +2,7 @@
 id: spawn-limits
 feature: Spawn limits
 epic: "Epic 7: Spawn limits and run budget"
-status: issued
+status: built
 issues: [135, 136, 137]
 mockups: []
 ---
@@ -52,7 +52,7 @@ worker count.
 ### Worker cap
 
 - FR-spawn-limits-11 — The worker `task_name` pattern allows exactly five names for one issue: `worker_<n>`, `worker_<n>_c1`, `worker_<n>_c2`, `worker_<n>_e1`, and `worker_<n>_e1_c1`.
-- FR-spawn-limits-12 — The spawn guard denies a worker name when the session has no spawn of its predecessor. `worker_<n>_c1` and `worker_<n>_e1` need `worker_<n>`. `worker_<n>_c2` needs `worker_<n>_c1`. `worker_<n>_e1_c1` needs `worker_<n>_e1`.
+- FR-spawn-limits-12 — The spawn guard denies a worker name when the session has no spawn of its predecessor. `worker_<n>_c1` and `worker_<n>_e1` need `worker_<n>`. `worker_<n>_c2` needs `worker_<n>_c1`. `worker_<n>_e1_c1` needs `worker_<n>_e1`. `fix_<n>_2` needs `fix_<n>`, and `fix_<n>_<k>` needs `fix_<n>_<k-1>`.
 - FR-spawn-limits-13 — The deny reason for a name past the cap tells the PM to label the issue `status:blocked` and to comment with the chain of `remaining` notes.
 - FR-spawn-limits-14 — The PM counts checkpoints for each attempt without a reset. New commits on the PR do not reset the count.
 - FR-spawn-limits-15 — When `worker_<n>_c2` returns `checkpoint`, the PM labels the issue `status:needs-feedback`. When the last `remaining` text names a hard blocker, the label is `status:blocked`.
@@ -85,17 +85,17 @@ worker count.
 
 | `agent_type` | Allowed `task_name` for a PM spawn |
 |---|---|
-| `issue_worker` | `worker_<n>`, `worker_<n>_c1`, `worker_<n>_c2`, `worker_<n>_e1`, `worker_<n>_e1_c1` |
+| `issue_worker` | `worker_<n>`, `worker_<n>_c1`, `worker_<n>_c2`, `worker_<n>_e1`, `worker_<n>_e1_c1`, `fix_<n>`, `fix_<n>_<k>` |
 | `criteria_checker` | `check_<n>`, `check_<n>_2`, `check_<n>_3`, `check_<n>_4` |
 | `ci_watcher` | `ci_<pr>`, `ci_<pr>_r2`, `deploy_<sha7>`, `deploy_<sha7>_r2`, `suite_<n>`, `suite_<n>_r2` |
 | `deploy_verifier` | `verify_deploy_<sha7>` |
-| `explorer` | `locate_<n>_<k>`, `docs_<n>`, `crosscheck_<n>`, `batchreview_<n>` |
+| `explorer` | `locate_<n>_<k>`, `docs_<n>`, `crosscheck_<n>`, `batchreview_<n>`, `survey_<k>`, `deploylog_<sha7>` |
 | `code_auditor` | `code_auditor` |
 | `ux_explorer` | `ux_<slug>` |
-| `review_scribe` | `review_scribe`, `review_scribe_<k>` |
+| `review_scribe` | `review_scribe`, `review_scribe_<k>`, `review_scribe_<slug>` |
 
 `<n>`, `<pr>`, and `<k>` are decimal numbers. `<sha7>` is seven lowercase hexadecimal
-characters. `<slug>` is lowercase letters, digits, and underscores.
+characters. For `ux_<slug>`, `<slug>` is lowercase letters, digits, and underscores. For `review_scribe_<slug>`, `<slug>` is lowercase letters, digits, and hyphens. `fix_<n>` is the batch-gate fix worker, where `<n>` is the batch or epic tracking issue, and `<k>` of `fix_<n>_<k>` starts at 2.
 
 ## User flows
 

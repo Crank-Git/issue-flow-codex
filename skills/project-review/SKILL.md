@@ -221,10 +221,10 @@ Sub-agents **report**; only the PM files. On all verdicts collected:
 
 # Phase 4 — Deliverables PR (manual + E2E tests)
 
-1. Set `scribe_task` to `review_scribe_<RUN_ID_with_underscores>`. Create the scribe
+1. Set `scribe_task` to `review_scribe_<RUN_ID>`. `<RUN_ID>` keeps its hyphens: the spawn guard allows only lowercase letters, digits, and hyphens after `review_scribe_`. Create the scribe
    worktree with `python3 <pluginRoot>/scripts/worktree.py create --project <project> --task
    <scribe_task> --branch review/<RUN_ID> --base <remote>/<dev>
-   --remote <remote>`. For a CI re-run, use `<remote>/review/<RUN_ID>` as the base.
+   --remote <remote>`. For a CI re-run, use `<remote>/review/<RUN_ID>` as the base. A re-run of the scribe takes the next suffix, because the spawn guard denies a reused name: set `scribe_task` to `review_scribe_<RUN_ID>-2` for the first re-run, then `review_scribe_<RUN_ID>-3`.
    `<pluginRoot>` is the plugin's absolute directory: two levels above the directory of
    this `SKILL.md`. The reviewed project does not hold this script.
    Read the printed path. Call `list_agents` and confirm a free thread slot. Spawn the
@@ -270,7 +270,7 @@ Sub-agents **report**; only the PM files. On all verdicts collected:
    verdict, push the branch, and wait for CI on the new head. If the scribe is gone,
    remove its worktree with `<pluginRoot>/scripts/worktree.py remove`. Then create it
    again with `<pluginRoot>/scripts/worktree.py create` and base it on
-   `<remote>/review/<RUN_ID>`. **Never patch product code to make a review test pass.** Remove the scribe worktree with
+   `<remote>/review/<RUN_ID>`. Spawn the new scribe under the next suffixed name from step 1. The guard denies the old name. **Never patch product code to make a review test pass.** Remove the scribe worktree with
    `python3 <pluginRoot>/scripts/worktree.py remove --project <project> --task <scribe_task>` when
    the PR merges or the review ends without a merge.
 

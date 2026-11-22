@@ -51,6 +51,21 @@ class RunProbeTest(unittest.TestCase):
         )
 
 
+class RolloutQuotaTest(unittest.TestCase):
+    def test_reads_quota_of_a_rollout_under_the_home(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            day = Path(tmp) / "sessions" / "2026" / "11" / "20"
+            day.mkdir(parents=True)
+            event = {"type": "event_msg", "payload": {"type": "token_count", "info": None,
+                     "rate_limits": {"primary": {"used_percent": 4.5, "resets_at": 1795000000}}}}
+            (day / "rollout-a.jsonl").write_text(json.dumps(event) + "\n")
+            self.assertEqual(conformance.rollout_quota(tmp), (4.5, 1795000000))
+
+    def test_returns_none_without_a_rollout(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            self.assertIsNone(conformance.rollout_quota(tmp))
+
+
 class MainTest(unittest.TestCase):
     def test_exits_2_when_codex_is_not_on_path(self):
         err = io.StringIO()

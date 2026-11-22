@@ -437,8 +437,8 @@ promotion from `dev` to the live branch.
    Check the repository, the remote and the labels. Check the foundation —
    an empty repository gets Epic 0 first, never a feature issue. Read the branch model
    from the spec (`dev-and-live` or `trunk`) and create `dev` when it is needed. Detect
-   the deploy target. Check CI; when the repository has none, the PM runs the suite
-   itself at the batch gate and says so. Offer the documentation MCP servers. Find or
+   the deploy target. Check CI; when the repository has none, a `ci_watcher`
+   (`suite_<n>`) runs the suite at the batch gate and the PM says so. Offer the documentation MCP servers. Find or
    create your `flow:status` status issue, check for co-operators, confirm the run
    configuration with you, and recover the state of any unfinished work.
 2. **Sweep, then triage.** The PM reads new comments and external changes first, and

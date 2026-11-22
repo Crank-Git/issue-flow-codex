@@ -236,11 +236,10 @@ spent — run every step below yourself. The digest is an accelerator, never a d
 7. **CI check.** Two questions, in order.
    - **Is there any CI at all?** If the repo has no workflows, say so plainly — *"there is
      no CI in this repo, so the batch gate verifies nothing on its own"* — and repeat it
-     in the first digest. Until a CI workflow exists (Epic 0 lands one), **the PM runs the
-     project's full suite itself on the integration branch before merging any batch**:
-     a worker that you spawn in a fresh worktree. Run `python3 <pluginRoot>/scripts/worktree.py create --project <dir> --task suite_<n> --branch suite/<n> --base <remote>/<integration-branch> --remote <remote>`, then call `spawn_agent` with `fork_turns: "none"` and `workdir` set to the `path` that the script prints. The worker
-     runs the project's test/lint/typecheck/build commands and returns a short pass/fail
-     summary. That independent run — not a worker's self-reported `localChecks` — is the
+     in the first digest. Until a CI workflow exists (Epic 0 lands one), **a `ci_watcher`
+     runs the project's full suite on the integration branch before the PM merges any batch**:
+     one watcher in a fresh worktree, once for each batch gate. Run `python3 <pluginRoot>/scripts/worktree.py create --project <dir> --task suite_<n> --branch suite/<n> --base <remote>/<integration-branch> --remote <remote>`. Call `list_agents`. When a thread slot is free, call `spawn_agent` with `task_name: "suite_<n>"`, `agent_type: "ci_watcher"`, `fork_turns: "none"`, and `workdir` set to the `path` that the script prints. The brief is `kind: suite`, `worktree` (that `path`), `command` (the project test command from `conventions`), and `sha` (the head SHA of the integration branch). The watcher runs the command once and returns `{"kind": "suite", "sha": "<sha>", "state": "success | failure | error", "url": null, "detail": "<the failing tests, or the stderr line>"}` in its `FINAL_ANSWER`.
+     That independent run — not a worker's self-reported `localChecks` — is the
      batch gate.
    - **Does the CI honor `[skip ci]`?** (GitHub Actions does natively; Gitea Actions does natively from Gitea 1.20. Both key on the head commit message.) If the provider doesn't (or workflows use `workflow_dispatch`/schedule triggers that don't care), fall back to the alternatives in [references/batching.md](references/batching.md) (path filters, branch filters excluding `epic/**`+`batch/**` — proposing that workflow edit to the user once).
 8. **Documentation access — offer the MCP servers that provide it.** Workers must
@@ -309,8 +308,11 @@ spent — run every step below yourself. The digest is an accelerator, never a d
    1), `review.when` (when to offer a `/project-review`), `practices`
    (TDD, DDD, E2E expectations, coverage, commit style, docs), and the **`deploy`** block
    step 6 detected. The Codex-only settings (`pmModel`, `workerModel`, `workerEffort`,
-   `helperModel`, `waitMs`) live in `.issue-flow.codex.json`; read and write that file
-   for those five keys. The message shows the models and the concurrency. A project with
+   `helperModel`, `waitMs`, `runBudgetPercent`) live in `.issue-flow.codex.json`; read and write that file
+   for those keys. The message shows the models and the concurrency. It also shows
+   `runBudgetPercent` with the saved value marked `*`, the option `off` (saves `null`, the
+   default), and the option `15`. When the operator turns the budget on without a value, save 15.
+   The spawn guard applies the budget (see the stop rule). A project with
    no `.issue-flow.codex.json` gets only the Codex questions. Write the
    answers back to `.issue-flow.json` (a gitignored `.issue-flow.local.json` overrides it
    per operator, so concurrent sessions don't fight over the committed file — write the
@@ -637,7 +639,7 @@ back in `notesForPM`.
 
    1. **Create the worktree.** The PM creates it before it spawns the worker (FR-worker-dispatch-8). Run `python3 <pluginRoot>/scripts/worktree.py create --project <dir> --task worker_<n> --branch issue/<n>-<slug> --base <remote>/<ref> --remote <remote>`. `<dir>` is the project root, `<n>` is the issue number, and `<ref>` is the integration branch (the dev branch only for standalone work). The script prints `{"path","branch","base_sha"}`. On a rework spawn, pass `--base <remote>/issue/<n>-<slug>`. The script exits nonzero with one line on stderr when it fails. If it fails, do not spawn.
    2. **Check for a free thread slot.** Call `list_agents`. Spawn only when a slot is free (FR-worker-dispatch-16). Else keep the issue claimed and call `wait_agent`.
-   3. **Spawn the worker.** Call `spawn_agent` with `task_name: "worker_<n>"`, `agent_type: "issue_worker"`, `fork_turns: "none"`, and the handoff brief as `message`. Set the brief field `worktree` to the `path` that step 1 printed. A replacement worker after a checkpoint is named `worker_<n>_c<k>`, where `<k>` counts the checkpoints. The `task_name` is the address of the worker for this session.
+   3. **Spawn the worker.** Call `spawn_agent` with `task_name: "worker_<n>"`, `agent_type: "issue_worker"`, `fork_turns: "none"`, and the handoff brief as `message`. Set the brief field `worktree` to the `path` that step 1 printed. A replacement worker after a checkpoint is named `worker_<n>_c1`, then `worker_<n>_c2` (Stage C1). The `task_name` is the address of the worker for this session.
    4. **Comment at launch.** See the held claim below.
 
    The brief includes the issue number, branch, worktree, base, CI mode, batch ref, and
@@ -648,6 +650,10 @@ back in `notesForPM`.
    Set `qualityRule` to the absolute path `<project>/docs/rules/quality.md` when it exists.
    Omit `qualityRule` otherwise. The worker's runbook, `agents/issue-worker.md`, holds its
    rules. The brief format is in [references/issue-worker.md](references/issue-worker.md).
+
+   **Give the worker the whole issue in one brief.** The brief holds no phase limit, no scratch-only limit, and no instruction to wait for a later PM step. The worker returns `checkpoint` only at its turn budget. The PM runs no test suite for the worker. The worker runs its own tests (FR-spawn-limits-18, 19, 25, 26).
+
+   **Decide the browser at launch.** If the issue needs the browser, launch its worker only when no other browser user is live. Call `list_agents` to check. Make this decision at launch, not during the build (FR-spawn-limits-24).
 
    **Never spawn a worker with a forked session.** A fork inherits the whole PM session, and nothing in that text tells it to stop after one issue. The spawn guard (`hooks/guard-spawn.py`) denies a `spawn_agent` call whose `fork_turns` is not `"none"`, and a `task_name` of `worker_<n>` without `agent_type: "issue_worker"`. See [references/worktrees.md](references/worktrees.md).
 
@@ -699,8 +705,9 @@ reconcile before it builds anything twice. The preflight hook marks a compaction
 1. Call `list_agents`, and read every open `worker launched:` comment, before the next
    tracker write.
 2. Match each live subagent to an issue by its `task_name`: `worker_<n>`,
-   `worker_<n>_c<k>`, `ci_<pr>`, `ci_<pr>_r2`, `deploy_<sha7>`, `deploy_<sha7>_r2`,
-   `locate_<n>_<k>`, `suite_<n>`, `batchreview_<n>`, or `crosscheck_<n>`.
+   `worker_<n>_c1`, `worker_<n>_c2`, `worker_<n>_e1`, `worker_<n>_e1_c1`, `ci_<pr>`,
+   `ci_<pr>_r2`, `deploy_<sha7>`, `deploy_<sha7>_r2`, `locate_<n>_<k>`, `suite_<n>`,
+   `suite_<n>_r2`, `batchreview_<n>`, or `crosscheck_<n>`.
 3. An issue that is `status:in-progress` with no live worker → follow the respawn path
    in [references/collaboration.md](references/collaboration.md). Do not respawn by any
    other route.
@@ -713,7 +720,7 @@ Then continue the loop.
 
 ### C1 — Sub-merge gate (on each worker verdict)
 
-Triggered by a worker's `FINAL_ANSWER` with its verdict — read it as above. Act on its `outcome`:
+Triggered by a worker's `FINAL_ANSWER` with its verdict — read it as above. The PM runs no test suite for one sub-issue. The criteria check runs the test command once for each check (FR-spawn-limits-27). Act on its `outcome`:
 
 - **`needs-feedback`** → `forge.issue.status.set <n> status:needs-feedback` (removes whichever single `status:` label the issue is carrying — the outcome arrives from either `status:in-progress` or `status:in-review`), post the worker's `question` as an issue comment, park per the feedback policy. **Standalone or hotfix issue → remove its worktree now** with `worktree.py remove`, here and on `blocked` below, when it holds nothing uncommitted or unpushed ([worktrees.md](references/worktrees.md#parked-standalone-worktrees)). Where the answer goes then depends on the tree: removed → a fresh worker; kept → `followup_task` to `worker_<n>`, the only one that can push that work. Free the slot → Stage A/B.
 - **`blocked`** → **first, is this your own bookkeeping?** If the `blocker` names a missing,
@@ -724,11 +731,11 @@ Triggered by a worker's `FINAL_ANSWER` with its verdict — read it as above. Ac
   (removes whichever single `status:` label the issue is carrying), comment naming the
   `blocker`. Free the slot.
 - **`checkpoint`** → the worker hit its turn budget with work pushed and nothing wrong. **Spawn a fresh worker** (do *not* send a `followup_task` to the old one — that reuses the context the checkpoint exists to discard) with the same brief, `base: <remote>/issue/<n>-<slug>`, and the verdict's `remaining` text appended to the plan. Do it in this order:
-  1. **Remove the checkpointed worktree**: `python3 <pluginRoot>/scripts/worktree.py remove --project <dir> --task worker_<n>[_c<k>]`, with the `task_name` of the worker that returned the verdict. The commits are safe on the remote; that is what makes the handoff free. The script deletes the local branch with the worktree. If the script exits 1, the worktree holds work that the remote does not ([worktrees.md](references/worktrees.md#teardown-is-still-the-pms-job)): send a `followup_task` to the same worker to push it, and do not spawn a replacement yet.
-  2. **Create the replacement worktree**: `python3 <pluginRoot>/scripts/worktree.py create --project <dir> --task worker_<n>_c<k> --branch issue/<n>-<slug> --base <remote>/issue/<n>-<slug> --remote <remote>`. `create` reuses only a **local** branch, so pass the published branch as `--base`: the new worktree then starts from the pushed work, and the PR keeps its commits. `<k>` counts the checkpoints of this issue.
-  3. **Spawn the replacement**: `spawn_agent` with `task_name: "worker_<n>_c<k>"`, `agent_type: "issue_worker"`, `fork_turns: "none"`, and the new `path` as the brief field `worktree` (Stage B step 5).
+  1. **Remove the checkpointed worktree**: `python3 <pluginRoot>/scripts/worktree.py remove --project <dir> --task <task_name>`, with the `task_name` of the worker that returned the verdict. The commits are safe on the remote; that is what makes the handoff free. The script deletes the local branch with the worktree. If the script exits 1, the worktree holds work that the remote does not ([worktrees.md](references/worktrees.md#teardown-is-still-the-pms-job)): send a `followup_task` to the same worker to push it, and do not spawn a replacement yet.
+  2. **Create the replacement worktree**: `python3 <pluginRoot>/scripts/worktree.py create --project <dir> --task <next_name> --branch issue/<n>-<slug> --base <remote>/issue/<n>-<slug> --remote <remote>`. `create` reuses only a **local** branch, so pass the published branch as `--base`: the new worktree then starts from the pushed work, and the PR keeps its commits. `<next_name>` is the next name of the chain below.
+  3. **Spawn the replacement**: `spawn_agent` with `task_name: "<next_name>"`, `agent_type: "issue_worker"`, `fork_turns: "none"`, and the new `path` as the brief field `worktree` (Stage B step 5).
 
-  **Do not touch the status label** — leave it exactly as the checkpointed worker left it: `status:in-review` if it had already opened the PR (runbook step 2), `status:in-progress` if it checkpointed during implementation before that. Either is correct, the replacement adopts the open PR rather than re-opening one, and flipping the label buys nothing but thrash. **Post one terse comment** — `checkpoint <k>: <one-line remaining>, replacement spawned` — which is what invariant 6 requires of any state change, what the chain cap below counts, and what Phase 0 reconstructs an interrupted run from. No gate, no digest line, and **do not free the slot** — the issue is still in flight and its replacement occupies the same one. This is routine flow control, not an exception — a long issue is *expected* to take two or three workers. **Cap the chain: after 3 consecutive checkpoints on one issue**, stop re-spawning — a worker that checkpoints without visible progress recycles forever and pays a fresh context ramp each time. `forge.issue.status.set <n> status:needs-feedback` (or `status:blocked` if the last `remaining` names a hard blocker) — it removes whichever single `status:` label the checkpointed worker left, `status:in-review` or `status:in-progress` — comment with the chain of `remaining` notes, free the slot, and park it per the feedback policy. Count the chain from those checkpoint comments, and reset it whenever a checkpoint's PR shows new commits.
+  **Do not touch the status label** — leave it exactly as the checkpointed worker left it: `status:in-review` if it had already opened the PR (runbook step 2), `status:in-progress` if it checkpointed during implementation before that. Either is correct, the replacement adopts the open PR rather than re-opening one, and flipping the label buys nothing but thrash. **Post one terse comment** — `checkpoint <k>: <one-line remaining>, replacement spawned` — which is what invariant 6 requires of any state change, what the chain below counts, and what Phase 0 reconstructs an interrupted run from. No gate, no digest line, and **do not free the slot** — the issue is still in flight and its replacement occupies the same one. This is routine flow control, not an exception. **The chain has fixed names.** The first worker is `worker_<n>`. Its checkpoint gives `worker_<n>_c1`. A checkpoint of that gives `worker_<n>_c2`. An escalation worker is `worker_<n>_e1`, and its checkpoint gives `worker_<n>_e1_c1`. The PM counts checkpoints for each attempt without a reset. New commits on the PR do not reset the count. When `worker_<n>_c2` returns `checkpoint`, stop: `forge.issue.status.set <n> status:needs-feedback`, or `status:blocked` if the last `remaining` text names a hard blocker. When `worker_<n>_e1_c1` returns `checkpoint`, set `status:blocked`. Either way, comment with the chain of `remaining` notes, free the slot, and park the issue per the feedback policy. The spawn guard denies a name past the chain (FR-spawn-limits-11 to 16).
 - **`ready-to-merge`** → sub-merge below (never on the worker's word alone):
   1. Verify: all PR threads resolved, PR targets the **integration branch**, worker reported the **local checks green** (`localChecks` in its verdict), and the session's `practices` were met (tests-first evidence, E2E where required, coverage threshold, commit style, docs — see [session-config.md](references/session-config.md)). When the PR adds or changes tests, `localChecks` must also carry the **pre-patch check** — the new tests were run against the pre-patch code and failed (`agents/issue-worker.md`, Verify): a test that already passed before the change is evidence of nothing, and its green is permanent. Missing or unstated goes back to the worker like any other unevidenced practice. A practice missed without a stated reason goes back to the worker; it is not waived at the gate. No provider CI to wait for.
   1b. **Acceptance criteria gate.** The worker returns `criteria: [{text, met, evidence}]` — one entry per acceptance criterion in the issue body. Check the list is **complete** (every criterion in the issue appears) and that each `met: true` carries real evidence (a test name, a command output, a file:line). Any criterion `met: false`, missing, or evidenced only by "implemented" goes **back to the worker** with the specific criterion quoted; a criterion the worker argues is wrong or unbuildable is a product question → `forge.issue.status.set <n> status:needs-feedback` (removes `status:in-review`), not a waiver. Acceptance criteria are the definition of done that `spec-to-issues` wrote down — this is where they are enforced, not months later in `project-review`.
@@ -814,7 +821,7 @@ parked work is entangled. That call is the PM's.
    **The review reports every class it was asked to cover, including the ones that came back clean** — name what you compared and state the negative, exactly as the Stage B cross-plan check does. A review that only mentions what it found cannot be told apart from one that never looked for it, and the classes that are usually clean are the ones that quietly stop being checked. This applies to the diff itself too: if a file appears in the PR's file list with a size change but no visible content — git treats it as binary, or it exceeds the host's diff cap — then it was **not reviewed**, whatever the lenses reported. Read both versions directly and say in the review that you did (see [parallelism.md](references/parallelism.md)).
 
    Include a **cross-batch check** when another integration branch is live: compare this batch's schema/migration files, seed data and shared config against the other live branches' — two batches each adding a migration are individually valid and collide on merge. A collision found here is resolved now (renumber/rebase the migration); a semantic one parks both.
-3. **CI runs once** — or, when Phase 0 found **no CI in the repo**, a worker in its own worktree runs the project's full suite and returns a short pass/fail summary, and that is the gate. Create the worktree with `python3 <pluginRoot>/scripts/worktree.py create --project <dir> --task suite_<n> --branch suite/<n> --base <remote>/<integration-branch> --remote <remote>`. Then call `spawn_agent` with `fork_turns: "none"` and `workdir` set to the `path` that the script prints. Say in the digest which of the two happened.
+3. **CI runs once** — or, when Phase 0 found **no CI in the repo**, a `ci_watcher` runs the project's full suite once in its own worktree, and that is the gate. Create the worktree with `python3 <pluginRoot>/scripts/worktree.py create --project <dir> --task suite_<n> --branch suite/<n> --base <remote>/<integration-branch> --remote <remote>`. Call `list_agents`. When a thread slot is free, call `spawn_agent` with `task_name: "suite_<n>"`, `agent_type: "ci_watcher"`, `fork_turns: "none"`, and `workdir` set to the `path` that the script prints. The brief is `kind: suite`, `worktree` (that `path`), `command` (the project test command from `conventions`), and `sha` (the head SHA of the integration branch). The watcher runs the command once and returns `{"kind": "suite", "sha": "<sha>", "state": "success | failure | error", "url": null, "detail": "<the failing tests, or the stderr line>"}` in its `FINAL_ANSWER`. Then call `wait_agent` and read the verdict. On `state: "success"`, the gate passes. On `state: "failure"`, send the `detail` to the fix worker. Spawn `suite_<n>_r2` with the same brief only after a fix for a suite failure is merged into the integration branch. Never spawn a second suite for any other reason. On `state: "error"`, treat the suite state as unknown and say so on the batch PR. Say in the digest which of the two happened.
 
    **Watch the CI with a `ci_watcher`.** Call `list_agents`. When a thread slot is free, call `spawn_agent` with `task_name: "ci_<pr>"` (`<pr>` is the batch PR number), `agent_type: "ci_watcher"`, `fork_turns: "none"`, and a brief of `kind: ci`, the head SHA of step 1, `workdir` (the project), `pluginRoot`, `forge`, and `deadline: 60` (minutes). When no slot is free, call `wait_agent` until one frees. Then call `wait_agent` and read the verdict `{"kind": "ci", "sha": ..., "state": ..., "url": ...}` from its `FINAL_ANSWER`. The watcher runs `scripts/ci_wait.py` again while the state is `pending`. Act on the `state` with the rules below:
 
@@ -833,7 +840,7 @@ parked work is entangled. That call is the PM's.
      Exit 0 only when retrievable log bytes exist for that SHA — a status with zero log bytes is treated the same as no run at all, regardless of what the status field says. Exit 2 means either the run is still in progress (logs aren't retrievable yet — that is not evidence it didn't run; re-check shortly) or the fetch itself hit an infra error (auth, rate limit, `tea`/`gh` unusable in that checkout) — also retry. Exit 5 means the invocation itself is malformed (`--forge github` without `--repo`, or neither `--forge` nor `--fixture` given) — fix the command, don't re-poll it. Only exit 1 means CI genuinely never executed.
    - **CI ran green but did not exercise the code** — a suite whose integration tests self-skip when their service is unreachable exits 0 and reports green (see the false-green trap in [agents/issue-worker.md](../../agents/issue-worker.md)). Some projects point CI at an unreachable database deliberately. Where that is true, a green CI run is **weaker** than a local run against a live service, and the local gate is the real one. Confirm the tests that matter **executed** rather than skipped, wherever the gate ran, and state the counts.
 
-   On failure either way: spawn a fix worker the same way (read its verdict per *Reading a worker verdict* above) — create its worktree with `worktree.py create` and `--base <remote>/<integration-branch>`, so that its `git checkout -B <integration-branch> <remote>/<integration-branch>` lands it exactly there — fix, push (fix commits may `[skip ci]` until ready to re-run), re-trigger — the re-trigger commit gets the same subject-only message and the same one-line check as step 1.
+   On failure either way: spawn a fix worker the same way with `task_name: "fix_<n>"` (`<n>` is the batch or epic tracking issue) and `agent_type: "issue_worker"`. A second fix for the same batch uses `fix_<n>_2`, a third `fix_<n>_3`; the spawn guard requires each earlier name first (read its verdict per *Reading a worker verdict* above) — create its worktree with `worktree.py create` and `--base <remote>/<integration-branch>`, so that its `git checkout -B <integration-branch> <remote>/<integration-branch>` lands it exactly there — fix, push (fix commits may `[skip ci]` until ready to re-run), re-trigger — the re-trigger commit gets the same subject-only message and the same one-line check as step 1.
 4. **Conflict vs dev** (another batch landed first): resolve once, at this level — mechanical directly, semantic → park per policy.
 4b. **Authority gate.** Under the default `batch-review` (and under `review-all` /
    `propose-only`), the batch PR needs a **human approving review** before it merges:
@@ -951,7 +958,7 @@ Run these steps in order.
    status:deploy-failed` (removes `status:deploying`). Comment the cause, the failing step, and the log excerpt.
    This label is the recovery signal — Phase 0 re-adopts a `status:deploy-failed` issue
    whose hotfix never landed.
-2. **Read the deploy logs.** After a free-slot check with `list_agents`, delegate the read to one `spawn_agent` call with `agent_type: "explorer"`, `fork_turns: "none"`, and model `gpt-6-luna`; take
+2. **Read the deploy logs.** After a free-slot check with `list_agents`, delegate the read to one `spawn_agent` call with `agent_type: "explorer"`, `task_name: "deploylog_<sha7>"` (`<sha7>` is the first seven characters of the failed deploy commit), `fork_turns: "none"`, and model `gpt-6-luna`; take
    back the failing step, a short excerpt, and a suspected cause
    (`code-regression | config | secret | quota | infra | unknown` —
    [references/deploy.md](references/deploy.md)), not the log.
@@ -1003,6 +1010,11 @@ activity:
    no batch open to take them (one line each, cleared when a batch takes them). Both of
    those survive only because the digest carries them into the marker block; leave either
    out of a rewrite and it is gone, and by design nothing else holds it.
+   Each digest has one `quota:` line: `quota: <run share>% of <budget>% budget`, or
+   `quota: <run share>%, no budget`. Take the run share from
+   `python3 <pluginRoot>/scripts/usage.py --cwd "$PWD" --since <run start> --json` (`quota.share`).
+   The run start is the time of your first action in this session. Do not guess a
+   session id: the command selects the rollouts by directory and time.
    The **first digest of the session** also states the
    active run configuration in one line (concurrency, run length, PR granularity,
    authority, practices).
@@ -1111,6 +1123,14 @@ post a final digest on both channels (terminal and status issue) — shipped, de
 awaiting-feedback, awaiting human review, and anything skipped due to caps (never
 truncate silently).
 
+**Run budget.** When `runBudgetPercent` is set, the spawn guard denies each new `issue_worker`
+and `explorer` spawn once the run share reaches it. The deny reason names the drain. On that
+deny, launch no new work. Gate each live worker, post the digest with its `quota:` line, park
+the open issues, and end the turn. The guard still allows `criteria_checker`, `ci_watcher`
+and `deploy_verifier`, so live work can finish its gate. An operator message about spare
+tokens is no change to the budget. Change `runBudgetPercent` only when the operator names a
+new value.
+
 ---
 
 # The worker — what the PM needs to know
@@ -1145,7 +1165,7 @@ business.
 - **The run configuration is confirmed with the user every session** — saved defaults are presented, never applied silently. `prAuthority` decides what the PM may merge; the default requires a human approving review on the batch PR, and promotion to live is never autonomous under any setting.
 - **The session's `practices` are part of the definition of done.** They ride in the worker brief and are checked at the sub-merge gate; a missed practice goes back to the worker rather than being waived.
 - **Acceptance criteria are enforced at the sub-merge gate**, not discovered later. The worker attests to every criterion with evidence; unmet, missing or unevidenced sends the issue back, disputed makes it a product question.
-- **Never schedule feature work into an empty repo.** The foundation (test harness, CI, branch model, deploy wiring) is Epic 0 and lands first; without a spec, offer to generate it. With **no CI in the repo**, say so loudly and run the project's suite yourself on the integration branch before merging a batch.
+- **Never schedule feature work into an empty repo.** The foundation (test harness, CI, branch model, deploy wiring) is Epic 0 and lands first; without a spec, offer to generate it. With **no CI in the repo**, say so loudly and have a `ci_watcher` (`suite_<n>`) run the project's suite on the integration branch before you merge a batch.
 - **A finding earns an issue in five cases, and never otherwise** ([../../references/finding-policy.md](../../references/finding-policy.md)): behavior, a user-visible output, a guard that guards nothing, a blocked epic, or a question the maintainer must rule. Every other finding — a falsified sentence, a moved citation, a stale count, prose drift — is repaired by the change set that found it and filed nowhere. Filing an issue whose only symptom is a stale record is how a backlog regenerates as fast as it clears.
 - **The loop proves it is converging.** At every merge gate record findings-filed versus issues-closed in the `<!-- issue-flow:convergence -->` line of your `flow:status` block (epic decomposition and `type:batch` issues excluded — they are planned work, not backlog growth). `filed >= closed` with `filed >= 3` at three consecutive gates is a stop, reported with the three pairs — never a reason to run one more gate; fewer than three gates is N/A, never "converging".
 - **The spec is kept honest.** Every scope decision gets a dated Changelog line in `docs/specs/spec.md`, features advance to `status: built` as they close, and behaviour that actually diverged gets a `type:spec-update` issue — spec edits are their own issue, never a side effect of a feature diff. A Changelog line records a **decision**, not an issue: closed issues live in the `## Issue map`, and no gate requires a member to write one.

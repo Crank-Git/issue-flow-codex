@@ -474,7 +474,7 @@ notes = "Docstring paths."
 path = "skills/issue-flow/SKILL.md"
 mode = "rewritten"
 upstream_sha256 = "85a1e36eb0dad721a84156d839128f7b5783cbe378c31c0255efec5d4b5a25c5"
-notes = "Two roles (31-56), core invariants (88-122), Phase 0 (123-321), Stage B launch (about 590-620), Stage C notification and messaging (621-786), Stage D deployment verification, Stage E status (870-897), hard rules (995-1023). Spawn limits: Phase 0 and C2 no-CI suite as a `ci_watcher`, Stage B whole-issue brief, C1 checkpoint chain, recovery names."
+notes = "Two roles (31-56), core invariants (88-122), Phase 0 (123-321), Stage B launch (about 590-620), Stage C notification and messaging (621-786), Stage D deployment verification, Stage E status (870-897), hard rules (995-1023). Spawn limits: Phase 0 and C2 no-CI suite as a `ci_watcher`, Stage B whole-issue brief, C1 checkpoint chain, recovery names. Upstream 0.21.0: C1 step 1c criteria check with `check_<n>` names, detached check worktree, `spawn_agent` and `followup_task`."
 
 [[file]]
 path = "skills/issue-flow/references/batching.md"
@@ -498,7 +498,7 @@ notes = "Watcher and verifier subagents; serialized Playwright MCP dispatch."
 path = "skills/issue-flow/references/issue-worker.md"
 mode = "rewritten"
 upstream_sha256 = "1124a6ad26a4a93cc86762c822079cc3dcd2c68ac482a105816ec517b6e6f8d2"
-notes = "The spawn call (1-30) and messaging (110-187). Spawn limits: whole-issue brief, fixed checkpoint chain names."
+notes = "The spawn call (1-30) and messaging (110-187). Spawn limits: whole-issue brief, fixed checkpoint chain names. Upstream 0.21.0: the `ready-to-merge` row names the criteria check."
 
 [[file]]
 path = "skills/issue-flow/references/labels.md"

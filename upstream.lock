@@ -1987,3 +1987,45 @@ path = "tests/fake_codex.py"
 mode = "new"
 upstream_sha256 = ""
 notes = "Port-only file. The fake `codex` of the runner tests."
+
+[[file]]
+path = "evals/BASELINE.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "evals/candidates/150-worker-model/checker-gpt-6-luna/results.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "evals/candidates/150-worker-model/checker-gpt-6-luna/summary.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "evals/candidates/150-worker-model/worker-gpt-6-luna/results.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "evals/candidates/150-worker-model/worker-gpt-6-luna/summary.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "evals/candidates/150-worker-model/worker-gpt-6.1-sol/results.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "evals/candidates/150-worker-model/worker-gpt-6.1-sol/summary.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."

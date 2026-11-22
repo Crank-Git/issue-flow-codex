@@ -24,14 +24,14 @@ PORTED = (
 )
 # The Codex model and effort of each ported role. The agent file names a Claude model.
 CODEX_MODELS = {
-    "issue_worker": ("gpt-6.1-sol", "medium"),
+    "issue_worker": ("gpt-6-luna", "medium"),
     "ci_watcher": ("gpt-6-luna", "low"),
     "ux_explorer": ("gpt-6.1-sol", "medium"),
     "deploy_verifier": ("gpt-6-luna", "low"),
     "review_scribe": ("gpt-6.1-sol", "medium"),
     "code_auditor": ("gpt-6-luna", "low"),
     "criteria_checker": ("gpt-6-luna", "medium"),
-    "issue_worker_escalated": ("gpt-6.1-sol", "high"),
+    "issue_worker_escalated": ("gpt-6.1-sol", "medium"),
 }
 # The escalation role reuses the issue-worker instructions. Codex ignores a spawn `model` when the
 # role file sets one (codex-harness.md fact 31), so the escalation model needs a role file of its own.

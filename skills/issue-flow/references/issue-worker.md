@@ -24,7 +24,7 @@ Sequenced batch members (dependency chains) launch only after their predecessor
 sub-merges. When the PM has no other step, it calls `wait_agent` (`SKILL.md`, the
 verdict section, owns the rules).
 
-The worker is an **independent engineer** on `gpt-6.1-sol`: it may research (web), use the
+The worker is an **independent engineer** on `gpt-6-luna`: it may research (web), use the
 MCP servers that the session configures, and spawn its own subagents when a thread slot is free — all
 **confined to that issue's worktree** and its own scratch directory,
 and all finished before it returns its verdict. The PM sets none of this;

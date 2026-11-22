@@ -348,10 +348,10 @@ body.rv-open .layout { padding-right:21rem; }
 <div class="table-wrap"><table>
 <tr><th>Thread</th><th>Default model</th><th>Reason</th></tr>
 <tr><td>PM</td><td><code>gpt-6.1-sol</code></td><td>The docs call it the "Latest workhorse". The PM makes every decision.</td></tr>
-<tr><td>worker</td><td><code>gpt-6.1-sol</code>, effort <code>medium</code></td><td>A worker writes production code. The operator can lower it in the run configuration.</td></tr>
+<tr><td>worker</td><td><code>gpt-6-luna</code>, effort <code>medium</code></td><td>A worker writes production code. Feature 10 measured it against <code>gpt-6.1-sol</code>: hidden-test pass rate 100% against 95%, and no case failed on both runs. Results: <code>evals/candidates/150-worker-model/</code> and <code>evals/BASELINE.md</code>. The operator can change it in the run configuration.</td></tr>
 <tr><td>watcher, code_auditor, worker subagents</td><td><code>gpt-6-luna</code></td><td>The docs call it the "most efficient model for focused, high-volume tasks".</td></tr>
-<tr><td>criteria checker</td><td><code>gpt-6-luna</code>, effort <code>medium</code></td><td>The check reads a diff and runs tests. Feature 10 measures it.</td></tr>
-<tr><td>escalation worker</td><td><code>gpt-6.1-sol</code>, effort <code>high</code></td><td>The workers stay on <code>gpt-6.1-sol</code> until Feature 10 decides, so the escalation raises the effort.</td></tr>
+<tr><td>criteria checker</td><td><code>gpt-6-luna</code>, effort <code>medium</code></td><td>The check reads a diff and runs tests. Feature 10 measured it: 10 of 11 cases passed, and the one fail was a dispatcher write error (<code>evals/BASELINE.md</code>).</td></tr>
+<tr><td>escalation worker</td><td><code>gpt-6.1-sol</code>, effort <code>medium</code></td><td>The workers run on <code>gpt-6-luna</code>, so the escalation raises the model (FR-worker-model-eval-27).</td></tr>
 </table></div>
 <p>Verified against: <code>codex debug models --bundled</code> (0.166.0), https://learn.chatgpt.com/docs/models (retrieved 2026-11-03). The operator changes any model in <code>.issue-flow.json</code> (Feature 03).</p>
 <h3 id="upstream-tracking">Upstream tracking</h3>
@@ -618,6 +618,8 @@ body.rv-open .layout { padding-right:21rem; }
 <li>2026-11-22 — Epic 8 batch gate, probe P14 failed on codex-cli 0.167.1: a spawn <code>model</code> does not override the role file model (fact 31). Decision: the escalation spawns the role <code>issue_worker_escalated</code>, built from the issue-worker instructions, and its role file carries <code>escalationModel</code> and <code>escalationEffort</code>. The spawn guard denies <code>model</code> and <code>reasoning_effort</code> on every worker spawn. FR-criteria-check-29, 31 to 34 changed to match. ADR 0006.
 </li>
 <li>2026-11-22 — Epic #140 batch gate decision: the check of an escalated worker takes the next unused name of the check chain (<code>check_&lt;n&gt;</code> to <code>check_&lt;n&gt;_4</code>), not a fixed <code>check_&lt;n&gt;_3</code>. On the <code>blocked</code> path no check runs before the escalation, and the spawn guard denies <code>check_&lt;n&gt;_3</code> without <code>check_&lt;n&gt;_2</code>. FR-criteria-check-22 and the new FR-criteria-check-38 changed to match.
+</li>
+<li>2026-11-22 — Epic 9 gate decision (operator delegated it to the PM, rule fixed in #150 before the results): the default <code>workerModel</code> is <code>gpt-6-luna</code> at effort <code>medium</code>, and the default escalation is <code>gpt-6.1-sol</code> at effort <code>medium</code> (FR-worker-model-eval-26, 27). The hidden-test pass rate is 100% for <code>gpt-6-luna</code> and 95% for <code>gpt-6.1-sol</code>, and no case failed on both <code>gpt-6-luna</code> runs. <code>gpt-6-luna</code> used about 1.75 times the mean input tokens and about 1.5 times the mean output tokens of <code>gpt-6.1-sol</code>, and the eval cannot measure the quota cost of each model at a resolution of 1 point. Results: <code>evals/candidates/150-worker-model/</code> and <code>evals/BASELINE.md</code>. Open question for the operator (FR-worker-model-eval-28): the checker passed 10 of 11 cases on <code>gpt-6-luna</code>, and the one fail was a dispatcher write error, not a checker error. Keep the checker on <code>gpt-6-luna</code>?
 </li>
 </ul><nav class="pager">
 <span></span>

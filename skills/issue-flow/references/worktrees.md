@@ -9,7 +9,7 @@ it, and what the PM does when a removal is refused.
   worker (SKILL.md, Stage B step 5). The script prints the `path`. The PM copies it into
   the brief field `worktree`.
 - The worktree lives under `.worktrees/<task_name>` in the project directory. The
-  `task_name` is `worker_<n>`, or `worker_<n>_c<k>` for the replacement after checkpoint
+  `task_name` is `worker_<n>`, or `worker_<n>_c1` or `worker_<n>_c2` for the replacement after checkpoint
   `k`.
 - No agent in the run moves its session into a worktree. Codex has no tool for it. The PM
   drives a worktree with `git -C <path>`, and a worker works in the `worktree` path of its
@@ -73,10 +73,10 @@ nothing wrong is replaced, not resumed. The verdict exists to drop a context tha
 grown expensive, and a `followup_task` keeps exactly that context. The PM does three
 things in order (SKILL.md, Stage C1):
 
-1. `worktree.py remove --project <dir> --task worker_<n>[_c<k>]`.
-2. `worktree.py create --project <dir> --task worker_<n>_c<k> --branch issue/<n>-<slug>
+1. `worktree.py remove --project <dir> --task <task_name>`.
+2. `worktree.py create --project <dir> --task <next_name> --branch issue/<n>-<slug>
    --base <remote>/issue/<n>-<slug>`.
-3. `spawn_agent` for `worker_<n>_c<k>`, with the new `path` in its brief.
+3. `spawn_agent` for `<next_name>`, with the new `path` in its brief.
 
 A leftover worktree from a previous session cannot be resumed in place. Its worker is
 gone. Adopt that work from the branch and the PR, then remove the directory.

@@ -75,12 +75,6 @@ upstream_sha256 = ""
 notes = "Port-only file."
 
 [[file]]
-path = ".github/workflows/tag-release.yml"
-mode = "new"
-upstream_sha256 = ""
-notes = "port-only: tag an untagged manifest version on main (#42)"
-
-[[file]]
 path = ".github/workflows/upstream-check.yml"
 mode = "new"
 upstream_sha256 = ""
@@ -121,12 +115,6 @@ path = "README.md"
 mode = "patched"
 upstream_sha256 = "6f5cf3ddd736fba8e560324c4bf141d28ce77dfd655b7a1e361ad9b678bfd384"
 notes = "Port header credits upstream and the license; adds the Codex install steps."
-
-[[file]]
-path = "agents/ci-watcher.md"
-mode = "new"
-upstream_sha256 = ""
-notes = "Port-only file. Upstream waits in a background shell; Codex waits in this role. Built into `roles/ci-watcher.toml`."
 
 [[file]]
 path = "agents/code-auditor.md"
@@ -181,36 +169,6 @@ path = "docs/adr/0003-permission-profile.md"
 mode = "new"
 upstream_sha256 = ""
 notes = "Port-only file."
-
-[[file]]
-path = "docs/adr/0004-codex-settings-file.md"
-mode = "new"
-upstream_sha256 = ""
-notes = "port-only: ADR 0004"
-
-[[file]]
-path = "docs/adr/0005-user-level-setup.md"
-mode = "new"
-upstream_sha256 = ""
-notes = "port-only: ADR 0005, user-level setup (#126)"
-
-[[file]]
-path = "docs/e2e/2026-11-03-epic-2.md"
-mode = "new"
-upstream_sha256 = ""
-notes = "port-only: Epic 2 batch-gate live run report (#3)"
-
-[[file]]
-path = "docs/e2e/2026-11-03-epic-3.md"
-mode = "new"
-upstream_sha256 = ""
-notes = "port-only: Epic 3 batch-gate end-to-end report (#4)"
-
-[[file]]
-path = "docs/e2e/2026-11-03-issue-75-timeout-sweep.md"
-mode = "new"
-upstream_sha256 = ""
-notes = "port-only: issue #75 live probe evidence"
 
 [[file]]
 path = "docs/external.md"
@@ -285,36 +243,6 @@ upstream_sha256 = ""
 notes = "Port-only file."
 
 [[file]]
-path = "docs/specs/features/07-spawn-limits.md"
-mode = "new"
-upstream_sha256 = ""
-notes = "Port-only file."
-
-[[file]]
-path = "docs/specs/features/08-criteria-check.md"
-mode = "new"
-upstream_sha256 = ""
-notes = "Port-only file."
-
-[[file]]
-path = "docs/specs/features/09-run-budget.md"
-mode = "new"
-upstream_sha256 = ""
-notes = "Port-only file."
-
-[[file]]
-path = "docs/specs/features/10-worker-model-eval.md"
-mode = "new"
-upstream_sha256 = ""
-notes = "Port-only file."
-
-[[file]]
-path = "docs/specs/html/feature-criteria-check.html"
-mode = "new"
-upstream_sha256 = ""
-notes = "Port-only file."
-
-[[file]]
 path = "docs/specs/html/feature-foundation.html"
 mode = "new"
 upstream_sha256 = ""
@@ -345,18 +273,6 @@ upstream_sha256 = ""
 notes = "Port-only file."
 
 [[file]]
-path = "docs/specs/html/feature-run-budget.html"
-mode = "new"
-upstream_sha256 = ""
-notes = "Port-only file."
-
-[[file]]
-path = "docs/specs/html/feature-spawn-limits.html"
-mode = "new"
-upstream_sha256 = ""
-notes = "Port-only file."
-
-[[file]]
 path = "docs/specs/html/feature-spec-skills.html"
 mode = "new"
 upstream_sha256 = ""
@@ -364,12 +280,6 @@ notes = "Port-only file."
 
 [[file]]
 path = "docs/specs/html/feature-worker-dispatch.html"
-mode = "new"
-upstream_sha256 = ""
-notes = "Port-only file."
-
-[[file]]
-path = "docs/specs/html/feature-worker-model-eval.html"
 mode = "new"
 upstream_sha256 = ""
 notes = "Port-only file."
@@ -387,12 +297,6 @@ upstream_sha256 = ""
 notes = "Port-only file."
 
 [[file]]
-path = "docs/specs/html/page-spend-analysis.html"
-mode = "new"
-upstream_sha256 = ""
-notes = "Port-only file."
-
-[[file]]
 path = "docs/specs/pages/codex-harness.md"
 mode = "new"
 upstream_sha256 = ""
@@ -400,12 +304,6 @@ notes = "Port-only file."
 
 [[file]]
 path = "docs/specs/pages/porting-inventory.md"
-mode = "new"
-upstream_sha256 = ""
-notes = "Port-only file."
-
-[[file]]
-path = "docs/specs/pages/spend-analysis.md"
 mode = "new"
 upstream_sha256 = ""
 notes = "Port-only file."
@@ -435,16 +333,16 @@ upstream_sha256 = ""
 notes = "port-only: role guard (#18)"
 
 [[file]]
-path = "hooks/guard-spawn.py"
-mode = "rewritten"
-upstream_sha256 = "4f505785d867897653f7ad3bbc261fe9489e9d9a7d331e9005910064a4b80b84"
-notes = "V2 spawn rules on `fork_turns`, `task_name`, `agent_type`. The brief detection is dropped: `message` is encrypted."
-
-[[file]]
 path = "hooks/guard-wait.py"
 mode = "new"
 upstream_sha256 = ""
 notes = "port-only: wait_agent timeout guard (#66)"
+
+[[file]]
+path = "hooks/guard-spawn.py"
+mode = "rewritten"
+upstream_sha256 = "4f505785d867897653f7ad3bbc261fe9489e9d9a7d331e9005910064a4b80b84"
+notes = "V2 spawn rules on `fork_turns`, `task_name`, `agent_type`. The brief detection is dropped: `message` is encrypted."
 
 [[file]]
 path = "hooks/hooks.json"
@@ -457,24 +355,6 @@ path = "hooks/preflight.py"
 mode = "patched"
 upstream_sha256 = "a4274436cbe1ba41b50f25d52c5c41d9e6a317e707d6eef5ae88c92e7e9af7a1"
 notes = "Output wrapper, `source` line, `ran` line. The digest logic stays."
-
-[[file]]
-path = "hooks/record-wait-state.py"
-mode = "new"
-upstream_sha256 = ""
-notes = "port-only: record wait timeout and Stage A0 hook state (#75)"
-
-[[file]]
-path = "hooks/role-policy.json"
-mode = "new"
-upstream_sha256 = ""
-notes = "port-only: role policy (#18)"
-
-[[file]]
-path = "hooks/wait_state.py"
-mode = "new"
-upstream_sha256 = ""
-notes = "port-only: store per-session wait timeout state (#75)"
 
 [[file]]
 path = "references/external-apis.md"
@@ -501,40 +381,10 @@ upstream_sha256 = "77628f46bd90f3e0376268b8ecec3253fdf33650662a0b027366f08c33c06
 notes = "The artifact table names `AGENTS.md` and `docs/rules/`."
 
 [[file]]
-path = "roles/ci-watcher.toml"
-mode = "new"
-upstream_sha256 = ""
-notes = "Port-only file. Built from `agents/ci-watcher.md` by `scripts/build_roles.py`."
-
-[[file]]
-path = "roles/code-auditor.toml"
-mode = "new"
-upstream_sha256 = ""
-notes = "Port-only role generated from agents/code-auditor.md."
-
-[[file]]
-path = "roles/deploy-verifier.toml"
-mode = "new"
-upstream_sha256 = ""
-notes = "Port-only role generated from agents/deploy-verifier.md."
-
-[[file]]
 path = "roles/issue-worker.toml"
 mode = "new"
 upstream_sha256 = ""
 notes = "Port-only file. Built from `agents/issue-worker.md` by `scripts/build_roles.py`."
-
-[[file]]
-path = "roles/review-scribe.toml"
-mode = "new"
-upstream_sha256 = ""
-notes = "Port-only role generated from agents/review-scribe.md."
-
-[[file]]
-path = "roles/ux-explorer.toml"
-mode = "new"
-upstream_sha256 = ""
-notes = "Port-only role generated from agents/ux-explorer.md."
 
 [[file]]
 path = "scripts/build_roles.py"
@@ -571,12 +421,6 @@ path = "scripts/peers.py"
 mode = "dropped"
 upstream_sha256 = "218f9fab3c1d4307492bc1088f9b3b1eff8f07aeadcb7dffe3905b7dbcbfc268"
 notes = "Reads Claude Code agent-team files that Codex does not have."
-
-[[file]]
-path = "scripts/release_tag.py"
-mode = "new"
-upstream_sha256 = ""
-notes = "port-only: select a release tag for an untagged manifest version (#42)"
 
 [[file]]
 path = "scripts/setup_project.py"
@@ -625,12 +469,6 @@ path = "scripts/verify_claim.py"
 mode = "patched"
 upstream_sha256 = "16c5f44611018a68984aab4eb733fcb2f4560fe6daa0eb5370561edff8832e65"
 notes = "Docstring paths."
-
-[[file]]
-path = "scripts/worktree.py"
-mode = "new"
-upstream_sha256 = ""
-notes = "port-only: create and remove worker worktrees (#19)"
 
 [[file]]
 path = "skills/issue-flow/SKILL.md"
@@ -807,12 +645,6 @@ upstream_sha256 = ""
 notes = "Port-only. Seed content of the test beds."
 
 [[file]]
-path = "tests/e2e/run_loop.py"
-mode = "new"
-upstream_sha256 = ""
-notes = "port-only: live Epic 2 batch-gate harness, opt-in with ISSUE_FLOW_E2E=1 (#3)"
-
-[[file]]
 path = "tests/fixtures/conformance/.agents/plugins/marketplace.json"
 mode = "new"
 upstream_sha256 = ""
@@ -823,6 +655,24 @@ path = "tests/fixtures/conformance/plugin/.codex-plugin/plugin.json"
 mode = "new"
 upstream_sha256 = ""
 notes = "port-only: conformance suite (#10)"
+
+[[file]]
+path = "tests/fixtures/hooks/session_start.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: live SessionStart payload (#16)"
+
+[[file]]
+path = "tests/fixtures/hooks/pre_tool_use_wait.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: recorded live wait_agent payload (#66)"
+
+[[file]]
+path = "tests/fixtures/hooks/pre_tool_use_spawn.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: live V2 spawn PreToolUse payload (#17)"
 
 [[file]]
 path = "tests/fixtures/conformance/plugin/hooks/hooks.json"
@@ -853,72 +703,6 @@ path = "tests/fixtures/conformance/roles/git_worker.toml"
 mode = "new"
 upstream_sha256 = ""
 notes = "port-only: conformance suite (#10)"
-
-[[file]]
-path = "tests/fixtures/hooks/apply_patch_inside_worktree.json"
-mode = "new"
-upstream_sha256 = ""
-notes = "port-only: live worker apply_patch payload inside a worktree (#108, gate #111)"
-
-[[file]]
-path = "tests/fixtures/hooks/apply_patch_outside_worktree.json"
-mode = "new"
-upstream_sha256 = ""
-notes = "port-only: live worker apply_patch payload outside the worktrees (#108, gate #111)"
-
-[[file]]
-path = "tests/fixtures/hooks/gate75_pm_sequence.json"
-mode = "new"
-upstream_sha256 = ""
-notes = "port-only: sanitized PM hook payloads from the #75 gate run (#75)"
-
-[[file]]
-path = "tests/fixtures/hooks/post_tool_use_bash_stage_a0_denied.json"
-mode = "new"
-upstream_sha256 = ""
-notes = "port-only: recorded denied Stage A0 Bash payload (#75)"
-
-[[file]]
-path = "tests/fixtures/hooks/post_tool_use_wait_complete.json"
-mode = "new"
-upstream_sha256 = ""
-notes = "port-only: recorded completed wait payload (#75)"
-
-[[file]]
-path = "tests/fixtures/hooks/post_tool_use_wait_timeout.json"
-mode = "new"
-upstream_sha256 = ""
-notes = "port-only: recorded timed-out wait payload (#75)"
-
-[[file]]
-path = "tests/fixtures/hooks/pre_tool_use_apply_patch.json"
-mode = "new"
-upstream_sha256 = ""
-notes = "port-only: live subagent PreToolUse apply_patch payload (#18)"
-
-[[file]]
-path = "tests/fixtures/hooks/pre_tool_use_bash.json"
-mode = "new"
-upstream_sha256 = ""
-notes = "port-only: live subagent PreToolUse Bash payload (#18)"
-
-[[file]]
-path = "tests/fixtures/hooks/pre_tool_use_spawn.json"
-mode = "new"
-upstream_sha256 = ""
-notes = "port-only: live V2 spawn PreToolUse payload (#17)"
-
-[[file]]
-path = "tests/fixtures/hooks/pre_tool_use_wait.json"
-mode = "new"
-upstream_sha256 = ""
-notes = "port-only: recorded live wait_agent payload (#66)"
-
-[[file]]
-path = "tests/fixtures/hooks/session_start.json"
-mode = "new"
-upstream_sha256 = ""
-notes = "port-only: live SessionStart payload (#16)"
 
 [[file]]
 path = "tests/fixtures/upstream_sync/inventory.md"
@@ -1005,10 +789,10 @@ upstream_sha256 = ""
 notes = "from upstream scripts/test-gitea-ci-watch.py"
 
 [[file]]
-path = "tests/test_guard_role.py"
+path = "tests/test_guard_wait.py"
 mode = "new"
 upstream_sha256 = ""
-notes = "port-only: role guard tests (#18)"
+notes = "port-only: wait guard tests (#66)"
 
 [[file]]
 path = "tests/test_guard_spawn.py"
@@ -1017,46 +801,16 @@ upstream_sha256 = ""
 notes = "from upstream scripts/test-guard-spawn.py"
 
 [[file]]
-path = "tests/test_guard_wait.py"
-mode = "new"
-upstream_sha256 = ""
-notes = "port-only: wait guard tests (#66)"
-
-[[file]]
 path = "tests/test_mirror_filter.py"
 mode = "new"
 upstream_sha256 = ""
 notes = "from upstream scripts/test-mirror-filter.py"
 
 [[file]]
-path = "tests/test_planner_scaffold.py"
-mode = "new"
-upstream_sha256 = ""
-notes = "port-only: project-planner scaffold contract tests (#31)"
-
-[[file]]
-path = "tests/test_post_tool_use_wait.py"
-mode = "new"
-upstream_sha256 = ""
-notes = "port-only: tests for PostToolUse wait state (#75)"
-
-[[file]]
 path = "tests/test_preflight.py"
 mode = "new"
 upstream_sha256 = ""
 notes = "from upstream scripts/test-preflight.py"
-
-[[file]]
-path = "tests/test_project_review_skill.py"
-mode = "new"
-upstream_sha256 = ""
-notes = "Port-only Playwright preflight test."
-
-[[file]]
-path = "tests/test_release_tag.py"
-mode = "new"
-upstream_sha256 = ""
-notes = "port-only: test release tag selection and documentation (#42)"
 
 [[file]]
 path = "tests/test_render_spec.py"
@@ -1069,12 +823,6 @@ path = "tests/test_setup_project.py"
 mode = "new"
 upstream_sha256 = ""
 notes = "Port-only file."
-
-[[file]]
-path = "tests/test_skill_text.py"
-mode = "new"
-upstream_sha256 = ""
-notes = "port-only: section-scoped checks on the ported skill text (#21)"
 
 [[file]]
 path = "tests/test_state_cas.py"
@@ -1119,13 +867,265 @@ upstream_sha256 = ""
 notes = "from upstream scripts/test-verify-claim.py"
 
 [[file]]
-path = "tests/test_wait_replay.py"
+path = "hooks/role-policy.json"
 mode = "new"
 upstream_sha256 = ""
-notes = "port-only: replay the recorded PM hook sequence (#75)"
+notes = "port-only: role policy (#18)"
+
+[[file]]
+path = "tests/test_guard_role.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: role guard tests (#18)"
+
+[[file]]
+path = "tests/fixtures/hooks/pre_tool_use_bash.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: live subagent PreToolUse Bash payload (#18)"
+
+[[file]]
+path = "tests/fixtures/hooks/pre_tool_use_apply_patch.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: live subagent PreToolUse apply_patch payload (#18)"
+
+[[file]]
+path = "scripts/worktree.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: create and remove worker worktrees (#19)"
 
 [[file]]
 path = "tests/test_worktree.py"
 mode = "new"
 upstream_sha256 = ""
 notes = "port-only: tests for scripts/worktree.py (#19)"
+
+[[file]]
+path = "tests/test_skill_text.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: section-scoped checks on the ported skill text (#21)"
+
+[[file]]
+path = "tests/e2e/run_loop.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: live Epic 2 batch-gate harness, opt-in with ISSUE_FLOW_E2E=1 (#3)"
+
+[[file]]
+path = "docs/e2e/2026-11-03-epic-2.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: Epic 2 batch-gate live run report (#3)"
+
+[[file]]
+path = "agents/ci-watcher.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file. Upstream waits in a background shell; Codex waits in this role. Built into `roles/ci-watcher.toml`."
+
+[[file]]
+path = "roles/ci-watcher.toml"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file. Built from `agents/ci-watcher.md` by `scripts/build_roles.py`."
+
+[[file]]
+path = "docs/e2e/2026-11-03-epic-3.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: Epic 3 batch-gate end-to-end report (#4)"
+
+[[file]]
+path = "docs/adr/0004-codex-settings-file.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: ADR 0004"
+
+[[file]]
+path = "docs/adr/0005-user-level-setup.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: ADR 0005, user-level setup (#126)"
+
+[[file]]
+path = "tests/test_planner_scaffold.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: project-planner scaffold contract tests (#31)"
+
+[[file]]
+path = "docs/e2e/2026-11-03-issue-75-timeout-sweep.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: issue #75 live probe evidence"
+
+[[file]]
+path = "hooks/record-wait-state.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: record wait timeout and Stage A0 hook state (#75)"
+
+[[file]]
+path = "hooks/wait_state.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: store per-session wait timeout state (#75)"
+
+[[file]]
+path = "tests/fixtures/hooks/post_tool_use_bash_stage_a0_denied.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: recorded denied Stage A0 Bash payload (#75)"
+
+[[file]]
+path = "tests/fixtures/hooks/post_tool_use_wait_complete.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: recorded completed wait payload (#75)"
+
+[[file]]
+path = "tests/fixtures/hooks/post_tool_use_wait_timeout.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: recorded timed-out wait payload (#75)"
+
+[[file]]
+path = "tests/test_post_tool_use_wait.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: tests for PostToolUse wait state (#75)"
+
+[[file]]
+path = "tests/fixtures/hooks/gate75_pm_sequence.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: sanitized PM hook payloads from the #75 gate run (#75)"
+
+[[file]]
+path = "tests/test_wait_replay.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: replay the recorded PM hook sequence (#75)"
+
+[[file]]
+path = "roles/code-auditor.toml"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only role generated from agents/code-auditor.md."
+
+[[file]]
+path = "roles/deploy-verifier.toml"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only role generated from agents/deploy-verifier.md."
+
+[[file]]
+path = "roles/review-scribe.toml"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only role generated from agents/review-scribe.md."
+
+[[file]]
+path = "roles/ux-explorer.toml"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only role generated from agents/ux-explorer.md."
+
+[[file]]
+path = "tests/test_project_review_skill.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only Playwright preflight test."
+
+[[file]]
+path = ".github/workflows/tag-release.yml"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: tag an untagged manifest version on main (#42)"
+
+[[file]]
+path = "scripts/release_tag.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: select a release tag for an untagged manifest version (#42)"
+
+[[file]]
+path = "tests/test_release_tag.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: test release tag selection and documentation (#42)"
+
+[[file]]
+path = "tests/fixtures/hooks/apply_patch_outside_worktree.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: live worker apply_patch payload outside the worktrees (#108, gate #111)"
+
+[[file]]
+path = "tests/fixtures/hooks/apply_patch_inside_worktree.json"
+mode = "new"
+upstream_sha256 = ""
+notes = "port-only: live worker apply_patch payload inside a worktree (#108, gate #111)"
+
+[[file]]
+path = "docs/specs/features/07-spawn-limits.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/features/08-criteria-check.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/features/09-run-budget.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/features/10-worker-model-eval.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/html/feature-criteria-check.html"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/html/feature-run-budget.html"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/html/feature-spawn-limits.html"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/html/feature-worker-model-eval.html"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/html/page-spend-analysis.html"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "docs/specs/pages/spend-analysis.md"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."

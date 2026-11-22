@@ -308,8 +308,11 @@ spent — run every step below yourself. The digest is an accelerator, never a d
    1), `review.when` (when to offer a `/project-review`), `practices`
    (TDD, DDD, E2E expectations, coverage, commit style, docs), and the **`deploy`** block
    step 6 detected. The Codex-only settings (`pmModel`, `workerModel`, `workerEffort`,
-   `helperModel`, `waitMs`) live in `.issue-flow.codex.json`; read and write that file
-   for those five keys. The message shows the models and the concurrency. A project with
+   `helperModel`, `waitMs`, `runBudgetPercent`) live in `.issue-flow.codex.json`; read and write that file
+   for those keys. The message shows the models and the concurrency. It also shows
+   `runBudgetPercent` with the saved value marked `*`, the option `off` (saves `null`, the
+   default), and the option `15`. When the operator turns the budget on without a value, save 15.
+   The spawn guard applies the budget (see the stop rule). A project with
    no `.issue-flow.codex.json` gets only the Codex questions. Write the
    answers back to `.issue-flow.json` (a gitignored `.issue-flow.local.json` overrides it
    per operator, so concurrent sessions don't fight over the committed file — write the
@@ -1007,6 +1010,9 @@ activity:
    no batch open to take them (one line each, cleared when a batch takes them). Both of
    those survive only because the digest carries them into the marker block; leave either
    out of a rewrite and it is gone, and by design nothing else holds it.
+   Each digest has one `quota:` line: `quota: <run share>% of <budget>% budget`, or
+   `quota: <run share>%, no budget`. Take the run share from
+   `python3 <pluginRoot>/scripts/usage.py --session <id> --json` (`quota.share`).
    The **first digest of the session** also states the
    active run configuration in one line (concurrency, run length, PR granularity,
    authority, practices).
@@ -1114,6 +1120,14 @@ uncommitted work) is neither: leave it, and list it in the final digest. Then
 post a final digest on both channels (terminal and status issue) — shipped, deployed, blocked (why),
 awaiting-feedback, awaiting human review, and anything skipped due to caps (never
 truncate silently).
+
+**Run budget.** When `runBudgetPercent` is set, the spawn guard denies each new `issue_worker`
+and `explorer` spawn once the run share reaches it. The deny reason names the drain. On that
+deny, launch no new work. Gate each live worker, post the digest with its `quota:` line, park
+the open issues, and end the turn. The guard still allows `criteria_checker`, `ci_watcher`
+and `deploy_verifier`, so live work can finish its gate. An operator message about spare
+tokens is no change to the budget. Change `runBudgetPercent` only when the operator names a
+new value.
 
 ---
 

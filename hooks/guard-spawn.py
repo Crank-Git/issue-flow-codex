@@ -22,6 +22,11 @@ for each role, no reused name, and no gap in a worker chain. `hooks/spawn_state.
 names of the session in `$PLUGIN_DATA`. Without `PLUGIN_DATA`, the reuse and chain rules
 do not apply.
 
+The run budget (docs/specs/features/09-run-budget.md) is a third PM rule. With `runBudgetPercent`
+set in `.issue-flow.codex.json`, the guard denies `issue_worker` and `explorer` spawns once the
+run share of the weekly quota reaches it. It reads the last 1 MiB of the `transcript_path` rollout
+and keeps samples in `hooks/budget_state.py`.
+
 The guard never reads `message`. Upstream detected a handoff brief by its field labels in
 the prompt, but live Codex 0.166.0 delivers `tool_input.message` to the hook as an encrypted
 token (docs/specs/pages/codex-harness.md, fact 13), so a label match cannot fire.
@@ -39,8 +44,10 @@ import json
 import os
 import re
 import sys
+from pathlib import Path
 
-from spawn_state import read_names, record
+from budget_state import record_sample, usage
+from spawn_state import read_names, record, state_path
 
 WORKER_NAME = re.compile(r"worker_\d+(_c\d+)?")
 
@@ -58,6 +65,10 @@ ROLE_PATTERNS = {
     "ux_explorer": (r"ux_[a-z0-9_]+", "ux_<slug>"),
     "review_scribe": (r"review_scribe(_\d+)?", "review_scribe, review_scribe_<k>"),
 }
+
+# FR-run-budget-25: the budget stops new work. The gate roles stay free so that live work can finish.
+BUDGET_ROLES = {"issue_worker", "explorer"}
+TAIL_BYTES = 1 << 20
 
 # FR-spawn-limits-12: a worker name needs a spawn of its predecessor.
 WORKER_PARTS = re.compile(r"(worker_\d+)(_c1|_c2|_e1_c1|_e1)?")
@@ -101,6 +112,12 @@ CHAIN_REASON = (
     "this session (agent_type AGENT_TYPE). Allowed patterns: PATTERNS."
 )
 
+BUDGET_REASON = (
+    "issue-flow spawn guard: this run used SHARE% of the weekly quota. The run budget is BUDGET%. "
+    "Launch no new work. Drain the run: gate each live worker, post the status digest, park the "
+    "open issues, and end the turn."
+)
+
 
 def fill(template, task_name, agent_type, patterns="", predecessor=""):
     """Return `template` with its placeholders replaced."""
@@ -131,6 +148,44 @@ def check_pm_spawn(tool_input, used_names):
     return None
 
 
+def budget_percent(cwd):
+    """Return `runBudgetPercent` from `.issue-flow.codex.json` in `cwd`, or None when there is no usable budget."""
+    try:
+        value = json.loads((Path(cwd) / ".issue-flow.codex.json").read_text()).get("runBudgetPercent")
+    except (OSError, ValueError, AttributeError, TypeError):
+        return None
+    if isinstance(value, int) and not isinstance(value, bool) and 1 <= value <= 100:
+        return value
+    return None
+
+
+def check_budget(payload, agent_type):
+    """Return the budget deny reason for a PM spawn, or None.
+
+    Every PM spawn records the quota sample, also without a budget, so that a budget turned on
+    later has a baseline. Any error allows the spawn.
+    """
+    if state_path(payload.get("session_id"), "budget") is None:
+        return None
+    try:
+        event = usage.last_token_count(payload["transcript_path"], TAIL_BYTES)
+    except (OSError, KeyError, TypeError):
+        return None
+    sample = usage.quota_sample(event) if event else None
+    if sample is None:
+        return None
+    try:
+        samples = record_sample(payload["session_id"], sample)
+    except OSError as error:
+        print(f"issue-flow spawn guard: cannot record the quota sample: {error}", file=sys.stderr)
+        return None
+    budget = budget_percent(payload.get("cwd", ""))
+    share = usage.quota_share(samples)
+    if budget is None or agent_type not in BUDGET_ROLES or share < budget:
+        return None
+    return BUDGET_REASON.replace("SHARE", f"{share:.1f}".removesuffix(".0")).replace("BUDGET", str(budget))
+
+
 def decide(payload, used_names=None):
     """Return the deny reason, or None to stay out of the way."""
     if not str(payload.get("tool_name", "")).endswith("spawn_agent"):
@@ -147,10 +202,10 @@ def decide(payload, used_names=None):
     if isinstance(task_name, str) and WORKER_NAME.fullmatch(task_name) and agent_type != "issue_worker":
         shown = "omitted" if agent_type is None else json.dumps(agent_type)
         return ROLE_REASON.replace("TASK_NAME", task_name, 1).replace("AGENT_TYPE", shown, 1)
-    if "agent_id" not in payload:
-        return check_pm_spawn(tool_input, used_names)
-    # A later rule for the PM spawn (the run budget) goes after check_pm_spawn.
-    return None
+    if "agent_id" in payload:
+        return None
+    # The budget rule runs before `record`, so a spawn denied for the budget records no name.
+    return check_pm_spawn(tool_input, used_names) or check_budget(payload, agent_type)
 
 
 def record_allowed(payload):

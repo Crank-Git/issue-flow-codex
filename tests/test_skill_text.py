@@ -257,6 +257,19 @@ class ReworkAndTeardownTest(unittest.TestCase):
         self.assertIn("forge.branch.delete", text)
         self.assertIn("git ls-remote --heads <remote> issue/<n>-<slug>", text)
 
+    def test_github_sub_merge_command_does_not_pass_delete_branch(self):
+        text = section("SKILL.md", "### C1 — Sub-merge gate", "### C2 — Batch gate")
+        command = re.search(r"`(gh pr merge <pr> --squash --subject[^`]*)`", text).group(1)
+        self.assertNotIn("--delete-branch", command)
+        self.assertIn("Do not pass `--delete-branch`", " ".join(text.split()))
+        self.assertIn("used by worktree", text)
+
+    def test_sub_merge_row_of_forge_reference_does_not_pass_delete_branch(self):
+        text = (SKILL_DIR.parent.parent / "references" / "forge.md").read_text()
+        row = next(line for line in text.splitlines()
+                   if line.startswith("| GitHub |") and "[skip ci]" in line)
+        self.assertNotIn("--delete-branch", row.split("|")[2])
+
     def test_worktrees_reference_does_not_mention_peers_py(self):
         self.assertNotIn("peers.py", (SKILL_DIR / "references/worktrees.md").read_text())
 

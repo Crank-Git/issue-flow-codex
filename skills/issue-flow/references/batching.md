@@ -42,7 +42,7 @@ Pointing an existing member branch at the integration branch would discard its c
 Sequenced members (dependency chains) launch only after their predecessor sub-merges,
 so they fork the **updated** integration branch and never conflict with it.
 
-Teardown: member branches are deleted at sub-merge (`--delete-branch`); the integration
+Teardown: the PM deletes member branches at sub-merge, after it removes the worker worktree; the integration
 branch is deleted at batch merge. A worker's worktree always holds commits, so the PM
 removes it with `worktree.py remove --task <task_name>` at sub-merge, and sweeps
 `git worktree list --porcelain` at batch merge, then `git worktree prune`

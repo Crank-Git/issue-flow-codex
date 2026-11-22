@@ -254,7 +254,7 @@ CI-free (sub-merge) and without it when the result must be tested (batch merge):
 
 | | CI-free result (sub-merge into the integration branch) | CI-visible result (batch merge into dev) |
 |---|---|---|
-| GitHub | `gh pr merge <pr> --squash --subject "<title> (#<pr>)" --body "[skip ci]" --delete-branch` | `gh pr merge <pr> --squash --subject "<title> (#<pr>)" --body "" --delete-branch` |
+| GitHub | `gh pr merge <pr> --squash --subject "<title> (#<pr>)" --body "[skip ci]"` (the PM deletes the member branch after it removes the worker worktree) | `gh pr merge <pr> --squash --subject "<title> (#<pr>)" --body "" --delete-branch` |
 | Gitea | `tea pr merge <pr> --style squash --title "<title> (#<pr>)" --message "[skip ci]"`, then `forge.branch.delete` | same with `--message ""` |
 | Gitea MCP | `pull_request_write(method: "merge", merge_style: "squash", title: "<title> (#<pr>)", message: "[skip ci]", delete_branch: true)` | same with `message: ""` |
 

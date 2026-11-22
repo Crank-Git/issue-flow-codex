@@ -854,6 +854,78 @@ class CrossCheckFetchTextTest(unittest.TestCase):
             self.assertIn("never with a web page fetch", text, path)
 
 
+def step_1c():
+    text = section("SKILL.md", "  1c. **Independent criteria check.**", "  2. **Conflict vs")
+    return " ".join(text.split())
+
+
+class CriteriaCheckGateTextTest(unittest.TestCase):
+    def test_step_1c_spawns_check_n_with_the_criteria_checker_role(self):
+        text = step_1c()
+        self.assertIn('`task_name: "check_<n>"`', text)
+        self.assertIn('`agent_type: "criteria_checker"`', text)
+        self.assertIn('`fork_turns: "none"`', text)
+        self.assertIn("`spawn_agent`", text)
+        self.assertIn("`wait_agent`", text)
+        self.assertIn("no `model`", text)
+
+    def test_check_brief_has_no_worker_claims(self):
+        text = step_1c()
+        for field in ("`issue`", "`head`", "`headSha`", "`base`", "`remote`", "`testCommand`", "`worktree`", "`criteria`"):
+            self.assertIn(field, text)
+        self.assertIn("Never put the worker's verdict, its `criteria`, its `localChecks`, the PR body, or a comment URL in the brief.", text)
+
+    def test_check_worktree_is_created_detached_and_removed(self):
+        text = step_1c()
+        self.assertIn("worktree.py create --project <dir> --task check_<n> --detach <headSha>", text)
+        self.assertIn("worktree.py remove --project <dir> --task check_<n> --merged", text)
+        self.assertLess(text.index("worktree.py create"), text.index("spawn_agent"))
+        self.assertIn("A stale check worktree", text)
+
+    def test_gate_merges_only_the_checked_head_sha(self):
+        text = step_1c()
+        self.assertIn("Merge only the commit at the checker's `headSha`", text)
+        self.assertIn("run the check again", text)
+
+    def test_rework_round_uses_followup_task_with_status_and_evidence(self):
+        text = step_1c()
+        self.assertIn("`followup_task` to `worker_<n>`", text)
+        self.assertIn("`status` and `evidence`", text)
+        self.assertIn('"Escalation" (below)', text)
+
+    def test_no_verdict_json_spawns_the_next_check_name_then_keeps_in_review(self):
+        text = step_1c()
+        self.assertIn("`check_<n>_2`", text)
+        self.assertIn("Keep the member `status:in-review`", text)
+
+    def test_check_names_run_out_to_status_blocked(self):
+        text = step_1c()
+        for name in ("`check_<n>`", "`check_<n>_2`", "`check_<n>_3`", "`check_<n>_4`"):
+            self.assertIn(name, text)
+        self.assertIn("all four names are used", text)
+        self.assertIn("`status:blocked`", text)
+
+    def test_standalone_gate_runs_the_check_with_base_dev(self):
+        text = " ".join(section("SKILL.md", "  **Standalone/hotfix", "  **Anything that goes back").split())
+        self.assertIn("criteria check of step 1c", text)
+        self.assertIn("`base` set to `dev`", text)
+
+    def test_check_cost_points_to_the_feature_10_eval(self):
+        text = step_1c()
+        self.assertIn("evals/BASELINE.md", text)
+        self.assertNotIn("$0.03", text)
+        self.assertNotIn("Sonnet", text)
+
+    def test_the_worker_reference_row_names_the_criteria_check(self):
+        row = next(l for l in (SKILL_DIR / "references/issue-worker.md").read_text().splitlines() if l.startswith("| `ready-to-merge`"))
+        self.assertIn("criteria check", row)
+        self.assertIn("step 1c", row)
+
+    def test_the_go_back_paragraph_covers_a_check_finding(self):
+        text = " ".join(section("SKILL.md", "  **Anything that goes back", "### C2").split())
+        self.assertIn("a criterion that the check finds `unmet` or `unclear`", text)
+
+
 if __name__ == "__main__":
     unittest.main()
 

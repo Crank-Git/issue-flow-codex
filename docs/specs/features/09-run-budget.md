@@ -2,7 +2,7 @@
 id: run-budget
 feature: Run budget and usage report
 epic: "Epic 7: Spawn limits and run budget"
-status: issued
+status: built
 issues: [138, 139]
 mockups: []
 ---

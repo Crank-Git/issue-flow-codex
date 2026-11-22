@@ -158,7 +158,7 @@ body.rv-open .layout { padding-right:21rem; }
 </ul></aside>
 <main>
 <h1>Feature: Spawn limits</h1>
-<p class="meta">Epic 7: Spawn limits and run budget &nbsp; <span class="badge">issued</span></p>
+<p class="meta">Epic 7: Spawn limits and run budget &nbsp; <span class="badge">built</span></p>
 <h3 id="spawn-limits-purpose">Purpose</h3>
 <p>This feature puts hard limits on what the PM can spawn. It changes the built features <a href="feature-worker-dispatch.html">Worker dispatch</a> and <a href="feature-plugin-packaging.html">Plugin packaging and hooks</a>.</p>
 <p>In the run that <a href="page-spend-analysis.html">Quota use of an operator run</a> records, the PM made up a phase plan, ended each phase with a worker checkpoint, and spawned about 400 subagents outside the plugin roles. The skill text forbade none of it in a form that a hook could check. This feature moves the limits from prose into the spawn guard:</p>

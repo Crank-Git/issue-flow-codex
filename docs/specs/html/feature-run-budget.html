@@ -158,7 +158,7 @@ body.rv-open .layout { padding-right:21rem; }
 </ul></aside>
 <main>
 <h1>Feature: Run budget and usage report</h1>
-<p class="meta">Epic 7: Spawn limits and run budget &nbsp; <span class="badge">issued</span></p>
+<p class="meta">Epic 7: Spawn limits and run budget &nbsp; <span class="badge">built</span></p>
 <h3 id="run-budget-purpose">Purpose</h3>
 <p>This feature lets the operator see and limit the quota of a PM run. It changes the built feature <a href="feature-loop-operations.html">Loop operations</a>: the run configuration, the digest, and the spawn guard.</p>
 <p>The run that <a href="page-spend-analysis.html">Quota use of an operator run</a> records used about 1.35 weekly quotas in 5.5 days, and nothing stopped it. The operator found out from the ChatGPT usage page. This feature adds two parts:</p>
@@ -251,7 +251,7 @@ body.rv-open .layout { padding-right:21rem; }
 </li>
 <li>FR-run-budget-28 — When <code>runBudgetPercent</code> is <code>null</code>, or the rollout has no <code>rate_limits</code>, the spawn guard applies no budget rule.
 </li>
-<li>FR-run-budget-28a — The run budget has a resolution of 1 point, because <code>used_percent</code> is a whole number. A budget of 1 trips at the next whole-number step of <code>used_percent</code>, which can be less than one full point of use.
+<li>FR-run-budget-32 — The run budget has a resolution of 1 point, because <code>used_percent</code> is a whole number. A budget of 1 trips at the next whole-number step of <code>used_percent</code>, which can be less than one full point of use.
 </li>
 </ul>
 <h4 id="run-budget-pm-behaviour">PM behaviour</h4>

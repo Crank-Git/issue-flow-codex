@@ -64,3 +64,41 @@ builds the Codex dispatcher prompt from the text between `BRIEF START` and `BRIE
 `diff_scope`, `gh_log` (worker), and `checker_verdict`, `refs_unchanged`, `gh_log` (checker).
 The upstream README at the tag above defines the case format, the graders, and the schemas of
 `tracker.json` and the `gh` log.
+
+## Run the cases
+
+`scripts/run_evals.py` runs the cases of one suite on `codex exec` and grades each run. It
+ports `scripts/run-evals.py` of upstream. A run uses the quota of the operator's Codex
+account, so run it only on request.
+
+```
+python3 scripts/run_evals.py --suite worker|checker [--case <glob>] [--tag <tag>] [--runs N]
+    [--out <dir>] [--worker-model <id>] [--worker-effort <level>] [--keep]
+```
+
+Each run has a new sandbox: a git repo with a local bare origin, the case tracker, the fake
+`gh` first on `PATH`, and an isolated `CODEX_HOME`. The isolated home links `auth.json` from
+`~/.codex/` (never a copy), holds `config.toml` with the `issue_flow` permission profile, and
+holds a copy of `roles/*.toml` in `agents/`. The runner never writes to `~/.codex/`.
+
+- The dispatcher runs `codex exec -m gpt-6-luna` with `approval_policy="never"` and stdin
+  closed. It spawns one `issue_worker` (worker suite) or `criteria_checker` (checker suite)
+  with `fork_turns: "none"` and the brief of the case.
+- `--worker-model` and `--worker-effort` change `model` and `model_reasoning_effort` in the
+  isolated copy of the role that the suite spawns: `issue-worker.toml` for the worker suite,
+  `criteria-checker.toml` for the checker suite. The role file model wins over a spawn model
+  (codex-harness fact 31). The files in `roles/` stay unchanged.
+- The hidden tests are copied into a separate clone after the agent has finished.
+- `large` cases run last.
+- `IFE_CODEX` replaces the `codex` binary. The tests use it with `tests/fake_codex.py`.
+
+The runner writes `results.json` and `summary.json` in `evals/results/<UTC time>/`, and
+`<case>/run-<n>/` with the Codex output, the `gh` log, and the root rollout files (for the
+quota samples). A record holds `case`, `run`, `worker_model`, `worker_effort`,
+`dispatcher_model`, `graders` (type, `passed`, `detail`), `outcome`, `error`, `duration_s`,
+`usage` (the `scripts/usage.py` totals of all rollouts of the run), and `last_message`.
+
+The `outcome` is `pass` (every grader passed), `fail`, or `error`. A run is an `error` when it
+times out, when `codex` exits non-zero with no events, or when the sandbox refuses a command of
+the agent. `summary.json` counts errors apart from failures. Its pass rate, hidden-test pass
+rate, and mean input and output tokens take only the runs that are not an `error`.

@@ -1968,3 +1968,22 @@ path = "tests/test_eval_cases.py"
 mode = "new"
 upstream_sha256 = ""
 notes = "Port-only file."
+
+[[file]]
+path = "scripts/run_evals.py"
+mode = "rewritten"
+upstream_sha256 = "fcf06d08ff53311e7c136ae068208db026ed145b85e7ea79a107df8c70cd1404"
+notes = "Runs `codex exec` in an isolated `CODEX_HOME` with the role files of the tree, instead of `claude -p`. The graders `hidden_tests`, `verdict`, `diff_scope`, `gh_log`, `checker_verdict`, `refs_unchanged` are ported. The `llm` and `spawns` graders, the pm suite, and the cost budget are dropped; usage comes from `scripts/usage.py`."
+upstream_path = "scripts/run-evals.py"
+
+[[file]]
+path = "tests/test_run_evals.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file."
+
+[[file]]
+path = "tests/fake_codex.py"
+mode = "new"
+upstream_sha256 = ""
+notes = "Port-only file. The fake `codex` of the runner tests."

@@ -237,5 +237,25 @@ class SerializeTest(unittest.TestCase):
                          ("https://example.invalid/r", "v1", "abc"))
 
 
+class RealLockTest(unittest.TestCase):
+    """Read the repository's own `upstream.lock`."""
+
+    @classmethod
+    def setUpClass(cls):
+        with (ROOT / "upstream.lock").open("rb") as handle:
+            cls.lock = tomllib.load(handle)
+        cls.files = {entry["path"]: entry for entry in cls.lock["file"]}
+
+    def test_lock_names_v0_21_0(self):
+        self.assertEqual(self.lock["tag"], "issue-flow--v0.21.0")
+        self.assertEqual(self.lock["commit"], "39f2261b11cc1a5c6cf75ee1310bc2419767644f")
+
+    def test_lock_modes_for_new_upstream_files(self):
+        self.assertEqual(self.files["agents/criteria-checker.md"]["mode"], "rewritten")
+        self.assertEqual(self.files["scripts/pricing.json"]["mode"], "dropped")
+        self.assertIn("price per token", self.files["scripts/pricing.json"]["notes"])
+        self.assertEqual(self.files["scripts/usage.py"]["mode"], "rewritten")
+
+
 if __name__ == "__main__":
     unittest.main()

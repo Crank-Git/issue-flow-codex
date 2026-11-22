@@ -143,6 +143,35 @@ class GuardSpawnTest(HookCase):
             with self.subTest(task_name=name):
                 self.assertAllowed(spawn(task_name=name, agent_type=agent_type))
 
+    def test_allows_the_names_that_the_skill_text_uses(self):
+        cases = [("explorer", "survey_3"), ("explorer", "deploylog_abc1234"),
+                 ("review_scribe", "review_scribe_2026-11-22-checkout-flow"),
+                 ("issue_worker", "fix_134")]
+        for agent_type, name in cases:
+            with self.subTest(task_name=name):
+                self.assertAllowed(spawn(task_name=name, agent_type=agent_type))
+
+    def test_denies_a_malformed_skill_text_name(self):
+        cases = [("explorer", "survey_"), ("explorer", "deploylog_abc12"),
+                 ("review_scribe", "review_scribe_Bad_Slug"), ("issue_worker", "fix_x")]
+        for agent_type, name in cases:
+            with self.subTest(task_name=name):
+                self.assertDenied(spawn(task_name=name, agent_type=agent_type))
+
+    def test_denies_a_second_fix_without_the_first(self):
+        reason = self.assertDenied(spawn(task_name="fix_134_2", agent_type="issue_worker"))
+        self.assertIn("fix_134", reason)
+
+    def test_allows_the_fix_chain_in_order(self):
+        for name in ("fix_134", "fix_134_2", "fix_134_3"):
+            with self.subTest(task_name=name):
+                self.assertAllowed(spawn(task_name=name, agent_type="issue_worker"))
+
+    def test_denies_a_third_fix_without_the_second(self):
+        self.assertAllowed(spawn(task_name="fix_134", agent_type="issue_worker"))
+        reason = self.assertDenied(spawn(task_name="fix_134_3", agent_type="issue_worker"))
+        self.assertIn("fix_134_2", reason)
+
     def test_subagent_default_gets_no_allowlist_deny(self):
         self.assertAllowed(subagent(task_name="helper_1", agent_type="default"))
 
@@ -287,12 +316,6 @@ class RunBudgetTest(HookCase):
             with self.subTest(role=role):
                 self.assertAllowed(self.pm_spawn(name, role))
 
-    def test_criteria_checker_not_budget_denied(self):
-        self.configure('{"runBudgetPercent": 15}')
-        self.seed([[10.0, R1]])
-        self.write_rollout(token_count_line(26.0))
-        self.assertAllowed(self.pm_spawn("check_42", "criteria_checker"))
-
     def test_null_budget_no_deny(self):
         self.configure('{"runBudgetPercent": null}')
         self.seed([[10.0, R1]])
@@ -399,6 +422,15 @@ class RunBudgetTest(HookCase):
         started = time.monotonic()
         self.assertDenied(self.pm_spawn())
         self.assertLess(time.monotonic() - started, 1.0)
+
+    def test_records_an_allowed_spawn_when_the_rollout_has_non_object_lines(self):
+        self.configure('{"runBudgetPercent": 15}')
+        self.seed([[10.0, R1]])
+        self.write_rollout('["token_count"]\n', '42\n', '"token_count"\n', token_count_line(12.0),
+                           '["token_count"]\n')
+        self.assertAllowed(self.pm_spawn())
+        names = json.loads((self.plugin_data / f"spawns-{SESSION_ID}.json").read_text())["names"]
+        self.assertIn("worker_42", names)
 
     def test_ignores_a_token_count_event_before_the_last_1mib(self):
         self.configure('{"runBudgetPercent": 15}')

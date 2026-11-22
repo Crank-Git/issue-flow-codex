@@ -32,8 +32,8 @@ import json
 import os
 import sys
 
-# In real rollouts `resets_at` moves by 1 to 3 s inside one window. Only a larger
-# move starts a new window.
+# In real rollouts `resets_at` moves by 1 to 3 s inside one window. Only a move above
+# 3600 s starts a new window.
 WINDOW_TOLERANCE_S = 3600
 TOTAL_FIELDS = (
     ("input", "input_tokens"),
@@ -88,7 +88,7 @@ def quota_sample(event):
     return used, resets
 
 
-def quota_share(samples, tolerance_s=WINDOW_TOLERANCE_S):
+def quota_share(samples):
     """Return the quota share of `samples`, a time-ordered list of (used_percent, resets_at).
 
     The first window counts from its first sample. A later window counts from 0, because
@@ -99,7 +99,7 @@ def quota_share(samples, tolerance_s=WINDOW_TOLERANCE_S):
         return None
     windows = [[samples[0], samples[0]]]
     for previous, current in zip(samples, samples[1:]):
-        if abs(current[1] - previous[1]) > tolerance_s:
+        if abs(current[1] - previous[1]) > WINDOW_TOLERANCE_S:
             windows.append([current, current])
         else:
             windows[-1][1] = current
@@ -131,7 +131,9 @@ def last_token_count(path, max_bytes=None):
             entry = json.loads(line)
         except ValueError:
             continue
-        payload = entry.get("payload") if isinstance(entry, dict) else None
+        if not isinstance(entry, dict):
+            continue
+        payload = entry.get("payload")
         if entry.get("type") == "event_msg" and isinstance(payload, dict) and payload.get("type") == "token_count":
             return payload
     return None

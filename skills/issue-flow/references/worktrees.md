@@ -9,8 +9,8 @@ it, and what the PM does when a removal is refused.
   worker (SKILL.md, Stage B step 5). The script prints the `path`. The PM copies it into
   the brief field `worktree`.
 - The worktree lives under `.worktrees/<task_name>` in the project directory. The
-  `task_name` is `worker_<n>`, or `worker_<n>_c1` or `worker_<n>_c2` for the replacement after checkpoint
-  `k`.
+  `task_name` is `worker_<n>`, or a chain name for a replacement: `worker_<n>_c1`, `worker_<n>_c2`,
+  `worker_<n>_e1`, or `worker_<n>_e1_c1`. A batch-gate fix worker uses `fix_<n>`.
 - No agent in the run moves its session into a worktree. Codex has no tool for it. The PM
   drives a worktree with `git -C <path>`, and a worker works in the `worktree` path of its
   brief.

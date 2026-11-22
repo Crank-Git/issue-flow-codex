@@ -12,17 +12,17 @@ Two rules apply to every spawn, both on readable fields:
    stop after one issue. Upstream measured a fork that ran the PM loop for 52 minutes and
    merged to `dev` with no PM gate. The inherited history also inflates every request
    (openai/codex #58291).
-2. Deny a spawn whose `task_name` is a worker name (`worker_<n>` or `worker_<n>_c<k>`,
-   FR-worker-dispatch-10 and -11) unless `agent_type` is `issue_worker`. Without the role,
+2. Deny a spawn whose `task_name` is a worker name (`worker_<n>`, `worker_<n>_c1`, `worker_<n>_c2`,
+   `worker_<n>_e1`, or `worker_<n>_e1_c1`; FR-worker-dispatch-10 and -11) unless `agent_type` is `issue_worker`. Without the role,
    the role guard and the role's model do not apply.
 
 A payload with no `agent_id` is a PM spawn (codex-harness fact 19). A PM spawn also meets
 the limits of docs/specs/features/07-spawn-limits.md: a role allowlist, a `task_name` pattern
-for each role, no reused name, and no gap in a worker chain. `hooks/spawn_state.py` keeps the
+for each role, no reused name, and no gap in a worker chain or a fix chain. `hooks/spawn_state.py` keeps the
 names of the session in `$PLUGIN_DATA`. Without `PLUGIN_DATA`, the reuse and chain rules
 do not apply.
 
-The run budget (docs/specs/features/09-run-budget.md) is a third PM rule. With `runBudgetPercent`
+The run budget (docs/specs/features/09-run-budget.md) is a further PM rule. With `runBudgetPercent`
 set in `.issue-flow.codex.json`, the guard denies `issue_worker` and `explorer` spawns once the
 run share of the weekly quota reaches it. It reads the last 1 MiB of the `transcript_path` rollout
 and keeps samples in `hooks/budget_state.py`.
@@ -46,24 +46,29 @@ import re
 import sys
 from pathlib import Path
 
-from budget_state import record_sample, usage
+from budget_state import record_sample
 from spawn_state import read_names, record, state_path
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "scripts"))
+import usage  # noqa: E402
 
 WORKER_NAME = re.compile(r"worker_\d+(_c\d+)?")
 
 # Each pattern is a full match. `<n>`, `<pr>` and `<k>` are decimal, `<sha7>` is 7 hex digits.
 ROLE_PATTERNS = {
-    "issue_worker": (r"worker_\d+(_c1|_c2|_e1|_e1_c1)?",
-                     "worker_<n>, worker_<n>_c1, worker_<n>_c2, worker_<n>_e1, worker_<n>_e1_c1"),
+    "issue_worker": (r"worker_\d+(_c1|_c2|_e1|_e1_c1)?|fix_\d+(_[2-9]|_[1-9]\d+)?",
+                     "worker_<n>, worker_<n>_c1, worker_<n>_c2, worker_<n>_e1, worker_<n>_e1_c1, "
+                     "fix_<n>, fix_<n>_<k>"),
     "criteria_checker": (r"check_\d+(_[234])?", "check_<n>, check_<n>_2, check_<n>_3, check_<n>_4"),
     "ci_watcher": (r"(ci_\d+|deploy_[0-9a-f]{7}|suite_\d+)(_r2)?",
                    "ci_<pr>, ci_<pr>_r2, deploy_<sha7>, deploy_<sha7>_r2, suite_<n>, suite_<n>_r2"),
     "deploy_verifier": (r"verify_deploy_[0-9a-f]{7}", "verify_deploy_<sha7>"),
-    "explorer": (r"(locate_\d+_\d+|docs_\d+|crosscheck_\d+|batchreview_\d+)",
-                 "locate_<n>_<k>, docs_<n>, crosscheck_<n>, batchreview_<n>"),
+    "explorer": (r"(locate_\d+_\d+|docs_\d+|crosscheck_\d+|batchreview_\d+|survey_\d+|deploylog_[0-9a-f]{7})",
+                 "locate_<n>_<k>, docs_<n>, crosscheck_<n>, batchreview_<n>, survey_<k>, deploylog_<sha7>"),
     "code_auditor": (r"code_auditor", "code_auditor"),
     "ux_explorer": (r"ux_[a-z0-9_]+", "ux_<slug>"),
-    "review_scribe": (r"review_scribe(_\d+)?", "review_scribe, review_scribe_<k>"),
+    "review_scribe": (r"review_scribe(_\d+|_[a-z0-9-]+)?",
+                      "review_scribe, review_scribe_<k>, review_scribe_<slug>"),
 }
 
 # FR-run-budget-25: the budget stops new work. The gate roles stay free so that live work can finish.
@@ -73,6 +78,8 @@ TAIL_BYTES = 1 << 20
 # FR-spawn-limits-12: a worker name needs a spawn of its predecessor.
 WORKER_PARTS = re.compile(r"(worker_\d+)(_c1|_c2|_e1_c1|_e1)?")
 WORKER_PREDECESSOR = {"_c1": "", "_e1": "", "_c2": "_c1", "_e1_c1": "_e1"}
+# The fix chain of the batch gate: `fix_<n>_2` needs `fix_<n>`, `fix_<n>_<k>` needs `fix_<n>_<k-1>`.
+FIX_PARTS = re.compile(r"(fix_\d+)(?:_(\d+))?")
 
 FORK_REASON = (
     "issue-flow spawn guard: this spawn_agent call has fork_turns FORK_TURNS. A subagent "
@@ -125,6 +132,16 @@ def fill(template, task_name, agent_type, patterns="", predecessor=""):
             .replace("PATTERNS", patterns).replace("PREDECESSOR", predecessor))
 
 
+def chain_predecessor(task_name):
+    """Return the name that must be spawned before `task_name`, or "" when it starts a chain."""
+    fix = FIX_PARTS.fullmatch(task_name)
+    if fix:
+        step = int(fix.group(2) or 1)
+        return "" if step == 1 else fix.group(1) if step == 2 else f"{fix.group(1)}_{step - 1}"
+    parts = WORKER_PARTS.fullmatch(task_name)
+    return parts.group(1) + WORKER_PREDECESSOR[parts.group(2)] if parts.group(2) else ""
+
+
 def check_pm_spawn(tool_input, used_names):
     """Return the deny reason for a PM spawn, or None. `used_names` is None without state."""
     task_name = tool_input.get("task_name")
@@ -140,11 +157,9 @@ def check_pm_spawn(tool_input, used_names):
         return None
     if task_name in used_names:
         return fill(REUSE_REASON, task_name, shown_type, patterns)
-    parts = WORKER_PARTS.fullmatch(task_name)
-    if agent_type == "issue_worker" and parts.group(2):
-        predecessor = parts.group(1) + WORKER_PREDECESSOR[parts.group(2)]
-        if predecessor not in used_names:
-            return fill(CHAIN_REASON, task_name, shown_type, patterns, predecessor)
+    predecessor = chain_predecessor(task_name) if agent_type == "issue_worker" else ""
+    if predecessor and predecessor not in used_names:
+        return fill(CHAIN_REASON, task_name, shown_type, patterns, predecessor)
     return None
 
 

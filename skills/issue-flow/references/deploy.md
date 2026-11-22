@@ -147,7 +147,7 @@ removes it when the fix deploys and verifies.
 | `watch-error` | The status command itself failed — usually a permission refusal or an auth problem. Fix the cause (update the `issue_flow` permission profile, re-authenticate) and relaunch the watch. Never a pass. |
 
 **Classify the cause before routing a failure.** After a free-slot check with `list_agents`,
-delegate the log read to one `spawn_agent` call (`agent_type: "explorer"`, `fork_turns: "none"`);
+delegate the log read to one `spawn_agent` call (`agent_type: "explorer"`, `task_name: "deploylog_<sha7>"`, `fork_turns: "none"`);
 take back the failing step, a short excerpt, and one of:
 
 - `code-regression` — build/test/runtime error traceable to the change.

@@ -119,7 +119,7 @@ memory — see [`../../references/external-apis.md`](../../references/external-a
 
 After each question message, end your turn and wait for the operator's answer. Continue
 the interview in a later turn. Use `spawn_agent` with `agent_type: "explorer"`,
-`fork_turns: "none"`, and `model: "gpt-6-luna"` for a read-only survey when a thread is
+`fork_turns: "none"`, `model: "gpt-6-luna"`, and `task_name: "survey_<k>"` (`<k>` counts from 1) for a read-only survey when a thread is
 free. Check `list_agents` before each spawn. If no slot is free, do the survey in your
 current thread.
 

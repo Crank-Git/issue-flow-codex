@@ -71,7 +71,7 @@ against the code.
 
 Use `spawn_agent` to fan out **read-only survey agents** (`explorer`; one per area, in
 parallel) and have each return structured findings with `file:line` evidence. Set
-`fork_turns: "none"` and `model: "gpt-6-luna"` on every spawn. Check `list_agents`
+`fork_turns: "none"`, `model: "gpt-6-luna"`, and `task_name: "survey_<k>"` (`<k>` counts from 1) on every spawn. Check `list_agents`
 before each spawn. Size the fan-out to the repo — a small repo may merge areas, a
 monorepo may need one pass per package — but cover all of:
 
@@ -121,7 +121,7 @@ question budget is smaller, because the code answered the mechanical half. Ask a
 
 After each question message, end your turn and wait for the operator's answer. Continue
 the interview in a later turn. Use `spawn_agent` with `agent_type: "explorer"`,
-`fork_turns: "none"`, and `model: "gpt-6-luna"` for read-only surveys. Check
+`fork_turns: "none"`, `model: "gpt-6-luna"`, and `task_name: "survey_<k>"` for read-only surveys. Check
 `list_agents` before each spawn. If no slot is free, do that survey in your current
 thread.
 

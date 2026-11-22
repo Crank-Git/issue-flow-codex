@@ -31,7 +31,7 @@ external interfaces from fetched docs only, mockup and diagram obligations inclu
    change lands on built behaviour — the relevant code, so the delta is written
    against reality. Survey the relevant files with an `explorer` agent when a free
    thread slot is available. Use `spawn_agent` with `agent_type: "explorer"`,
-   `fork_turns: "none"`, and `model: "gpt-6-luna"`; check `list_agents` before each spawn.
+   `fork_turns: "none"`, `model: "gpt-6-luna"`, and `task_name: "survey_<k>"` (`<k>` counts from 1); check `list_agents` before each spawn.
    If no slot is free, survey the files in your current thread. Ask plain-text numbered
    questions only for product intent the request leaves open. Ask at most four questions
    per message, then end your turn and wait for the operator's answer. Continue in a

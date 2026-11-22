@@ -199,6 +199,11 @@ class LastTokenCountTest(unittest.TestCase):
             path = self.write(tmp, [json.dumps({"type": "other"})])
             self.assertIsNone(usage.last_token_count(path))
 
+    def test_last_token_count_skips_a_line_that_is_not_an_object(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            path = self.write(tmp, [self.event(3), '["token_count"]', '42', '"token_count"'])
+            self.assertEqual(usage.quota_sample(usage.last_token_count(path)), (3, R1))
+
     def test_last_token_count_reads_tail_only(self):
         filler = json.dumps({"type": "filler", "text": "x" * 1000})
         with tempfile.TemporaryDirectory() as tmp:

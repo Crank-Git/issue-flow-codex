@@ -116,7 +116,7 @@ unit of *engineering*, not a heading in the spec:
 
 Survey the spec and issue coverage with `explorer` agents when a free thread slot is
 available. Use `spawn_agent` with `agent_type: "explorer"`, `fork_turns: "none"`,
-and `model: "gpt-6-luna"`. Check `list_agents` before each spawn. If no slot is free,
+`model: "gpt-6-luna"`, and `task_name: "survey_<k>"` (`<k>` counts from 1). Check `list_agents` before each spawn. If no slot is free,
 survey in your current thread.
 
 Show the user a compact table first — epics, derived sub-issue titles and counts, ready

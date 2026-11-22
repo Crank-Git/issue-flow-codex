@@ -341,10 +341,6 @@ class RunConfigurationTextTest(unittest.TestCase):
         self.assertIn("only the Codex questions", text)
 
 
-if __name__ == "__main__":
-    unittest.main()
-
-
 def phase_0():
     """Phase 0 without step 11, whose run-configuration text another issue ports."""
     text = section("SKILL.md", "# Phase 0", "# The PM loop")
@@ -806,7 +802,7 @@ def turn_budget():
     return agent_section("issue-worker.md", "## Turn budget", "## Return contract")
 
 
-class SpawnLimitTextTest(unittest.TestCase):
+class WorkerRoleSpawnLimitTextTest(unittest.TestCase):
     def test_worker_checkpoints_only_at_turn_budget(self):
         text = turn_budget()
         self.assertNotIn("fresh phase", text)
@@ -847,3 +843,7 @@ class SpawnLimitTextTest(unittest.TestCase):
                 part = " ".join(text[text.index(start):].split("\n" + end)[0].split())
                 self.assertIn("start a new Codex session with `codex -p issue-flow -a never`", part)
                 self.assertIn("`$issue-flow:issue-flow`", part)
+
+
+if __name__ == "__main__":
+    unittest.main()

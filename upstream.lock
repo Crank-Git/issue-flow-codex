@@ -1080,7 +1080,7 @@ notes = "port-only: live worker apply_patch payload inside a worktree (#108, gat
 path = "scripts/usage.py"
 mode = "new"
 upstream_sha256 = ""
-notes = "port-only: ported from upstream scripts/usage.py at issue-flow--v0.21.0 (#138)"
+notes = "Ported from upstream scripts/usage.py (issue-flow--v0.21.0); reads Codex rollouts."
 
 [[file]]
 path = "tests/test_usage.py"
